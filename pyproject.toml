@@ -1,0 +1,51 @@
+[project]
+name = "hybridrag"
+version = "0.1.0"
+description = "Hybrid-retrieval RAG over technical documentation, with grounded answers, verified citations, and a measured evaluation suite."
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "numpy>=2.1",
+    "typer>=0.15",
+    "structlog>=24.4",
+    "chromadb>=0.5.20",
+    "rank-bm25>=0.2.2",
+    "pypdf>=5.1",
+    "selectolax>=0.3.25",
+    "fastembed>=0.8.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "ruff>=0.8",
+    "mypy>=1.13",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hybridrag"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src", "tests"]
+# tests/fixtures holds corpus data, not source: those .py files are inputs to the
+# loader, deliberately written as documentation examples rather than typed code.
+exclude = "^tests/fixtures/"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"

@@ -1,0 +1,20 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# data artifacts (regenerable; keep the tree, drop the contents)
+data/raw/*
+data/processed/*
+data/index/*
+!data/**/.gitkeep
+
+# tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+*.egg-info/
+dist/
