@@ -1,0 +1,3 @@
+Plain text has no headings.
+
+It becomes a single section.
