@@ -51,3 +51,8 @@ exclude = "^tests/fixtures/"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --strict-markers"
+markers = [
+    # Touches the real embedding model, so it downloads ~67 MB on a cold cache.
+    # Run the fast suite with: pytest -m "not slow"
+    "slow: exercises a real model rather than a stand-in",
+]

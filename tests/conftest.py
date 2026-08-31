@@ -7,10 +7,12 @@ tests that a real PDF byte stream round-trips through extraction into pages we c
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
+import numpy as np
 import pytest
+from numpy.typing import NDArray
 
 FIXTURE_CORPUS = Path(__file__).parent / "fixtures" / "corpus"
 
@@ -97,3 +99,41 @@ class WordTokenCounter:
 @pytest.fixture
 def word_tokenizer() -> WordTokenCounter:
     return WordTokenCounter()
+
+
+class TopicEmbedder:
+    """Deterministic stand-in for a real embedder, satisfying `Embedder`.
+
+    Each sentence is placed on whichever topic word it contains, so distance between
+    consecutive sentences is 0 within a topic and 1 across a topic change. That makes the
+    semantic chunker's expected boundaries readable in the test itself, and keeps the suite
+    free of a model download and of a real model's judgement about what is similar.
+    """
+
+    model_name = "test-topic-embedder"
+    topics = ("alpha", "beta", "gamma", "delta")
+
+    @property
+    def dimension(self) -> int:
+        return len(self.topics)
+
+    def embed_documents(self, texts: Sequence[str]) -> NDArray[np.float32]:
+        rows = np.zeros((len(texts), self.dimension), dtype=np.float32)
+        for row, text in enumerate(texts):
+            lowered = text.lower()
+            for column, topic in enumerate(self.topics):
+                if topic in lowered:
+                    rows[row, column] = 1.0
+            if not rows[row].any():
+                rows[row, 0] = 1.0  # text mentioning no topic sits with the first
+        norms = np.linalg.norm(rows, axis=1, keepdims=True)
+        return (rows / np.where(norms == 0.0, 1.0, norms)).astype(np.float32, copy=False)
+
+    def embed_query(self, text: str) -> NDArray[np.float32]:
+        row: NDArray[np.float32] = self.embed_documents([text])[0]
+        return row
+
+
+@pytest.fixture
+def topic_embedder() -> TopicEmbedder:
+    return TopicEmbedder()
