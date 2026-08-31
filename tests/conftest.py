@@ -74,3 +74,26 @@ def make_pdf(tmp_path: Path) -> Callable[[list[str]], Path]:
 @pytest.fixture
 def fixture_corpus() -> Path:
     return FIXTURE_CORPUS
+
+
+class WordTokenCounter:
+    """Whitespace tokenizer satisfying `TokenCounter`.
+
+    Chunker tests care about boundary placement, not sub-word vocabulary. A deterministic
+    whitespace counter makes budgets readable in the test itself ("this text is 12 tokens")
+    and keeps the suite free of a model download. The real tokenizer is exercised
+    separately, against the real corpus.
+    """
+
+    def count(self, text: str) -> int:
+        return len(text.split())
+
+    def offsets(self, text: str) -> list[tuple[int, int]]:
+        import re
+
+        return [(m.start(), m.end()) for m in re.finditer(r"\S+", text)]
+
+
+@pytest.fixture
+def word_tokenizer() -> WordTokenCounter:
+    return WordTokenCounter()
