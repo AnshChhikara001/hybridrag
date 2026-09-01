@@ -1,0 +1,59 @@
+name: CI
+
+# Pull requests are where feature work is checked; pushes to main catch anything that
+# lands directly. Splitting it this way means a PR branch is checked once, not twice.
+# workflow_dispatch adds a "Run workflow" button for checking a branch on demand.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer commit makes an in-flight run's answer irrelevant. Cancelling it frees the
+# runner and keeps the reported status tied to the newest commit on the branch.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Least privilege: this workflow only reads the repository. Nothing here can push, tag,
+# or open anything, so a compromised dependency in a step has nothing to work with.
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: lint, types, tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10
+        with:
+          # Pinned so a uv release cannot change the build under us. Matches local.
+          version: "0.11.21"
+          python-version: "3.12"
+          # Caches the resolved environment, keyed on the lockfile: dependencies are
+          # downloaded once and reused until uv.lock actually changes.
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Install dependencies
+        # --locked fails the build if uv.lock disagrees with pyproject.toml, so CI can
+        # never silently resolve a different dependency set than the one committed.
+        run: uv sync --locked
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Formatting
+        run: uv run ruff format --check .
+
+      - name: Types
+        run: uv run mypy
+
+      - name: Tests
+        # "not slow" excludes the two tests that download the 67 MB embedding model.
+        # Everything else runs against the 16 KB fixture corpus committed to the repo,
+        # so this needs no network, no API key, and no external corpus.
+        run: uv run pytest -m "not slow"
