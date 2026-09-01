@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     raw_dir: Path = Path("data/raw")
     processed_dir: Path = Path("data/processed")
     index_dir: Path = Path("data/index")
+    # Kept outside index_dir on purpose: the index is a build artefact that gets wiped and
+    # rebuilt, while the cache is what makes rebuilding cheap. Deleting one must not
+    # destroy the other.
+    cache_dir: Path = Path("data/cache")
 
     # --- Chunking
     chunk_tokens: int = Field(default=512, ge=64, le=4096)
