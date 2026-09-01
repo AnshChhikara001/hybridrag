@@ -48,6 +48,12 @@ files = ["src", "tests"]
 # loader, deliberately written as documentation examples rather than typed code.
 exclude = "^tests/fixtures/"
 
+# rank_bm25 ships no type stubs. Scoped to that one module rather than relaxing
+# strictness globally, so everything else stays fully checked.
+[[tool.mypy.overrides]]
+module = ["rank_bm25.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --strict-markers"
