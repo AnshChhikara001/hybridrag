@@ -38,6 +38,8 @@ Full requirements: `docs/project-brief.md`. Operating rules: `CLAUDE.md`.
 
 | D13 | **Retrieval ground truth is an answer *span*, not a `section_id`** | `section_id` is derived from headings, and the structure-aware chunker splits on headings -- grading it against that rubric measures its own assumptions. It also admits false hits: a chunk clipping a section's edge lists that section without carrying its answer. `Section` and `Chunk` therefore carry `start_char`/`end_char`, and `Chunk.covers_span()` is the single relevance predicate. `section_ids` remain, demoted to citation provenance. |
 | D14 | **Report Recall@token-budget beside Recall@k** | Recall@k rewards strategies that emit larger chunks for being larger. Fixing the retrieved-context budget equalises what the generator actually sees. |
+| D18 | **OpenAI `text-embedding-3-small` is the working default; local `bge-small` stays supported** | Embedding the corpus locally took 28 minutes on one core and made the machine unusable; hosted takes 13 seconds for $0.0067. Local is kept as a documented zero-key path so a reviewer can run the project without an API key, and CI stays keyless because real-model tests are marked `slow` and excluded. Superseded the D2 default; D2's reasoning still holds for the fallback. |
+| D19 | **The corpus is fetched, pinned, and never vendored** | It lived only in a temp directory and vanished on a reboot. `scripts/fetch_corpus.sh` pins tag `0.115.6` so a re-fetch reproduces the same corpus and evaluation numbers stay comparable. Checking out `docs_src` and `fastapi` alongside the docs took unresolved includes from 1 to 0. |
 | D16 | **Semantic chunking stays heading-blind, overlap-free, and pure** | The loader knows every section boundary; feeding that in would make this a variant of the structure-aware chunker and Phase 4 would compare two spellings of one idea. No overlap, because a boundary chosen for a topic change is not worth blurring. Where a topic exceeds the token budget it is subdivided at the *next-largest* distance inside it, iteratively (not recursively -- `argmax` can land at a group edge, and a 10,611-token section would recurse once per sentence). |
 | D17 | **`Embedder` protocol owns the query/document asymmetry** | `bge` was trained with an instruction prefix on queries only; omitting it costs retrieval quality and applying it to documents costs it again. Keeping it inside the embedder means no caller can get it wrong, and the OpenAI adapter simply carries an empty instruction. The protocol also guarantees L2-normalised vectors, so cosine reduces to a dot product for Chroma, dedup, and semantic chunking alike. |
 | D15 | **Chunkers own boundary placement only** | `Chunker.chunk()` turns spans into validated chunks once, in the base class, so the three strategies differ in boundary placement and nothing else -- the variable Phase 4 isolates. |
@@ -58,8 +60,17 @@ GitHub Actions.
 
 ## Budget
 
-Ceiling **$1.00**. Committed so far: **$0.00**. Planned: **~$0.009** (D3, one-time).
-Everything else runs on free tiers or locally.
+Ceiling **$1.00**. **Spent to date: $0.0067.**
+
+| item | cost |
+|---|---|
+| OpenAI adapter smoke test (32 tokens) | $0.000001 |
+| Full corpus index, structure-aware (334,955 tokens) | $0.0067 |
+| **Total** | **$0.0067** |
+
+Re-indexing the same configuration is $0 -- the embedding cache is keyed on model and
+text. What costs money is each genuinely new chunking configuration, at ~$0.007 each.
+BM25 costs nothing: only the dense half of hybrid retrieval spends.
 
 ## Progress
 
@@ -69,7 +80,8 @@ Everything else runs on free tiers or locally.
 - [x] Phase 1.2 — multi-format loaders (155 docs, 1872 sections, 0 ID collisions)
 - [x] Phase 1.3a — fixed + structure-aware chunkers (0 offset drift, 0 content lost)
 - [x] Phase 1.3b — `Embedder` protocol + semantic chunker (all three strategies validated)
-- [ ] Phase 1.4 — dense + sparse indexing, dedup, ingest CLI ← *current*
+- [x] Vertical slice — tokenizer, BM25 index, Chroma index, embedding cache, OpenAI adapter
+- [ ] Vertical slice — chunk store, retriever with RRF, generation with citations ← *current*
 - [ ] Phase 2 — hybrid retrieval · [ ] Phase 3 — generation & citations
 - [ ] Phase 4 — evaluation · [ ] Phase 5 — API & dashboard · [ ] Phase 6 — polish
 
@@ -85,36 +97,29 @@ Everything else runs on free tiers or locally.
 
 ## Corpus facts (measured, not estimated)
 
-155 markdown files · 1.47 MB raw -> 1.68 MB processed (include expansion) ·
-**574,274 tokens** · 1,872 sections · 2,100 headings · 797 unique inline-code identifiers ·
-839 code fences · 265 sections (14.2%) exceed a 512-token budget and hold **50.5%** of all
-corpus tokens · 139 sections (7.4%) fall under 50 tokens.
+Pinned at FastAPI **0.115.6**. 141 markdown files, **140 with content** · 1,570 sections ·
+**0 unresolved includes** · 349 sections carry `@app.` examples only because `{* ... *}`
+directives are expanded. Token counts differ by tokenizer, which matters because one is
+billed: **360,501** OpenAI (cl100k) vs **464,184** bge.
 
-155 markdown files, of which **154 carry content** (`newsletter.md` is frontmatter only).
-Sentence units are short: median 63 tokens, **p10 15**, and 33% fall under 50 tokens --
-list items, table rows and one-line prose. That fact drives the semantic result below.
+Sentence units are short: median 63 tokens, p10 15, 33% under 50 tokens.
 
-Chunker output at 512/64, whole corpus, 0 offset drift and 0 unreachable characters in all
-three:
+Chunker output at 512/64:
 
-| strategy | chunks | max | median | p10 | fences intact | wall time |
-|---|---|---|---|---|---|---|
-| fixed | 1,337 | 512 | 512 | 464 | 82.1% | 2.6 s |
-| structure | 2,305 | 750 | 210 | 67 | **95.4%** | 5.1 s |
-| semantic | 2,767 | 512 | 167 | **17** | 93.6% | **1,671.8 s** |
+| strategy | chunks | billable tokens | cost/run | overlap |
+|---|---|---|---|---|
+| fixed | 1,097 | 408,132 | $0.0082 | 1.13x |
+| structure-aware | 1,892 | 363,642 | $0.0073 | 1.01x |
 
-Two measured findings, both to be reported rather than smoothed over:
+Fixed costs more because its 64-token overlap re-embeds 13% of the corpus.
 
-* **Semantic costs ~330x more wall time** (28 minutes vs 5 seconds) because it embeds every
-  sentence in the corpus. Phase 1.4 should persist sentence embeddings, or Phase 4's
-  configuration sweep is impractical.
-* **Semantic produces thin chunks**: p10 is 17 tokens against structure-aware's 67. Traced
-  to source on a 20-document sample -- chunks emitted straight from a topic group are 39%
-  under 50 tokens, while chunks produced by budget subdivision are only 14%. So the cause is
-  genuine adjacent percentile breakpoints over short sentence units, **not** the budget
-  code. Left uncorrected on purpose: the known remedy (embedding each sentence with a
-  neighbour buffer to damp the noise from short units) is a tuning change that belongs in
-  Phase 4, where there are retrieval metrics to judge it against.
+**Indexed, structure-aware, OpenAI embeddings:** 1,892 chunks · 2 requests ·
+**334,955 tokens billed** · **$0.0067** · dense build **13.1s**, sparse **0.2s**,
+end to end **17.4s**. Dense and sparse id sets match exactly. On disk: 28 MB Chroma,
+2.2 MB sparse JSON, 15 MB embedding cache.
+
+Against the same work locally at ~28 minutes, that is **~96x faster**.
+
 
 ## Next step
 
