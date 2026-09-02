@@ -3,7 +3,7 @@
 Recovery file. Current architecture, locked decisions and their rationale, progress, and
 the next step. Updated whenever a decision or milestone lands.
 
-**Last updated:** 2026-08-31 · **Status:** Phase 1 in progress (loaders + 2 of 3 chunkers done)
+**Last updated:** 2026-09-02 · **Status:** Vertical slice — retrieval works end to end
 
 ---
 
@@ -42,6 +42,9 @@ Full requirements: `docs/project-brief.md`. Operating rules: `CLAUDE.md`.
 | D19 | **The corpus is fetched, pinned, and never vendored** | It lived only in a temp directory and vanished on a reboot. `scripts/fetch_corpus.sh` pins tag `0.115.6` so a re-fetch reproduces the same corpus and evaluation numbers stay comparable. Checking out `docs_src` and `fastapi` alongside the docs took unresolved includes from 1 to 0. |
 | D16 | **Semantic chunking stays heading-blind, overlap-free, and pure** | The loader knows every section boundary; feeding that in would make this a variant of the structure-aware chunker and Phase 4 would compare two spellings of one idea. No overlap, because a boundary chosen for a topic change is not worth blurring. Where a topic exceeds the token budget it is subdivided at the *next-largest* distance inside it, iteratively (not recursively -- `argmax` can land at a group edge, and a 10,611-token section would recurse once per sentence). |
 | D17 | **`Embedder` protocol owns the query/document asymmetry** | `bge` was trained with an instruction prefix on queries only; omitting it costs retrieval quality and applying it to documents costs it again. Keeping it inside the embedder means no caller can get it wrong, and the OpenAI adapter simply carries an empty instruction. The protocol also guarantees L2-normalised vectors, so cosine reduces to a dot product for Chroma, dedup, and semantic chunking alike. |
+| D20 | **Fusion reads ranks, never scores** | BM25 is unbounded and corpus-dependent; cosine sits in [-1, 1]. Min-max normalising per query makes the fused ranking depend on each list's *spread*, so one outlier rescales everything under it. RRF reads only positions, so it needs no per-corpus calibration. `rank_constant` (RRF's `k`, renamed because `k` already means "how many results") is 60: rank 1 and rank 2 differ by 1.6%, so agreement between retrievers outranks either one's first place. |
+| D21 | **The chunk store is the corpus of record** | Chroma holds vectors plus two filter fields, BM25 holds analysed terms, and neither holds text. One SQLite file holds the chunks, so the indexes are comparable by identifier set alone and a re-chunk cannot leave one copy stale. `get_many` returns chunks **in the order requested**: the caller's sequence is a ranking, and SQL's own row order would silently reorder search results into something that reads as working retrieval and measures as noise. |
+| D22 | **Document discovery and include resolution use separate roots** | FastAPI keeps prose in `docs/en/docs` and its 684 example files in `docs_src`, a sibling. One root cannot serve both: narrow loses all 383 includes (and the identifiers that justify BM25), wide sweeps six `requirements*.txt` files into the corpus and rewrites every `relative_path` — and every id derived from one. |
 | D15 | **Chunkers own boundary placement only** | `Chunker.chunk()` turns spans into validated chunks once, in the base class, so the three strategies differ in boundary placement and nothing else -- the variable Phase 4 isolates. |
 
 ## Environment (measured)
@@ -60,13 +63,19 @@ GitHub Actions.
 
 ## Budget
 
-Ceiling **$1.00**. **Spent to date: $0.0067.**
+Ceiling **$1.00**. **Spent to date: $0.0076.**
 
 | item | cost |
 |---|---|
 | OpenAI adapter smoke test (32 tokens) | $0.000001 |
 | Full corpus index, structure-aware (334,955 tokens) | $0.0067 |
-| **Total** | **$0.0067** |
+| Wasted run: corpus root missing its code examples (44,152 tokens) | $0.0009 |
+| **Total** | **$0.0076** |
+
+The wasted run is recorded rather than quietly dropped: it embedded a prose-only corpus
+built from the wrong root, and is what led to D22. The corrected rebuild cost **$0.0000** —
+every chunk hit the cache, which also proves the rebuild reproduces the original chunk text
+byte for byte.
 
 Re-indexing the same configuration is $0 -- the embedding cache is keyed on model and
 text. What costs money is each genuinely new chunking configuration, at ~$0.007 each.
@@ -81,14 +90,23 @@ BM25 costs nothing: only the dense half of hybrid retrieval spends.
 - [x] Phase 1.3a — fixed + structure-aware chunkers (0 offset drift, 0 content lost)
 - [x] Phase 1.3b — `Embedder` protocol + semantic chunker (all three strategies validated)
 - [x] Vertical slice — tokenizer, BM25 index, Chroma index, embedding cache, OpenAI adapter
-- [ ] Vertical slice — chunk store, retriever with RRF, generation with citations ← *current*
+- [x] Vertical slice — chunk store, RRF retriever, reproducible build and query scripts
+- [ ] Vertical slice — generation with citations ← *current*
 - [ ] Phase 2 — hybrid retrieval · [ ] Phase 3 — generation & citations
 - [ ] Phase 4 — evaluation · [ ] Phase 5 — API & dashboard · [ ] Phase 6 — polish
 
 ## Known risks
 
-1. **Hybrid may not beat dense-only.** D1's identifier density makes it plausible, not
-   certain. A documented negative result with a diagnosis ships instead of a fudged table.
+1. ~~**Hybrid may not beat dense-only.**~~ First evidence in, on three hand-picked queries:
+   hybrid matches the better retriever every time and beats both on the identifier query.
+   Not yet a measurement — three queries chosen by hand are an illustration, and the golden
+   set in Phase 4 is what turns this into a number that can be reported.
+6. **Dense returns near-duplicate chunks from one document.** All three top results for a
+   query often come from the same page, so the generator sees one section three times
+   instead of three sources. Diversity is a Phase 2 concern, once metrics can judge it.
+7. **The retrieval comparison is only as good as the corpus.** A one-directional index
+   check let 1,892 stale vectors survive a rebuild undetected; verification is now
+   two-way, in `scripts/build_index.py`.
 2. **Free-tier rate limits are unpublished and may throttle Tier-2 eval.** Mitigated by D12.
 3. **8 GB during multi-container compose** — keep the service count and image sizes lean.
 4. **LLM-judge circularity** — mitigated by D11's human-agreement measurement.
@@ -117,6 +135,27 @@ Fixed costs more because its 64-token overlap re-embeds 13% of the corpus.
 **334,955 tokens billed** · **$0.0067** · dense build **13.1s**, sparse **0.2s**,
 end to end **17.4s**. Dense and sparse id sets match exactly. On disk: 28 MB Chroma,
 2.2 MB sparse JSON, 15 MB embedding cache.
+
+Reproduced by `scripts/build_index.py` in **7.6s** at **$0.0000** (fully cached), with all
+three artefacts verified to hold exactly the same 1,892 ids.
+
+## Retrieval, first end-to-end results
+
+Three hand-picked queries, top 3 per retriever, counting results from the canonical page:
+
+| query | dense only | sparse only | hybrid (RRF) |
+|---|---|---|---|
+| `how do I run it with docker` | **3/3** `docker.md` | 1/3 — wrong page first | **3/3** |
+| `response_model` | **3/3** `response-model.md` | 1/3 — changelog noise | **3/3** |
+| `HTTPException status_code` | 0/3 — misses the page | 1/3 `handling-errors.md` | **3/3** |
+
+Hybrid matches the stronger retriever on every query and beats both on the third. The
+mechanism is visible in the scores: hybrid's top result there was **dense rank 6 + sparse
+rank 11** — neither retriever's own first choice. Agreement promoted it, which is precisely
+what RRF is for.
+
+Caveat: three queries chosen by hand illustrate the mechanism, they do not measure it.
+Phase 4's golden set is what produces a number worth reporting.
 
 Against the same work locally at ~28 minutes, that is **~96x faster**.
 

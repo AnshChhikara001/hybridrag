@@ -45,7 +45,7 @@ select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["src", "tests"]
+files = ["src", "tests", "scripts"]
 # tests/fixtures holds corpus data, not source: those .py files are inputs to the
 # loader, deliberately written as documentation examples rather than typed code.
 exclude = "^tests/fixtures/"
