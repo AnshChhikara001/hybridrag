@@ -85,6 +85,38 @@ class TestMarkdownIncludes:
         doc = plain.load(fixture_corpus / "guide" / "basics.md")
         assert "@app.get" not in doc.text
 
+    def test_includes_can_resolve_from_a_root_outside_the_corpus(self, tmp_path: Path) -> None:
+        """FastAPI's layout: prose in `docs/en/docs`, examples in a sibling `docs_src`.
+
+        Widening the corpus root to reach them would sweep six `requirements*.txt` files
+        into the corpus and rewrite every relative path, so only resolution widens.
+        """
+        (tmp_path / "docs").mkdir()
+        (tmp_path / "docs_src").mkdir()
+        (tmp_path / "docs_src" / "example.py").write_text("@app.get('/items')\n")
+        page = tmp_path / "docs" / "page.md"
+        page.write_text("# Page\n\n{* ../../docs_src/example.py *}\n")
+
+        narrow = CorpusLoader(tmp_path / "docs")
+        wide = CorpusLoader(tmp_path / "docs", include_root=tmp_path)
+
+        assert "@app.get" not in narrow.load(page).text
+        assert narrow.missing_includes
+        assert "@app.get" in wide.load(page).text
+        assert wide.missing_includes == []
+
+    def test_an_include_cannot_escape_the_include_root_either(self, tmp_path: Path) -> None:
+        """The traversal guard follows the widened root rather than being dropped by it."""
+        corpus = tmp_path / "repo" / "docs"
+        corpus.mkdir(parents=True)
+        (tmp_path / "secret.py").write_text("SECRET = 'leaked'")
+        page = corpus / "page.md"
+        page.write_text("# P\n\n{* ../../../../secret.py *}\n")
+
+        doc = CorpusLoader(corpus, include_root=tmp_path / "repo").load(page)
+
+        assert "leaked" not in doc.text
+
     def test_include_cannot_escape_corpus_root(self, fixture_corpus: Path, tmp_path: Path) -> None:
         secret = tmp_path / "secret.py"
         secret.write_text("SECRET = 'leaked'")

@@ -25,7 +25,7 @@ from chromadb.api import ClientAPI
 from chromadb.config import Settings
 
 from hybridrag.embedding import Embedder
-from hybridrag.models import Chunk
+from hybridrag.models import Chunk, ChunkingStrategy
 
 # Chroma computes cosine distance as 1 - cosine_similarity, so this inverts back to a
 # similarity where larger is better, matching BM25's direction.
@@ -93,6 +93,19 @@ class DenseIndex:
         """Every id in the collection, so the sparse index can be checked against it."""
         return set(self.collection.get(include=[])["ids"])
 
+    def delete_strategy(self, strategy: ChunkingStrategy) -> int:
+        """Drop every vector belonging to one strategy, returning how many went.
+
+        Re-chunking with different parameters produces a different number of chunks, and
+        `upsert` alone leaves the previous run's surplus behind: the collection grows by
+        the difference and answers queries with vectors no chunk store can hydrate. This
+        is why `strategy` is carried in the metadata at all.
+        """
+        doomed = self.collection.get(where={"strategy": strategy.value}, include=[])["ids"]
+        if doomed:
+            self.collection.delete(ids=doomed)
+        return len(doomed)
+
     def add(self, chunks: Iterable[Chunk]) -> None:
         """Embed and index chunks, in batches Chroma will accept."""
         materialised = list(chunks)
@@ -110,7 +123,7 @@ class DenseIndex:
             # Only what a retrieval filter would need. Chunk text and full provenance live
             # in the chunk store, so there is one copy of the corpus, not two.
             metadatas=[
-                {"relative_path": chunk.relative_path, "strategy": str(chunk.strategy)}
+                {"relative_path": chunk.relative_path, "strategy": chunk.strategy.value}
                 for chunk in batch
             ],
         )

@@ -117,3 +117,19 @@ class TestModes:
         first.add([make_chunk("c1", "alpha content")])
         assert DenseIndex.in_memory(topic_embedder).chunk_ids() == set()
         assert first.chunk_ids() == {"c1"}
+
+
+def test_deleting_a_strategy_removes_only_its_vectors(topic_embedder: Embedder) -> None:
+    """Guards the desync a rebuild caused: 1,892 stale vectors survived an upsert-only run."""
+    dense = DenseIndex.in_memory(topic_embedder)
+    structure = make_chunk("s1", "alpha content")
+    fixed = make_chunk("f1", "beta content").model_copy(update={"strategy": ChunkingStrategy.FIXED})
+    dense.add([structure, fixed])
+
+    assert dense.delete_strategy(ChunkingStrategy.STRUCTURE) == 1
+    assert dense.chunk_ids() == {"f1"}
+
+
+def test_deleting_a_strategy_that_is_absent_is_a_no_op(index: DenseIndex) -> None:
+    assert index.delete_strategy(ChunkingStrategy.SEMANTIC) == 0
+    assert len(index) == 3
