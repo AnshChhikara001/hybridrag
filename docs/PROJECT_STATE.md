@@ -3,7 +3,7 @@
 Recovery file. Current architecture, locked decisions and their rationale, progress, and
 the next step. Updated whenever a decision or milestone lands.
 
-**Last updated:** 2026-09-02 · **Status:** Vertical slice — retrieval works end to end
+**Last updated:** 2026-09-04 · **Status:** Vertical slice complete — question in, cited answer out
 
 ---
 
@@ -26,7 +26,7 @@ Full requirements: `docs/project-brief.md`. Operating rules: `CLAUDE.md`.
 | D1 | **Corpus: FastAPI docs** (`fastapi/fastapi`, `docs/en/docs`, MIT) | Measured: 155 md files, 1.47 MB, ~400K tokens, 2,100 headings, **797 unique inline-code identifiers**. The identifier density is what gives BM25 a fair chance to beat dense retrieval — the project's core thesis. Verified before committing to it. |
 | D2 | **Default embedder: local `bge-small-en-v1.5`** (384-dim, ~130 MB) | Free and unlimited, so chunking parameter sweeps cost nothing. Runs offline → CI needs no secrets and no funding. Reviewers can index with zero API keys. |
 | D3 | **OpenAI `text-embedding-3-small` as a second adapter**, run **once** on the winning config | Turns "which embedder?" into a measured result (Recall@10, nDCG@10, latency, cost) instead of an assertion. Cost ≈ **$0.009** against a $0.10 allowance. |
-| D4 | **LLM: Gemini 2.5 Flash, free tier**, behind a provider-agnostic adapter | $0. Rejected gpt-5-nano ($0.05/$0.40): a full eval run would cost ~$0.13 **and** nano-class judgement is weaker than Flash — paying more for worse. Adapter makes this reversible in one config line. |
+| D4 | ~~Gemini 2.5 Flash~~ → **`gemini-3.8-flash` free tier, with `gpt-5-nano-2025-08-07` as the paid fallback**, both behind one adapter | **Revised 2026-09-04: `gemini-2.5-flash` now returns 404 for new keys.** Exactly why an exact model id is pinned and never a `-latest` alias — the retirement was visible immediately instead of silently changing what produced a number. Free tier still preferred at $0/run versus ~$0.11; the fallback exists because the free tier is unreliable, not because it is cheap. |
 | D5 | **Two-tier evaluation** | **Tier 1** (retrieval: Recall@k, MRR, nDCG@k) needs no LLM — deterministic, free, seconds, runs in CI on every push. **Tier 2** (LLM-judged answer quality) runs periodically on the Tier-1 winner plus contrasts. The brief's approach — full LLM eval × 3 strategies — costs **$2.19–$5.05 per run** on the cheapest paid models, i.e. 2–5× the entire project budget, per run. |
 | D6 | **Vector store: Chroma, dual-mode** | Identical client API embedded (single container → HF Spaces) and server (a real service in compose → Docker networking to learn). One code path, config switch, dev/prod parity. Qdrant rejected: no true embedded mode, so deploy would diverge from dev. |
 | D7 | **Sparse: `rank_bm25` + hand-written tokenizer** | A default tokenizer shreds `response_model` → `response`+`model`, destroying the exact-match edge that justifies hybrid at all. `rank_bm25` accepts pre-tokenized input, so the tokenizer is ours and unit-testable. |
@@ -42,6 +42,9 @@ Full requirements: `docs/project-brief.md`. Operating rules: `CLAUDE.md`.
 | D19 | **The corpus is fetched, pinned, and never vendored** | It lived only in a temp directory and vanished on a reboot. `scripts/fetch_corpus.sh` pins tag `0.115.6` so a re-fetch reproduces the same corpus and evaluation numbers stay comparable. Checking out `docs_src` and `fastapi` alongside the docs took unresolved includes from 1 to 0. |
 | D16 | **Semantic chunking stays heading-blind, overlap-free, and pure** | The loader knows every section boundary; feeding that in would make this a variant of the structure-aware chunker and Phase 4 would compare two spellings of one idea. No overlap, because a boundary chosen for a topic change is not worth blurring. Where a topic exceeds the token budget it is subdivided at the *next-largest* distance inside it, iteratively (not recursively -- `argmax` can land at a group edge, and a 10,611-token section would recurse once per sentence). |
 | D17 | **`Embedder` protocol owns the query/document asymmetry** | `bge` was trained with an instruction prefix on queries only; omitting it costs retrieval quality and applying it to documents costs it again. Keeping it inside the embedder means no caller can get it wrong, and the OpenAI adapter simply carries an empty instruction. The protocol also guarantees L2-normalised vectors, so cosine reduces to a dot product for Chroma, dedup, and semantic chunking alike. |
+| D23 | **Two independent refusal paths, not one** | The pre-generation gate reads dense cosine and catches *out-of-domain* questions without spending a request. The model's own sentinel catches *in-domain but unanswerable* ones, which the gate cannot see. Measured: "capital of France" scores 0.141 and is refused for $0.000000 in 0.00s; "FastAPI's enterprise support SLA" scores 0.495, clears the gate correctly, and is refused by the model after reading the chunks. Either layer alone gets one of these wrong. |
+| D24 | **The prompt must say when to answer, not only when to refuse** | An early draft said "partial information is not an answer" and produced a false refusal on "how do I run FastAPI in Docker" with five chunks of `docker.md` in context, one a complete Dockerfile. Cause was an interaction, isolated by testing one variable at a time: the strict prompt answers correctly *with* reasoning enabled, and a plain prompt answers correctly *without* it. A model with no reasoning budget cannot weigh sufficiency, so refusal wording wins by default. Chunked retrieval always delivers partial context, so the refusal condition is now narrow — "only when no block relates to the question at all". |
+| D25 | **Two generation providers, because one was not enough** | Gemini's free tier returned 503 then 429 mid-build, exactly the hostility D12 assumed. `LanguageModel` made the OpenAI adapter a drop-in, so the slice finished on `gpt-5-nano` at **$0.000125 per query** while Gemini was unavailable. D4's "reversible in one config line" is now demonstrated rather than asserted. |
 | D20 | **Fusion reads ranks, never scores** | BM25 is unbounded and corpus-dependent; cosine sits in [-1, 1]. Min-max normalising per query makes the fused ranking depend on each list's *spread*, so one outlier rescales everything under it. RRF reads only positions, so it needs no per-corpus calibration. `rank_constant` (RRF's `k`, renamed because `k` already means "how many results") is 60: rank 1 and rank 2 differ by 1.6%, so agreement between retrievers outranks either one's first place. |
 | D21 | **The chunk store is the corpus of record** | Chroma holds vectors plus two filter fields, BM25 holds analysed terms, and neither holds text. One SQLite file holds the chunks, so the indexes are comparable by identifier set alone and a re-chunk cannot leave one copy stale. `get_many` returns chunks **in the order requested**: the caller's sequence is a ranking, and SQL's own row order would silently reorder search results into something that reads as working retrieval and measures as noise. |
 | D22 | **Document discovery and include resolution use separate roots** | FastAPI keeps prose in `docs/en/docs` and its 684 example files in `docs_src`, a sibling. One root cannot serve both: narrow loses all 383 includes (and the identifiers that justify BM25), wide sweeps six `requirements*.txt` files into the corpus and rewrites every `relative_path` — and every id derived from one. |
@@ -63,14 +66,16 @@ GitHub Actions.
 
 ## Budget
 
-Ceiling **$1.00**. **Spent to date: $0.0076.**
+Ceiling **$1.00**. **Spent to date: ~$0.0086.** Generation allowance raised to $0.50 by the user; almost none of it is needed while the free tier is up.
 
 | item | cost |
 |---|---|
 | OpenAI adapter smoke test (32 tokens) | $0.000001 |
 | Full corpus index, structure-aware (334,955 tokens) | $0.0067 |
 | Wasted run: corpus root missing its code examples (44,152 tokens) | $0.0009 |
-| **Total** | **$0.0076** |
+| Generation: ~8 `gpt-5-nano` calls while Gemini was rate-limited | ~$0.0010 |
+| Gemini generation (free tier) | $0.0000 |
+| **Total** | **~$0.0086** |
 
 The wasted run is recorded rather than quietly dropped: it embedded a prose-only corpus
 built from the wrong root, and is what led to D22. The corrected rebuild cost **$0.0000** —
@@ -91,7 +96,8 @@ BM25 costs nothing: only the dense half of hybrid retrieval spends.
 - [x] Phase 1.3b — `Embedder` protocol + semantic chunker (all three strategies validated)
 - [x] Vertical slice — tokenizer, BM25 index, Chroma index, embedding cache, OpenAI adapter
 - [x] Vertical slice — chunk store, RRF retriever, reproducible build and query scripts
-- [ ] Vertical slice — generation with citations ← *current*
+- [x] Vertical slice — **complete**: grounded generation, inline citations, two refusal paths
+- [ ] LLM response cache (D12), then Phase 2 ← *current*
 - [ ] Phase 2 — hybrid retrieval · [ ] Phase 3 — generation & citations
 - [ ] Phase 4 — evaluation · [ ] Phase 5 — API & dashboard · [ ] Phase 6 — polish
 
@@ -168,3 +174,30 @@ indexes built over the same chunks and kept in sync, near-duplicate detection at
 
 Open question carried into Phase 4: whether to damp semantic chunking's thin-chunk problem
 with a neighbour buffer (see Corpus facts). Decide with retrieval metrics, not by taste.
+
+## Generation, first end-to-end results
+
+`scripts/ask.py "how do I run FastAPI in Docker"` on `gpt-5-nano-2025-08-07`:
+**926 in / 198 out · $0.000125 · 3.77s**, three resolved citations all from `docker.md`,
+zero fabricated citations.
+
+**Retrieval confidence, measured** (6 questions each, top dense cosine):
+
+| | range |
+|---|---|
+| in-domain | 0.4602 – 0.6541 |
+| out-of-domain | 0.1410 – 0.2414 |
+| gap | **+0.2188** |
+
+Threshold set at **0.30**, below the midpoint on purpose: the two errors are not
+symmetric. A false refusal is final and the user gets nothing; a false accept is caught
+downstream by the model's own refusal for the price of one request.
+
+**Known weakness:** `gpt-5-nano` answers are verbose and repetitive — it restates the same
+claim across sentences. D4 predicted nano-class judgement would be weaker, and it is. Worth
+re-measuring on Gemini once the free tier is reachable, and a good Phase 4 comparison.
+
+**Not built yet, and labelled as such everywhere it appears:** citation coverage,
+completeness and the composite confidence score. The fields exist in `AnswerConfidence`
+and return `None`, so the API contract is settled without anything reporting a score it
+did not compute.
