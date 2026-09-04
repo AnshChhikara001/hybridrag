@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -55,6 +56,24 @@ class Settings(BaseSettings):
         gt=0.0,
         le=1.0,
         description="Cosine similarity at or above which a chunk is treated as a duplicate.",
+    )
+
+    # --- Generation
+    # An exact model id, never a `-latest` alias: an alias silently changes what produced
+    # a number, and evaluation results must stay comparable over time.
+    generation_provider: Literal["gemini", "openai"] = "gemini"
+    generation_model: str = "gemini-3.8-flash"
+    answer_k: int = Field(default=5, ge=1, le=50, description="Context blocks per answer.")
+    answer_max_tokens: int = Field(default=1024, ge=64, le=8192)
+    retrieval_confidence_threshold: float = Field(
+        default=0.30,
+        ge=0.0,
+        le=1.0,
+        description="Dense cosine below which a question is refused before generating. "
+        "Measured on this corpus: in-domain questions score 0.46-0.65, out-of-domain "
+        "0.14-0.24. Set below the midpoint on purpose -- a false refusal is uncaught, "
+        "while a false accept is caught by the model's own refusal. Re-calibrated "
+        "against the golden set in Phase 4.",
     )
 
     # --- Credentials (never hardcoded, never logged)
