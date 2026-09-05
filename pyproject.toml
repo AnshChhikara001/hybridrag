@@ -14,6 +14,9 @@ dependencies = [
     "pypdf>=5.1",
     "selectolax>=0.3.25",
     "fastembed>=0.8.0",
+    "tiktoken>=0.14.0",
+    "openai>=3.7.0",
+    "google-genai>=2.22.0",
 ]
 
 [dependency-groups]
@@ -43,10 +46,16 @@ select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["src", "tests"]
+files = ["src", "tests", "scripts"]
 # tests/fixtures holds corpus data, not source: those .py files are inputs to the
 # loader, deliberately written as documentation examples rather than typed code.
 exclude = "^tests/fixtures/"
+
+# rank_bm25 ships no type stubs. Scoped to that one module rather than relaxing
+# strictness globally, so everything else stays fully checked.
+[[tool.mypy.overrides]]
+module = ["rank_bm25.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

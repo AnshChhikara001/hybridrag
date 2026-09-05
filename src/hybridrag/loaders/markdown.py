@@ -44,8 +44,15 @@ class MarkdownLoader(DocumentLoader):
     extensions: ClassVar[frozenset[str]] = frozenset({".md", ".markdown"})
     source_format: ClassVar[SourceFormat] = SourceFormat.MARKDOWN
 
-    def __init__(self, *, expand_includes: bool = True) -> None:
+    def __init__(self, *, expand_includes: bool = True, include_root: Path | None = None) -> None:
         self.expand_includes = expand_includes
+        # Include directives reach outside the documentation tree: FastAPI's examples live
+        # in `docs_src/`, a sibling of `docs/`. Resolving them from the corpus root would
+        # force the corpus root up to the repository, which pulls six `requirements*.txt`
+        # files into a documentation corpus and rewrites every relative path -- and every
+        # id derived from one. Separating the two roots keeps discovery narrow and
+        # resolution wide.
+        self.include_root = include_root
         self.missing_includes: list[str] = []
 
     def load(self, path: Path, corpus_root: Path) -> Document:
@@ -53,7 +60,7 @@ class MarkdownLoader(DocumentLoader):
         raw = path.read_text(encoding="utf-8", errors="replace")
         body = _FRONTMATTER.sub("", raw)
         if self.expand_includes:
-            body = self._expand_includes(body, corpus_root, relative_path)
+            body = self._expand_includes(body, self.include_root or corpus_root, relative_path)
 
         blocks, title = self._split_into_sections(body)
         return assemble_document(
@@ -89,21 +96,21 @@ class MarkdownLoader(DocumentLoader):
         return "\n".join(out)
 
     @staticmethod
-    def _resolve_include(directive_path: str, corpus_root: Path) -> Path | None:
-        """Resolve an include directive against the corpus root.
+    def _resolve_include(directive_path: str, include_root: Path) -> Path | None:
+        """Resolve an include directive against the include root.
 
         MkDocs resolves these against its configured docs directory, not against the file
         containing them -- so the literal `../../` in the directive does not point where
         plain path arithmetic says it does (verified: it lands on a path that does not
-        exist). The reliable anchor is the first corpus-relative component, so leading
+        exist). The reliable anchor is the first root-relative component, so leading
         `..` segments are discarded and the remainder is resolved from the root.
         """
         parts = [p for p in PurePosixPath(directive_path).parts if p not in ("..", ".")]
         if not parts:
             return None
-        resolved = (corpus_root / PurePosixPath(*parts)).resolve()
-        # Never let a directive escape the corpus root (path-traversal guard).
-        if not resolved.is_relative_to(corpus_root.resolve()):
+        resolved = (include_root / PurePosixPath(*parts)).resolve()
+        # Never let a directive escape the include root (path-traversal guard).
+        if not resolved.is_relative_to(include_root.resolve()):
             return None
         return resolved
 
