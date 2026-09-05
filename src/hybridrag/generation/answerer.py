@@ -123,6 +123,7 @@ class Answerer:
             output_tokens=completion.output_tokens + completion.thinking_tokens,
             cost_usd=completion.cost_usd,
             latency_s=completion.latency_s,
+            cached=completion.cached,
         )
 
     def _gate(self, results: list[RetrievedChunk], confidence: float | None) -> str | None:

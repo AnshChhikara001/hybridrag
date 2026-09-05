@@ -28,6 +28,10 @@ class StubModel:
         self.reply = reply
         self.prompts: list[str] = []
 
+    @property
+    def fingerprint(self) -> str:
+        return f"stub|{self.model_name}"
+
     def generate(
         self, prompt: str, *, system: str | None = None, max_output_tokens: int | None = None
     ) -> Completion:
