@@ -40,9 +40,24 @@ __all__ = [
 class CorpusLoader:
     """Dispatches files to the right loader and walks a corpus directory."""
 
-    def __init__(self, corpus_root: Path, *, expand_includes: bool = True) -> None:
+    def __init__(
+        self,
+        corpus_root: Path,
+        *,
+        expand_includes: bool = True,
+        include_root: Path | None = None,
+    ) -> None:
+        """`include_root` resolves `{* ... *}` directives; defaults to the corpus root.
+
+        They differ whenever a corpus's code examples live outside its documentation tree,
+        which is exactly FastAPI's layout: `docs/en/docs` holds the prose, `docs_src` holds
+        the 684 example files the prose includes.
+        """
         self.corpus_root = corpus_root.resolve()
-        self._markdown = MarkdownLoader(expand_includes=expand_includes)
+        self.include_root = include_root.resolve() if include_root else None
+        self._markdown = MarkdownLoader(
+            expand_includes=expand_includes, include_root=self.include_root
+        )
         loaders: tuple[DocumentLoader, ...] = (
             self._markdown,
             TextLoader(),

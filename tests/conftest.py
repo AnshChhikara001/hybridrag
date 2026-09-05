@@ -14,6 +14,8 @@ import numpy as np
 import pytest
 from numpy.typing import NDArray
 
+from hybridrag.models import Chunk, ChunkingStrategy
+
 FIXTURE_CORPUS = Path(__file__).parent / "fixtures" / "corpus"
 
 
@@ -137,3 +139,39 @@ class TopicEmbedder:
 @pytest.fixture
 def topic_embedder() -> TopicEmbedder:
     return TopicEmbedder()
+
+
+def _make_chunk(
+    index: int,
+    text: str = "Query parameters are declared as function arguments.",
+    *,
+    doc_id: str = "doc-1",
+    strategy: ChunkingStrategy = ChunkingStrategy.STRUCTURE,
+    relative_path: str = "tutorial/query-params.md",
+    heading_path: tuple[str, ...] = ("Tutorial", "Query Parameters"),
+) -> Chunk:
+    """A valid `Chunk` with as little ceremony as the model's validators allow."""
+    return Chunk(
+        chunk_id=Chunk.make_id(doc_id, strategy, index),
+        doc_id=doc_id,
+        relative_path=relative_path,
+        section_ids=["section-a", "section-b"],
+        heading_path=heading_path,
+        text=text,
+        chunk_index=index,
+        strategy=strategy,
+        token_count=max(1, len(text.split())),
+        char_count=len(text),
+        start_char=index * 1000,
+        end_char=index * 1000 + len(text),
+    )
+
+
+@pytest.fixture
+def make_chunk() -> Callable[..., Chunk]:
+    """Chunk factory shared by the store and retrieval suites.
+
+    Lives here rather than in one test module because `tests` is not an importable
+    package: pytest reaches conftest fixtures without it, a cross-module import does not.
+    """
+    return _make_chunk
