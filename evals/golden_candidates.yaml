@@ -1,0 +1,1334 @@
+format_version: 1
+corpus_ref: 0.115.6
+questions:
+- question_id: lookup-001
+  category: lookup
+  question: How does the OAuth2 scopes mechanism describe the format and purpose of scopes?
+  answer: Scopes are described as a list of strings separated by spaces that represent permissions,
+    and each scope is just a string without spaces.
+  spans:
+  - relative_path: advanced/security/oauth2-scopes.md
+    quote: 'The OAuth2 specification defines "scopes" as a list of strings separated by spaces.
+
+
+      The content of each of these strings can have any format, but should not contain spaces.
+
+
+      These scopes represent "permissions".
+
+      In OpenAPI (e.g. the API docs), you can define "security schemes".
+
+      When one of these security schemes uses OAuth2, you can also declare and use scopes.
+
+      Each "scope" is just a string (without spaces).
+
+      They are normally used to declare specific security permissions, for example:
+
+      * `users:read` or `users:write` are common examples.
+
+      * `instagram_basic` is used by Facebook / Instagram.
+
+      * `https://www.googleapis.com/auth/drive` is used by Google.'
+  verified: false
+- question_id: lookup-002
+  category: lookup
+  question: Where do Query, Path and Body come from and what do they return?
+  answer: Remember that when you import `Query`, `Path`, and others from `fastapi`, those are actually
+    functions that return special classes.
+  spans:
+  - relative_path: tutorial/body-fields.md
+    quote: 'Actually, `Query`, `Path` and others you''ll see next create objects of subclasses of
+      a common `Param` class, which is itself a subclass of Pydantic''s `FieldInfo` class.
+
+
+      And Pydantic''s `Field` returns an instance of `FieldInfo` as well.
+
+
+      `Body` also returns objects of a subclass of `FieldInfo` directly. And there are others you
+      will see later that are subclasses of the `Body` class.'
+  verified: false
+- question_id: lookup-003
+  category: lookup
+  question: Can I include extra JSON Schema metadata or non-OpenAPI keys using Field?
+  answer: You can use Pydantic's `Field` to declare extra validations and metadata for model attributes.
+  spans:
+  - relative_path: tutorial/body-fields.md
+    quote: 'You can use Pydantic''s `Field` to declare extra validations and metadata for model attributes.
+
+
+      You can also use the extra keyword arguments to pass additional JSON Schema metadata.'
+  verified: false
+- question_id: lookup-004
+  category: lookup
+  question: How do I install the dependency required to receive form fields with FastAPI?
+  answer: pip install python-multipart
+  spans:
+  - relative_path: tutorial/request-forms.md
+    quote: 'To use forms, first install `python-multipart`.
+
+
+      Make sure you create a [virtual environment](../virtual-environments.md){.internal-link target=_blank},
+      activate it, and then install it, for example:
+
+
+      ```console
+
+      $ pip install python-multipart
+
+      ```'
+  verified: false
+- question_id: lookup-005
+  category: lookup
+  question: Why do I need to use Form when declaring form bodies instead of relying on default parameter
+    behavior?
+  answer: Because without it the parameters would be interpreted as query parameters or body (JSON)
+    parameters.
+  spans:
+  - relative_path: tutorial/request-forms.md
+    quote: '`Form` is a class that inherits directly from `Body`.
+
+
+      To declare form bodies, you need to use `Form` explicitly, because without it the parameters
+      would be interpreted as query parameters or body (JSON) parameters.
+
+      The way HTML forms (``) sends the data to the server normally uses a "special" encoding for
+      that data, it''s different from JSON.'
+  verified: false
+- question_id: lookup-006
+  category: lookup
+  question: Can I declare both Form parameters and JSON Body fields in the same path operation?
+  answer: No, you can't also declare `Body` fields that you expect to receive as JSON, as the request
+    will have the body encoded using `application/x-www-form-urlencoded` instead of `application/json`.
+  spans:
+  - relative_path: tutorial/request-forms.md
+    quote: 'You can declare multiple `Form` parameters in a *path operation*, but you can''t also
+      declare `Body` fields that you expect to receive as JSON, as the request will have the body
+      encoded using `application/x-www-form-urlencoded` instead of `application/json`.
+
+
+      This is not a limitation of **FastAPI**, it''s part of the HTTP protocol.
+
+      Use `Form` to declare form data input parameters.'
+  verified: false
+- question_id: lookup-007
+  category: lookup
+  question: Which main guide is recommended to give a tour through all the main features of FastAPI?
+  answer: The main Tutorial - User Guide
+  spans:
+  - relative_path: advanced/index.md
+    quote: 'The main [Tutorial - User Guide](../tutorial/index.md){.internal-link target=_blank} should
+      be enough to give you a tour through all the main features of **FastAPI**.
+
+
+      In the next sections you will see other options, configurations, and additional features.'
+  verified: false
+- question_id: lookup-008
+  category: lookup
+  question: What are two course providers listed that sponsor FastAPI and offer courses?
+  answer: Talk Python Training and Test-Driven Development
+  spans:
+  - relative_path: advanced/index.md
+    quote: 'Some course providers ✨ [**sponsor FastAPI**](../help-fastapi.md#sponsor-the-author){.internal-link
+      target=_blank} ✨, this ensures the continued and healthy **development** of FastAPI and its
+      **ecosystem**.
+
+
+      And it shows their true commitment to FastAPI and its **community** (you), as they not only
+      want to provide you a **good learning experience** but also want to make sure you have a **good
+      and healthy framework**, FastAPI. 🙇
+
+
+      You might want to try their courses:
+
+
+      * Talk Python Training
+
+      * Test-Driven Development'
+  verified: false
+- question_id: lookup-009
+  category: lookup
+  question: How can I include custom headers when raising an HTTPException?
+  answer: 'Pass a headers dict to HTTPException, e.g. raise HTTPException(status_code=404, detail="Item
+    not found", headers={"X-Error": "There goes my error"})'
+  spans:
+  - relative_path: tutorial/handling-errors.md
+    quote: "from fastapi import FastAPI, HTTPException\n\napp = FastAPI()\n\nitems = {\"foo\": \"\
+      The Foo Wrestlers\"}\n\n@app.get(\"/items-header/{item_id}\")\nasync def read_item_header(item_id:\
+      \ str):\n    if item_id not in items:\n        raise HTTPException(\n            status_code=404,\n\
+      \            detail=\"Item not found\",\n            headers={\"X-Error\": \"There goes my error\"\
+      },\n        )\n    return {\"item\": items[item_id]}"
+  verified: false
+- question_id: lookup-010
+  category: lookup
+  question: How do I create a global custom exception handler that returns a JSONResponse with status
+    418?
+  answer: 'Define a handler with @app.exception_handler(UnicornException) that returns JSONResponse(status_code=418,
+    content={"message": ...})'
+  spans:
+  - relative_path: tutorial/handling-errors.md
+    quote: "from fastapi import FastAPI, Request\nfrom fastapi.responses import JSONResponse\n\nclass\
+      \ UnicornException(Exception):\n    def __init__(self, name: str):\n        self.name = name\n\
+      \napp = FastAPI()\n\n@app.exception_handler(UnicornException)\nasync def unicorn_exception_handler(request:\
+      \ Request, exc: UnicornException):\n    return JSONResponse(\n        status_code=418,\n   \
+      \     content={\"message\": f\"Oops! {exc.name} did something. There goes a rainbow...\"},\n\
+      \    )\n\n@app.get(\"/unicorns/{name}\")\nasync def read_unicorn(name: str):\n    if name ==\
+      \ \"yolo\":\n        raise UnicornException(name=name)\n    return {\"unicorn_name\": name}"
+  verified: false
+- question_id: lookup-011
+  category: lookup
+  question: What do I specify in the decorator argument for identifying the webhook event?
+  answer: Pass an identifier string like "new-subscription" to the decorator, which serves as the
+    webhook name (event identifier).
+  spans:
+  - relative_path: advanced/openapi-webhooks.md
+    quote: 'Notice that with webhooks you are actually not declaring a *path* (like `/items/`), the
+      text you pass there is just an **identifier** of the webhook (the name of the event), for example
+      in `@app.webhooks.post("new-subscription")`, the webhook name is `new-subscription`.
+
+      This is because it is expected that **your users** would define the actual **URL path** where
+      they want to receive the webhook request in some other way (e.g. a web dashboard).'
+  verified: false
+- question_id: lookup-012
+  category: lookup
+  question: Which OpenAPI and FastAPI versions add webhook support?
+  answer: Webhooks are available in OpenAPI 3.1.0 and above, supported by FastAPI 0.99.0 and above.
+  spans:
+  - relative_path: advanced/openapi-webhooks.md
+    quote: 'Webhooks are available in OpenAPI 3.1.0 and above, supported by FastAPI `0.99.0` and above.
+
+
+      When you create a **FastAPI** application, there is a `webhooks` attribute that you can use
+      to define *webhooks*, the same way you would define *path operations*, for example with `@app.webhooks.post()`.'
+  verified: false
+- question_id: lookup-013
+  category: lookup
+  question: How do I import the custom FastAPI response classes like FileResponse and HTMLResponse?
+  answer: from fastapi.responses import ( FileResponse, HTMLResponse, JSONResponse, ORJSONResponse,
+    PlainTextResponse, RedirectResponse, Response, StreamingResponse, UJSONResponse, )
+  spans:
+  - relative_path: reference/responses.md
+    quote: "There are several custom response classes you can use to create an instance and return\
+      \ them directly from your *path operations*.\n\nRead more about it in the [FastAPI docs for\
+      \ Custom Response - HTML, Stream, File, others](https://fastapi.tiangolo.com/advanced/custom-response/).\n\
+      \nYou can import them directly from `fastapi.responses`:\n\n```python\nfrom fastapi.responses\
+      \ import (\n    FileResponse,\n    HTMLResponse,\n    JSONResponse,\n    ORJSONResponse,\n \
+      \   PlainTextResponse,\n    RedirectResponse,\n    Response,\n    StreamingResponse,\n    UJSONResponse,\n\
+      )\n```"
+  verified: false
+- question_id: lookup-014
+  category: lookup
+  question: Which response classes list 'render' and 'init_headers' among their members?
+  answer: UJSONResponse, ORJSONResponse, FileResponse, HTMLResponse, JSONResponse, PlainTextResponse,
+    RedirectResponse, Response, StreamingResponse
+  spans:
+  - relative_path: reference/responses.md
+    quote: "There are a couple of custom FastAPI response classes, you can use them to optimize JSON\
+      \ performance.\n\n::: fastapi.responses.UJSONResponse\n    options:\n        members:\n    \
+      \        - charset\n            - status_code\n            - media_type\n            - body\n\
+      \            - background\n            - raw_headers\n            - render\n            - init_headers\n\
+      \            - headers\n            - set_cookie\n            - delete_cookie\n\n::: fastapi.responses.ORJSONResponse\n\
+      \    options:\n        members:\n            - charset\n            - status_code\n        \
+      \    - media_type\n            - body\n            - background\n            - raw_headers\n\
+      \            - render\n            - init_headers\n            - headers\n            - set_cookie\n\
+      \            - delete_cookie\n\n::: fastapi.responses.FileResponse\n    options:\n        members:\n\
+      \            - chunk_size\n            - charset\n            - status_code\n            - media_type\n\
+      \            - body\n            - background\n            - raw_headers\n            - render\n\
+      \            - init_headers\n            - headers\n            - set_cookie\n            -\
+      \ delete_cookie\n\n::: fastapi.responses.HTMLResponse\n    options:\n        members:\n    \
+      \        - charset\n            - status_code\n            - media_type\n            - body\n\
+      \            - background\n            - raw_headers\n            - render\n            - init_headers\n\
+      \            - headers\n            - set_cookie\n            - delete_cookie\n\n::: fastapi.responses.JSONResponse\n\
+      \    options:\n        members:\n            - charset\n            - status_code\n        \
+      \    - media_type\n            - body\n            - background\n            - raw_headers\n\
+      \            - render\n            - init_headers\n            - headers\n            - set_cookie\n\
+      \            - delete_cookie\n\n::: fastapi.responses.PlainTextResponse\n    options:\n    \
+      \    members:\n            - charset\n            - status_code\n            - media_type\n\
+      \            - body\n            - background\n            - raw_headers\n            - render\n\
+      \            - init_headers\n            - headers\n            - set_cookie\n            -\
+      \ delete_cookie\n\n::: fastapi.responses.RedirectResponse\n    options:\n        members:\n\
+      \            - charset\n            - status_code\n            - media_type\n            - body\n\
+      \            - background\n            - raw_headers\n            - render\n            - init_headers\n\
+      \            - headers\n            - set_cookie\n            - delete_cookie\n\n::: fastapi.responses.Response\n\
+      \    options:\n        members:\n            - charset\n            - status_code\n        \
+      \    - media_type\n            - body\n            - background\n            - raw_headers\n\
+      \            - render\n            - init_headers\n            - headers\n            - set_cookie\n\
+      \            - delete_cookie\n\n::: fastapi.responses.StreamingResponse\n    options:\n    \
+      \    members:\n            - body_iterator\n            - charset\n            - status_code\n\
+      \            - media_type\n            - body\n            - background\n            - raw_headers\n\
+      \            - render\n            - init_headers\n            - headers\n            - set_cookie\n\
+      \            - delete_cookie"
+  verified: false
+- question_id: lookup-015
+  category: lookup
+  question: Where can I read more about custom responses like HTML, Stream, and File?
+  answer: Read more about it in the https://fastapi.tiangolo.com/advanced/custom-response/ FastAPI
+    docs for Custom Response - HTML, Stream, File, others
+  spans:
+  - relative_path: reference/responses.md
+    quote: "There are several custom response classes you can use to create an instance and return\
+      \ them directly from your *path operations*.\n\nRead more about it in the [FastAPI docs for\
+      \ Custom Response - HTML, Stream, File, others](https://fastapi.tiangolo.com/advanced/custom-response/).\n\
+      \nYou can import them directly from `fastapi.responses`:\n\n```python\nfrom fastapi.responses\
+      \ import (\n    FileResponse,\n    HTMLResponse,\n    JSONResponse,\n    ORJSONResponse,\n \
+      \   PlainTextResponse,\n    RedirectResponse,\n    Response,\n    StreamingResponse,\n    UJSONResponse,\n\
+      )\n```"
+  verified: false
+- question_id: lookup-016
+  category: lookup
+  question: How can I set the HTTP status code used in the response and included in the OpenAPI schema?
+  answer: Use the status_code parameter on the path operation decorator, e.g. status_code=status.HTTP_201_CREATED
+  spans:
+  - relative_path: tutorial/path-operation-configuration.md
+    quote: 'You can define the (HTTP) `status_code` to be used in the response of your *path operation*.
+
+
+      You can pass directly the `int` code, like `404`.
+
+
+      But if you don''t remember what each number code is for, you can use the shortcut constants
+      in `status`:'
+  verified: false
+- question_id: lookup-017
+  category: lookup
+  question: How do I add tags to group related path operations and have them appear in the OpenAPI
+    docs?
+  answer: Pass the tags parameter with a list of strings (or Enum members) to the path operation decorator,
+    e.g. tags=["items"]
+  spans:
+  - relative_path: tutorial/path-operation-configuration.md
+    quote: "You can add tags to your *path operation*, pass the parameter `tags` with a `list` of\
+      \ `str` (commonly just one `str`):\n\n```python\nfrom fastapi import FastAPI\nfrom pydantic\
+      \ import BaseModel\n\napp = FastAPI()\n\nclass Item(BaseModel):\n    name: str\n    description:\
+      \ str | None = None\n    price: float\n    tax: float | None = None\n    tags: set[str] = set()\n\
+      \n@app.post(\"/items/\", response_model=Item, tags=[\"items\"])\nasync def create_item(item:\
+      \ Item):\n    return item\n\n@app.get(\"/items/\", tags=[\"items\"])\nasync def read_items():\n\
+      \    return [{\"name\": \"Foo\", \"price\": 42}]\n\n@app.get(\"/users/\", tags=[\"users\"])\n\
+      async def read_users():\n    return [{\"username\": \"johndoe\"}]\n```\nThey will be added to\
+      \ the OpenAPI schema and used by the automatic documentation interfaces:"
+  verified: false
+- question_id: lookup-018
+  category: lookup
+  question: How can I mark a path operation as deprecated without removing it?
+  answer: Pass deprecated=True to the path operation decorator
+  spans:
+  - relative_path: tutorial/path-operation-configuration.md
+    quote: "If you need to mark a *path operation* as deprecated, but without removing it, pass the\
+      \ parameter `deprecated`:\n\n```python\nfrom fastapi import FastAPI\n\napp = FastAPI()\n\n@app.get(\"\
+      /items/\", tags=[\"items\"])\nasync def read_items():\n    return [{\"name\": \"Foo\", \"price\"\
+      : 42}]\n\n@app.get(\"/users/\", tags=[\"users\"])\nasync def read_users():\n    return [{\"\
+      username\": \"johndoe\"}]\n\n@app.get(\"/elements/\", tags=[\"items\"], deprecated=True)\nasync\
+      \ def read_elements():\n    return [{\"item_id\": \"Foo\"}]\n```\n\nIt will be clearly marked\
+      \ as deprecated in the interactive docs:\nCheck how deprecated and non-deprecated *path operations*\
+      \ look like:"
+  verified: false
+- question_id: lookup-019
+  category: lookup
+  question: How do you define logic to run before the application starts and after it shuts down?
+  answer: Use the `lifespan` parameter of the `FastAPI` app with an async context manager (function
+    decorated with `@asynccontextmanager`) that yields.
+  spans:
+  - relative_path: advanced/events.md
+    quote: 'You can define logic (code) that should be executed before the application **starts up**.
+      This means that this code will be executed **once**, **before** the application **starts receiving
+      requests**.
+
+
+      The same way, you can define logic (code) that should be executed when the application is **shutting
+      down**. In this case, this code will be executed **once**, **after** having handled possibly
+      **many requests**.
+
+
+      Because this code is executed before the application **starts** taking requests, and right after
+      it **finishes** handling requests, it covers the whole application **lifespan** (the word "lifespan"
+      will be important in a second 😉).'
+  verified: false
+- question_id: lookup-020
+  category: lookup
+  question: How can you load a shared ML model only once before handling requests?
+  answer: Put the model-loading code before the `yield` inside an async context manager used as the
+    `lifespan` for the FastAPI app, e.g., populate a shared dict before `yield`.
+  spans:
+  - relative_path: advanced/events.md
+    quote: 'Let''s start with an example **use case** and then see how to solve it with this.
+
+
+      Let''s imagine that you have some **machine learning models** that you want to use to handle
+      requests. 🤖
+
+
+      The same models are shared among requests, so, it''s not one model per request, or one per user
+      or something similar.
+
+
+      Let''s imagine that loading the model can **take quite some time**, because it has to read a
+      lot of **data from disk**. So you don''t want to do it for every request.
+
+
+      You could load it at the top level of the module/file, but that would also mean that it would
+      **load the model** even if you are just running a simple automated test, then that test would
+      be **slow** because it would have to wait for the model to load before being able to run an
+      independent part of the code.
+
+
+      That''s what we''ll solve, let''s load the model before the requests are handled, but only right
+      before the application starts receiving requests, not while  the code is being loaded.'
+  verified: false
+- question_id: lookup-021
+  category: lookup
+  question: What happens to code placed after the `yield` in the lifespan async context manager?
+  answer: It is executed after the application has finished handling requests, during shutdown, for
+    cleaning up resources.
+  spans:
+  - relative_path: advanced/events.md
+    quote: 'Here we are simulating the expensive *startup* operation of loading the model by putting
+      the (fake) model function in the dictionary with machine learning models before the `yield`.
+      This code will be executed **before** the application **starts taking requests**, during the
+      *startup*.
+
+
+      And then, right after the `yield`, we unload the model. This code will be executed **after**
+      the application **finishes handling requests**, right before the *shutdown*. This could, for
+      example, release resources like memory or a GPU.'
+  verified: false
+- question_id: lookup-022
+  category: lookup
+  question: How do I convert a Pydantic model and its datetime fields into JSON-compatible Python
+    data structures before storing in a database?
+  answer: Use FastAPI's jsonable_encoder() to convert the model to JSON-compatible types, e.g., dict
+    and ISO-format strings for datetimes.
+  spans:
+  - relative_path: tutorial/encoder.md
+    quote: 'There are some cases where you might need to convert a data type (like a Pydantic model)
+      to something compatible with JSON (like a `dict`, `list`, etc).
+
+
+      For example, if you need to store it in a database.
+
+
+      For that, **FastAPI** provides a `jsonable_encoder()` function.
+
+
+      Let''s imagine that you have a database `fake_db` that only receives JSON compatible data.
+
+
+      For example, it doesn''t receive `datetime` objects, as those are not compatible with JSON.
+
+
+      So, a `datetime` object would have to be converted to a `str` containing the data in ISO format.
+
+
+      The same way, this database wouldn''t receive a Pydantic model (an object with attributes),
+      only a `dict`.
+
+
+      You can use `jsonable_encoder` for that.'
+  verified: false
+- question_id: lookup-023
+  category: lookup
+  question: What does jsonable_encoder return when given a Pydantic model with datetime fields?
+  answer: It returns a Python data structure (like a dict) with values converted to JSON-compatible
+    types, such as datetime converted to ISO-format strings.
+  spans:
+  - relative_path: tutorial/encoder.md
+    quote: 'In this example, it would convert the Pydantic model to a `dict`, and the `datetime` to
+      a `str`.
+
+
+      The result of calling it is something that can be encoded with the Python standard `json.dumps()`.
+
+
+      It doesn''t return a large `str` containing the data in JSON format (as a string). It returns
+      a Python standard data structure (e.g. a `dict`) with values and sub-values that are all compatible
+      with JSON.'
+  verified: false
+- question_id: lookup-024
+  category: lookup
+  question: When is jsonable_encoder used within FastAPI and why might I want to call it manually?
+  answer: FastAPI uses jsonable_encoder internally to convert data, but you can call it manually when
+    you need JSON-compatible Python data structures for tasks like storing in a database.
+  spans:
+  - relative_path: tutorial/encoder.md
+    quote: '`jsonable_encoder` is actually used by **FastAPI** internally to convert data. But it
+      is useful in many other scenarios.'
+  verified: false
+- question_id: multi_hop-001
+  category: multi_hop
+  question: How would I ensure a machine-learning model loaded in a FastAPI app during the asynccontextmanager
+    lifespan is available across multiple OS processes when using a separate program that restarts
+    and manages the Uvicorn process on server startup?
+  answer: This requires combining app lifespan resource loading with an external process manager that
+    handles starting/restarting multiple OS processes, because lifespan runs per process and process
+    managers handle restarts and replication.
+  spans:
+  - relative_path: deployment/concepts.md
+    quote: 'When you set up a remote server (a cloud server, a virtual machine, etc.) the simplest
+      thing you can do is use `fastapi run` (which uses Uvicorn) or something  similar, manually,
+      the same way you do when developing locally.
+
+
+      And it will work and will be useful **during development**.
+
+
+      But if your connection to the server is lost, the **running process** will probably die.
+
+
+      And if the server is restarted (for example after updates, or migrations from the cloud provider)
+      you probably **won''t notice it**. And because of that, you won''t even know that you have to
+      restart the process manually. So, your API will just stay dead. 😱
+
+
+      In general, you will probably want the server program (e.g. Uvicorn) to be started automatically
+      on server startup, and without needing any **human intervention**, to have a process always
+      running with your API (e.g. Uvicorn running your FastAPI app).
+
+
+      To achieve this, you will normally have a **separate program** that would make sure your applicatio'
+  - relative_path: advanced/events.md
+    quote: 'You can define logic (code) that should be executed before the application **starts up**.
+      This means that this code will be executed **once**, **before** the application **starts receiving
+      requests**.
+
+
+      The same way, you can define logic (code) that should be executed when the application is **shutting
+      down**. In this case, this code will be executed **once**, **after** having handled possibly
+      **many requests**.
+
+
+      Because this code is executed before the application **starts** taking requests, and right after
+      it **finishes** handling requests, it covers the whole application **lifespan** (the word "lifespan"
+      will be important in a second 😉).
+
+
+      This can be very useful for setting up **resources** that you need to use for the whole app,
+      and that are **shared** among requests, and/or that you need to **clean up** afterwards. For
+      example, a database connection pool, or loading a shared machine learning model.'
+  verified: false
+- question_id: multi_hop-002
+  category: multi_hop
+  question: If I mount a sub-application at /subapi and also run behind a proxy that serves the app
+    under /api/v1, how will the sub-application know to use the combined prefix so its docs UI is
+    fetched from /api/v1/subapi/docs?
+  answer: 'You must rely on ASGI root_path handling: FastAPI sets root_path for mounted sub-apps and
+    the server/proxy can pass an external root_path so the browser-facing docs use the combined prefix.'
+  spans:
+  - relative_path: advanced/sub-applications.md
+    quote: 'When you mount a sub-application as described above, FastAPI will take care of communicating
+      the mount path for the sub-application using a mechanism from the ASGI specification called
+      a `root_path`.
+
+      That way, the sub-application will know to use that path prefix for the docs UI.
+
+      And the sub-application could also have its own mounted sub-applications and everything would
+      work correctly, because FastAPI handles all these `root_path`s automatically.
+
+      You will learn more about the `root_path` and how to use it explicitly in the section about
+      [Behind a Proxy](behind-a-proxy.md){.internal-link target=_blank}.'
+  - relative_path: advanced/behind-a-proxy.md
+    quote: 'The `root_path` is a mechanism provided by the ASGI specification (that FastAPI is built
+      on, through Starlette).
+
+
+      The `root_path` is used to handle these specific cases.
+
+
+      And it''s also used internally when mounting sub-applications.
+
+
+      Having a proxy with a stripped path prefix, in this case, means that you could declare a path
+      at `/app` in your code, but then, you add a layer on top (the proxy) that would put your **FastAPI**
+      application under a path like `/api/v1`.
+
+
+      In this case, the original path `/app` would actually be served at `/api/v1/app`.
+
+
+      Even though all your code is written assuming there''s just `/app`.'
+  verified: false
+- question_id: multi_hop-003
+  category: multi_hop
+  question: How do I document an external API callback path operation that uses an APIRouter and then
+    include that router's routes in a FastAPI path operation decorator while also keeping the application's
+    routers organized across multiple files?
+  answer: You create the callback APIRouter with the callback path operation and pass its .routes
+    to the FastAPI path operation decorator as callbacks, while organizing other app path operations
+    into APIRouter instances in separate modules and including them in the main app.
+  spans:
+  - relative_path: advanced/openapi-callbacks.md
+    quote: 'The only new thing is the `callbacks=invoices_callback_router.routes` as an argument to
+      the *path operation decorator*. We''ll see what that is next.
+
+
+      The actual callback code will depend heavily on your own API app.
+
+
+      And it will probably vary a lot from one app to the next.
+
+
+      It could be just one or two lines of code, like:
+
+
+      ```Python
+
+      callback_url = "https://example.com/api/v1/invoices/events/"
+
+      httpx.post(callback_url, json={"description": "Invoice paid", "paid": True})
+
+      ```
+
+
+      But possibly the most important part of the callback is making sure that your API user (the
+      external developer) implements the *external API* correctly, according to the data that *your
+      API* is going to send in the request body of the callback, etc.'
+  - relative_path: tutorial/bigger-applications.md
+    quote: 'You can think of `APIRouter` as a "mini `FastAPI`" class.
+
+
+      All the same options are supported.
+
+
+      All the same `parameters`, `responses`, `dependencies`, `tags`, etc.
+
+
+      In this example, the variable is called `router`, but you can name it however you want.
+
+
+      We are going to include this `APIRouter` in the main `FastAPI` app, but first, let''s check
+      the dependencies and another `APIRouter`.'
+  verified: false
+- question_id: multi_hop-004
+  category: multi_hop
+  question: How do I declare a group of cookie parameters as a reusable Pydantic model and then have
+    FastAPI extract those cookie fields when handling a request?
+  answer: Use a Pydantic model with cookie fields and annotate the parameter with Cookie(), e.g.,
+    Annotated[Cookies, Cookie()].
+  spans:
+  - relative_path: tutorial/cookie-param-models.md
+    quote: "If you have a group of **cookies** that are related, you can create a **Pydantic model**\
+      \ to declare them. \U0001F36A\n\nThis would allow you to **re-use the model** in **multiple\
+      \ places** and also to declare validations and metadata for all the parameters at once. \U0001F60E\
+      \n\nThis is supported since FastAPI version `0.115.0`. \U0001F913\n\nThis same technique applies\
+      \ to `Query`, `Cookie`, and `Header`. \U0001F60E\n\nDeclare the **cookie** parameters that you\
+      \ need in a **Pydantic model**, and then declare the parameter as `Cookie`:\n\n```python\nfrom\
+      \ typing import Annotated\n\nfrom fastapi import Cookie, FastAPI\nfrom pydantic import BaseModel\n\
+      \napp = FastAPI()\n\nclass Cookies(BaseModel):\n    session_id: str\n    fatebook_tracker: str\
+      \ | None = None\n    googall_tracker: str | None = None\n\n@app.get(\"/items/\")\nasync def\
+      \ read_items(cookies: Annotated[Cookies, Cookie()]):\n    return cookies\n```"
+  - relative_path: tutorial/cookie-params.md
+    quote: "You can define Cookie parameters the same way you define `Query` and `Path` parameters.\n\
+      \nFirst import `Cookie`:\n\n```python\nfrom typing import Annotated\n\nfrom fastapi import Cookie,\
+      \ FastAPI\n\napp = FastAPI()\n\n@app.get(\"/items/\")\nasync def read_items(ads_id: Annotated[str\
+      \ | None, Cookie()] = None):\n    return {\"ads_id\": ads_id}\n```\n\nThen declare the cookie\
+      \ parameters using the same structure as with `Path` and `Query`.\n\nYou can define the default\
+      \ value as well as all the extra validation or annotation parameters:\n\n```python\nfrom typing\
+      \ import Annotated\n\nfrom fastapi import Cookie, FastAPI\n\napp = FastAPI()\n\n@app.get(\"\
+      /items/\")\nasync def read_items(ads_id: Annotated[str | None, Cookie()] = None):\n    return\
+      \ {\"ads_id\": ads_id}\n```\n\n`Cookie` is a \"sister\" class of `Path` and `Query`. It also\
+      \ inherits from the same common `Param` class.\n\nBut remember that when you import `Query`,\
+      \ `Path`, `Cookie` and others from `fastapi`, those are actually functions that return special\
+      \ classes.\n\nTo declare cookies, you need to use `Cookie`, because otherwise the parameters\
+      \ would be interpreted as query parameters.\n\nDeclare cookies with `Cookie`, using the same\
+      \ common pattern as `Query` and `Path`."
+  verified: false
+- question_id: multi_hop-005
+  category: multi_hop
+  question: If I want to accept partial updates without accidentally overwriting stored fields with
+    model defaults and also ensure the response is validated and filtered by a Pydantic model when
+    returning the updated item, what combination of techniques from both endpoints should I apply?
+  answer: Use PATCH with exclude_unset to build update_data and model_copy/update on stored model,
+    then return it with a response_model so FastAPI validates and filters the returned data.
+  spans:
+  - relative_path: tutorial/body-updates.md
+    quote: 'If you want to receive partial updates, it''s very useful to use the parameter `exclude_unset`
+      in Pydantic''s model''s `.model_dump()`.
+
+
+      Like `item.model_dump(exclude_unset=True)`.
+
+
+      In Pydantic v1 the method was called `.dict()`, it was deprecated (but still supported) in Pydantic
+      v2, and renamed to `.model_dump()`.
+
+
+      The examples here use `.dict()` for compatibility with Pydantic v1, but you should use `.model_dump()`
+      instead if you can use Pydantic v2.
+
+
+      That would generate a `dict` with only the data that was set when creating the `item` model,
+      excluding default values.
+
+
+      Then you can use this to generate a `dict` with only the data that was set (sent in the request),
+      omitting default values:'
+  - relative_path: tutorial/response-model.md
+    quote: 'FastAPI will use this `response_model` to do all the data documentation, validation, etc.
+      and also to **convert and filter the output data** to its type declaration.
+
+
+      If you have strict type checks in your editor, mypy, etc, you can declare the function return
+      type as `Any`.
+
+
+      That way you tell the editor that you are intentionally returning anything. But FastAPI will
+      still do the data documentation, validation, filtering, etc. with the `response_model`.'
+  verified: false
+- question_id: multi_hop-006
+  category: multi_hop
+  question: If I mount a StaticFiles instance at "/static" on my main FastAPI app and also mount a
+    separate FastAPI sub-application at "/subapi", will the OpenAPI docs at "/docs" include the static
+    files mount or the sub-application's path operations?
+  answer: 'You must combine both behaviors: mounted static files are a mounted sub-application and
+    mounted sub-applications (including StaticFiles) are independent, so the main app''s docs won''t
+    include them.'
+  spans:
+  - relative_path: tutorial/static-files.md
+    quote: 'You can serve static files automatically from a directory using `StaticFiles`.
+
+
+      * Import `StaticFiles`.
+
+      * "Mount" a `StaticFiles()` instance in a specific path.
+
+
+      ```python
+
+      from fastapi import FastAPI
+
+      from fastapi.staticfiles import StaticFiles
+
+
+      app = FastAPI()
+
+
+      app.mount("/static", StaticFiles(directory="static"), name="static")
+
+      ```
+
+
+      You could also use `from starlette.staticfiles import StaticFiles`.
+
+
+      **FastAPI** provides the same `starlette.staticfiles` as `fastapi.staticfiles` just as a convenience
+      for you, the developer. But it actually comes directly from Starlette.
+
+
+      "Mounting" means adding a complete "independent" application in a specific path, that then takes
+      care of handling all the sub-paths.
+
+
+      This is different from using an `APIRouter` as a mounted application is completely independent.
+      The OpenAPI and docs from your main application won''t include anything from the mounted application,
+      etc.
+
+
+      You can read more about this in the [Advanced User Guide](../advanced/index.md){.internal-link
+      target=_blank}.'
+  - relative_path: advanced/sub-applications.md
+    quote: "\"Mounting\" means adding a completely \"independent\" application in a specific path,\
+      \ that then takes care of handling everything under that path, with the _path operations_ declared\
+      \ in that sub-application.\n\nFirst, create the main, top-level, **FastAPI** application, and\
+      \ its *path operations*:\n\n```python\nfrom fastapi import FastAPI\n\napp = FastAPI()\n\n@app.get(\"\
+      /app\")\ndef read_main():\n    return {\"message\": \"Hello World from main app\"}\n\nsubapi\
+      \ = FastAPI()\n\n@subapi.get(\"/sub\")\ndef read_sub():\n    return {\"message\": \"Hello World\
+      \ from sub API\"}\n\napp.mount(\"/subapi\", subapi)\n```\n\nThen, create your sub-application,\
+      \ and its *path operations*.\n\nThis sub-application is just another standard FastAPI application,\
+      \ but this is the one that will be \"mounted\":\n\n```python\nfrom fastapi import FastAPI\n\n\
+      app = FastAPI()\n\n@app.get(\"/app\")\ndef read_main():\n    return {\"message\": \"Hello World\
+      \ from main app\"}\n\nsubapi = FastAPI()\n\n@subapi.get(\"/sub\")\ndef read_sub():\n    return\
+      \ {\"message\": \"Hello World from sub API\"}\n\napp.mount(\"/subapi\", subapi)\n```\n\nIn your\
+      \ top-level application, `app`, mount the sub-application, `subapi`.\n\nIn this case, it will\
+      \ be mounted at the path `/subapi`:\n\n```python\nfrom fastapi import FastAPI\n\napp = FastAPI()\n\
+      \n@app.get(\"/app\")\ndef read_main():\n    return {\"message\": \"Hello World from main app\"\
+      }\n\nsubapi = FastAPI()\n\n@subapi.get(\"/sub\")\ndef read_sub():\n    return {\"message\":\
+      \ \"Hello World from sub API\"}\n\napp.mount(\"/subapi\", subapi)\n```\n\nNow, run the `fastapi`\
+      \ command with your file:\n\n```console\n$ fastapi dev main.py\n\n<span style=\"color: green;\"\
+      >INFO</span>:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)\n```\n\nAnd\
+      \ open the docs at http://127.0.0.1:8000/docs.\n\nYou will see the automatic API docs for the\
+      \ main app, including only its own _path operations_:\n\nAnd then, open the docs for the sub-application,\
+      \ at http://127.0.0.1:8000/subapi/docs.\n\nYou will see the automatic API docs for the sub-application,\
+      \ including only its own _path operations_, all under the correct sub-path prefix `/subapi`:\n\
+      \nIf you try interacting with any of the two user interfaces, they will work correctly, because\
+      \ the browser will be able to talk to each specific app or sub-app."
+  verified: false
+- question_id: multi_hop-007
+  category: multi_hop
+  question: How can I both add a license identifier like "MIT" to my OpenAPI metadata and link to
+    further docs about adding metadata and docs URLs from within the same FastAPI app?
+  answer: You set license_info with an identifier in FastAPI's constructor and reference the tutorial
+    link for adding metadata and docs URLs.
+  spans:
+  - relative_path: tutorial/metadata.md
+    quote: "Since OpenAPI 3.1.0 and FastAPI 0.99.0, you can also set the `license_info` with an `identifier`\
+      \ instead of a `url`.\n\nFor example:\n\n```python\nfrom fastapi import FastAPI\n\ndescription\
+      \ = \"\"\"\nChimichangApp API helps you do awesome stuff. \U0001F680\n\n## Items\n\nYou can\
+      \ **read items**.\n\n## Users\n\nYou will be able to:\n\n* **Create users** (_not implemented_).\n\
+      * **Read users** (_not implemented_).\n\"\"\"\n\napp = FastAPI(\n    title=\"ChimichangApp\"\
+      ,\n    description=description,\n    summary=\"Deadpool's favorite app. Nuff said.\",\n    version=\"\
+      0.0.1\",\n    terms_of_service=\"http://example.com/terms/\",\n    contact={\n        \"name\"\
+      : \"Deadpoolio the Amazing\",\n        \"url\": \"http://x-force.example.com/contact/\",\n \
+      \       \"email\": \"dp@x-force.example.com\",\n    },\n    license_info={\n        \"name\"\
+      : \"Apache 2.0\",\n        \"identifier\": \"MIT\",\n    },\n)\n\n@app.get(\"/items/\")\nasync\
+      \ def read_items():\n    return [{\"name\": \"Katana\"}]\n```"
+  - relative_path: how-to/general.md
+    quote: 'To add metadata to your OpenAPI schema, including a license, version, contact, etc, read
+      the docs for [Tutorial - Metadata and Docs URLs](../tutorial/metadata.md){.internal-link target=_blank}.
+
+
+      To customize the OpenAPI URL (or remove it), read the docs for [Tutorial - Metadata and Docs
+      URLs](../tutorial/metadata.md#openapi-url){.internal-link target=_blank}.
+
+
+      To update the URLs used for the automatically generated docs user interfaces, read the docs
+      for [Tutorial - Metadata and Docs URLs](../tutorial/metadata.md#docs-urls){.internal-link target=_blank}.'
+  verified: false
+- question_id: multi_hop-008
+  category: multi_hop
+  question: If I want to both set cookies in a response and have the response documented in OpenAPI
+    with a specific media type, how can I both set cookies and ensure the response_class media type
+    is included in the automatic docs?
+  answer: You declare a Response parameter (or return a Response) to set cookies and also set response_class
+    in the path operation decorator so FastAPI can document the media type in OpenAPI.
+  spans:
+  - relative_path: advanced/response-cookies.md
+    quote: "You can declare a parameter of type `Response` in your *path operation function*.\n\n\
+      And then you can set cookies in that *temporal* response object.\n\n```python\nfrom fastapi\
+      \ import FastAPI, Response\n\napp = FastAPI()\n\n@app.post(\"/cookie-and-object/\")\ndef create_cookie(response:\
+      \ Response):\n    response.set_cookie(key=\"fakesession\", value=\"fake-cookie-session-value\"\
+      )\n    return {\"message\": \"Come to the dark side, we have cookies\"}\n```\n\nAnd then you\
+      \ can return any object you need, as you normally would (a `dict`, a database model, etc).\n\
+      \nAnd if you declared a `response_model`, it will still be used to filter and convert the object\
+      \ you returned.\n\n**FastAPI** will use that *temporal* response to extract the cookies (also\
+      \ headers and status code), and will put them in the final response that contains the value\
+      \ you returned, filtered by any `response_model`.\n\nYou can also declare the `Response` parameter\
+      \ in dependencies, and set cookies (and headers) in them.\n\nYou can also create cookies when\
+      \ returning a `Response` directly in your code.\n\nTo do that, you can create a response as\
+      \ described in [Return a Response Directly](response-directly.md){.internal-link target=_blank}.\n\
+      \nThen set Cookies in it, and then return it:"
+  - relative_path: advanced/custom-response.md
+    quote: "If you want to override the response from inside of the function but at the same time\
+      \ document the \"media type\" in OpenAPI, you can use the `response_class` parameter AND return\
+      \ a `Response` object.\n\nThe `response_class` will then be used only to document the OpenAPI\
+      \ *path operation*, but your `Response` will be used as is.\n\nFor example, it could be something\
+      \ like:\n\n```python\nfrom fastapi import FastAPI\nfrom fastapi.responses import HTMLResponse\n\
+      \napp = FastAPI()\n\ndef generate_html_response():\n    html_content = \"\"\"\n    <html>\n\
+      \        <head>\n            <title>Some HTML in here</title>\n        </head>\n        <body>\n\
+      \            <h1>Look ma! HTML!</h1>\n        </body>\n    </html>\n    \"\"\"\n    return HTMLResponse(content=html_content,\
+      \ status_code=200)\n\n@app.get(\"/items/\", response_class=HTMLResponse)\nasync def read_items():\n\
+      \    return generate_html_response()\n```"
+  verified: false
+- question_id: multi_hop-009
+  category: multi_hop
+  question: How can I send both files and a token in the same multipart/form-data request so the files
+    can be received as UploadFile and a small text field as Form?
+  answer: You declare files with File/UploadFile and form fields with Form together in the same path
+    operation so FastAPI reads them from multipart/form-data.
+  spans:
+  - relative_path: tutorial/request-files.md
+    quote: 'But remember that when you import `Query`, `Path`, `File` and others from `fastapi`, those
+      are actually functions that return special classes.
+
+
+      To declare File bodies, you need to use `File`, because otherwise the parameters would be interpreted
+      as query parameters or body (JSON) parameters.
+
+
+      The files will be uploaded as "form data".
+
+      If you declare the type of your *path operation function* parameter as `bytes`, **FastAPI**
+      will read the file for you and you will receive the contents as `bytes`.
+
+
+      Keep in mind that this means that the whole contents will be stored in memory. This will work
+      well for small files.'
+  - relative_path: tutorial/request-forms-and-files.md
+    quote: "You can define files and form fields at the same time using `File` and `Form`.\n\nTo receive\
+      \ uploaded files and/or form data, first install `python-multipart`.\n\nMake sure you create\
+      \ a [virtual environment](../virtual-environments.md){.internal-link target=_blank}, activate\
+      \ it, and then install it, for example:\n\n```console\n$ pip install python-multipart\n```\n\
+      \n```python\nfrom typing import Annotated\n\nfrom fastapi import FastAPI, File, Form, UploadFile\n\
+      \napp = FastAPI()\n\n@app.post(\"/files/\")\nasync def create_file(\n    file: Annotated[bytes,\
+      \ File()],\n    fileb: Annotated[UploadFile, File()],\n    token: Annotated[str, Form()],\n\
+      ):\n    return {\n        \"file_size\": len(file),\n        \"token\": token,\n        \"fileb_content_type\"\
+      : fileb.content_type,\n    }\n```"
+  verified: false
+- question_id: multi_hop-010
+  category: multi_hop
+  question: How can I both set a custom response status code for creating an item and also access
+    its attributes to compute and return a derived field like price_with_tax?
+  answer: By using a path operation decorator with status_code (e.g., status.HTTP_201_CREATED) and
+    declaring a Pydantic model parameter so you can use item.dict() and compute price_with_tax inside
+    the function.
+  spans:
+  - relative_path: tutorial/path-operation-configuration.md
+    quote: "You can define the (HTTP) `status_code` to be used in the response of your *path operation*.\n\
+      \nYou can pass directly the `int` code, like `404`.\n\nBut if you don't remember what each number\
+      \ code is for, you can use the shortcut constants in `status`:\n\n```python\nfrom fastapi import\
+      \ FastAPI, status\nfrom pydantic import BaseModel\n\napp = FastAPI()\n\nclass Item(BaseModel):\n\
+      \    name: str\n    description: str | None = None\n    price: float\n    tax: float | None\
+      \ = None\n    tags: set[str] = set()\n\n@app.post(\"/items/\", response_model=Item, status_code=status.HTTP_201_CREATED)\n\
+      async def create_item(item: Item):\n    return item\n```"
+  - relative_path: tutorial/body.md
+    quote: "Inside of the function, you can access all the attributes of the model object directly:\n\
+      \n```python\nfrom fastapi import FastAPI\nfrom pydantic import BaseModel\n\nclass Item(BaseModel):\n\
+      \    name: str\n    description: str | None = None\n    price: float\n    tax: float | None\
+      \ = None\n\napp = FastAPI()\n\n@app.post(\"/items/\")\nasync def create_item(item: Item):\n\
+      \    item_dict = item.dict()\n    if item.tax:\n        price_with_tax = item.price + item.tax\n\
+      \        item_dict.update({\"price_with_tax\": price_with_tax})\n    return item_dict\n```"
+  verified: false
+- question_id: multi_hop-011
+  category: multi_hop
+  question: If I set a default status_code on a path operation but in some cases need to change it
+    dynamically while still having FastAPI apply a response_model to the returned object, how can
+    I do that?
+  answer: Declare a parameter of type Response in the path operation function (or in a dependency),
+    modify response.status_code as needed, and return the object; FastAPI will use the temporal Response
+    to set the final status and still apply the response_model.
+  spans:
+  - relative_path: tutorial/response-status-code.md
+    quote: "You can use the convenience variables from `fastapi.status`.\n\n```python\nfrom fastapi\
+      \ import FastAPI, status\n\napp = FastAPI()\n\n@app.post(\"/items/\", status_code=status.HTTP_201_CREATED)\n\
+      async def create_item(name: str):\n    return {\"name\": name}\n```\n\nThey are just a convenience,\
+      \ they hold the same number, but that way you can use the editor's autocomplete to find them:\n\
+      \nYou could also use `from starlette import status`.\n\n**FastAPI** provides the same `starlette.status`\
+      \ as `fastapi.status` just as a convenience for you, the developer. But it comes directly from\
+      \ Starlette."
+  - relative_path: advanced/response-change-status-code.md
+    quote: "You probably read before that you can set a default [Response Status Code](../tutorial/response-status-code.md){.internal-link\
+      \ target=_blank}.\n\nBut in some cases you need to return a different status code than the default.\n\
+      \nFor example, imagine that you want to return an HTTP status code of \"OK\" `200` by default.\n\
+      \nBut if the data didn't exist, you want to create it, and return an HTTP status code of \"\
+      CREATED\" `201`.\n\nBut you still want to be able to filter and convert the data you return\
+      \ with a `response_model`.\n\nFor those cases, you can use a `Response` parameter.\n\nYou can\
+      \ declare a parameter of type `Response` in your *path operation function* (as you can do for\
+      \ cookies and headers).\n\nAnd then you can set the `status_code` in that *temporal* response\
+      \ object.\n\n```python\nfrom fastapi import FastAPI, Response, status\n\napp = FastAPI()\n\n\
+      tasks = {\"foo\": \"Listen to the Bar Fighters\"}\n\n@app.put(\"/get-or-create-task/{task_id}\"\
+      , status_code=200)\ndef get_or_create_task(task_id: str, response: Response):\n    if task_id\
+      \ not in tasks:\n        tasks[task_id] = \"This didn't exist before\"\n        response.status_code\
+      \ = status.HTTP_201_CREATED\n    return tasks[task_id]\n```\n\nAnd then you can return any object\
+      \ you need, as you normally would (a `dict`, a database model, etc).\n\nAnd if you declared\
+      \ a `response_model`, it will still be used to filter and convert the object you returned.\n\
+      \n**FastAPI** will use that *temporal* response to extract the status code (also cookies and\
+      \ headers), and will put them in the final response that contains the value you returned, filtered\
+      \ by any `response_model`.\n\nYou can also declare the `Response` parameter in dependencies,\
+      \ and set the status code in them. But keep in mind that the last one to be set will win."
+  verified: false
+- question_id: multi_hop-012
+  category: multi_hop
+  question: How do I declare an optional string query parameter with a maximum length of 50 characters
+    while keeping the default value None and using Annotated?
+  answer: 'You should use Annotated with Query, for example: q: Annotated[str | None, Query(max_length=50)]
+    = None'
+  spans:
+  - relative_path: tutorial/query-params.md
+    quote: 'In this case, the function parameter `q` will be optional, and will be `None` by default.
+
+
+      Also notice that **FastAPI** is smart enough to notice that the path parameter `item_id` is
+      a path parameter and `q` is not, so, it''s a query parameter.'
+  - relative_path: tutorial/query-params-str-validations.md
+    quote: "from typing import Annotated\n\nfrom fastapi import FastAPI, Query\n\napp = FastAPI()\n\
+      \n@app.get(\"/items/\")\nasync def read_items(q: Annotated[str | None, Query(max_length=50)]\
+      \ = None):\n    results = {\"items\": [{\"item_id\": \"Foo\"}, {\"item_id\": \"Bar\"}]}\n  \
+      \  if q:\n        results.update({\"q\": q})\n    return results"
+  verified: false
+- question_id: multi_hop-013
+  category: multi_hop
+  question: How can I both set Field-level validation like gt=0 for a price attribute and also include
+    multiple example bodies for that same model in the OpenAPI docs returned by FastAPI?
+  answer: 'You use Pydantic''s Field on the model attribute for validations (e.g., price: float =
+    Field(gt=0, ...)) and provide examples either via model json_schema_extra or Field/examples or
+    via Body(examples=[...]) when declaring the request body.'
+  spans:
+  - relative_path: tutorial/body-fields.md
+    quote: "Notice that `Field` is imported directly from `pydantic`, not from `fastapi` as are all\
+      \ the rest (`Query`, `Path`, `Body`, etc).\n\nYou can then use `Field` with model attributes:\n\
+      \n```python\nfrom typing import Annotated\n\nfrom fastapi import Body, FastAPI\nfrom pydantic\
+      \ import BaseModel, Field\n\napp = FastAPI()\n\nclass Item(BaseModel):\n    name: str\n    description:\
+      \ str | None = Field(\n        default=None, title=\"The description of the item\", max_length=300\n\
+      \    )\n    price: float = Field(gt=0, description=\"The price must be greater than zero\")\n\
+      \    tax: float | None = None\n\n@app.put(\"/items/{item_id}\")\nasync def update_item(item_id:\
+      \ int, item: Annotated[Item, Body(embed=True)]):\n    results = {\"item_id\": item_id, \"item\"\
+      : item}\n    return results\n```"
+  - relative_path: tutorial/schema-extra-example.md
+    quote: "When using any of:\n\n* `Path()`\n* `Query()`\n* `Header()`\n* `Cookie()`\n* `Body()`\n\
+      * `Form()`\n* `File()`\n\nyou can also declare a group of `examples` with additional information\
+      \ that will be added to their **JSON Schemas** inside of **OpenAPI**.\n\nHere we pass `examples`\
+      \ containing one example of the data expected in `Body()`:\n\n```python\nfrom typing import\
+      \ Annotated\n\nfrom fastapi import Body, FastAPI\nfrom pydantic import BaseModel\n\napp = FastAPI()\n\
+      \nclass Item(BaseModel):\n    name: str\n    description: str | None = None\n    price: float\n\
+      \    tax: float | None = None\n\n@app.put(\"/items/{item_id}\")\nasync def update_item(\n  \
+      \  item_id: int,\n    item: Annotated[\n        Item,\n        Body(\n            examples=[\n\
+      \                {\n                    \"name\": \"Foo\",\n                    \"description\"\
+      : \"A very nice Item\",\n                    \"price\": 35.4,\n                    \"tax\":\
+      \ 3.2,\n                }\n            ],\n        ),\n    ],\n):\n    results = {\"item_id\"\
+      : item_id, \"item\": item}\n    return results\n```"
+  verified: false
+- question_id: multi_hop-014
+  category: multi_hop
+  question: How should I annotate a function parameter to accept both form fields and uploaded files
+    in the same POST endpoint and why can't I also expect JSON Body fields in that endpoint?
+  answer: Use File and Form (e.g., Annotated[bytes, File()] and Annotated[str, Form()]) together because
+    the request will be encoded as multipart/form-data, so you cannot declare Body fields expecting
+    application/json in the same operation.
+  spans:
+  - relative_path: tutorial/request-forms-and-files.md
+    quote: "To receive uploaded files and/or form data, first install `python-multipart`.\n\nMake\
+      \ sure you create a [virtual environment](../virtual-environments.md){.internal-link target=_blank},\
+      \ activate it, and then install it, for example:\n\n```console\n$ pip install python-multipart\n\
+      ```\n\n```python\nfrom typing import Annotated\n\nfrom fastapi import FastAPI, File, Form, UploadFile\n\
+      \napp = FastAPI()\n\n@app.post(\"/files/\")\nasync def create_file(\n    file: Annotated[bytes,\
+      \ File()],\n    fileb: Annotated[UploadFile, File()],\n    token: Annotated[str, Form()],\n\
+      ):\n    return {\n        \"file_size\": len(file),\n        \"token\": token,\n        \"fileb_content_type\"\
+      : fileb.content_type,\n    }\n```"
+  - relative_path: tutorial/request-files.md
+    quote: 'You can declare multiple `File` and `Form` parameters in a *path operation*, but you can''t
+      also declare `Body` fields that you expect to receive as JSON, as the request will have the
+      body encoded using `multipart/form-data` instead of `application/json`.
+
+
+      This is not a limitation of **FastAPI**, it''s part of the HTTP protocol.'
+  verified: false
+- question_id: multi_hop-015
+  category: multi_hop
+  question: If I want to set both a custom header and a cookie in a path operation, and have FastAPI
+    include them along with a response_model-filtered JSON body, can I set them using a single Response
+    parameter and will FastAPI extract both headers and cookies from that temporal response into the
+    final response?
+  answer: 'Yes'
+  spans:
+  - relative_path: advanced/response-headers.md
+    quote: "You can declare a parameter of type `Response` in your *path operation function* (as you\
+      \ can do for cookies).\n\nAnd then you can set headers in that *temporal* response object.\n\
+      \n```python\nfrom fastapi import FastAPI, Response\n\napp = FastAPI()\n\n@app.get(\"/headers-and-object/\"\
+      )\ndef get_headers(response: Response):\n    response.headers[\"X-Cat-Dog\"] = \"alone in the\
+      \ world\"\n    return {\"message\": \"Hello World\"}\n```\n\nAnd then you can return any object\
+      \ you need, as you normally would (a `dict`, a database model, etc).\n\nAnd if you declared\
+      \ a `response_model`, it will still be used to filter and convert the object you returned.\n\
+      \n**FastAPI** will use that *temporal* response to extract the headers (also cookies and status\
+      \ code), and will put them in the final response that contains the value you returned, filtered\
+      \ by any `response_model`."
+  - relative_path: advanced/response-cookies.md
+    quote: "You can declare a parameter of type `Response` in your *path operation function*.\n\n\
+      And then you can set cookies in that *temporal* response object.\n\n```python\nfrom fastapi\
+      \ import FastAPI, Response\n\napp = FastAPI()\n\n@app.post(\"/cookie-and-object/\")\ndef create_cookie(response:\
+      \ Response):\n    response.set_cookie(key=\"fakesession\", value=\"fake-cookie-session-value\"\
+      )\n    return {\"message\": \"Come to the dark side, we have cookies\"}\n```\n\nAnd then you\
+      \ can return any object you need, as you normally would (a `dict`, a database model, etc).\n\
+      \nAnd if you declared a `response_model`, it will still be used to filter and convert the object\
+      \ you returned.\n\n**FastAPI** will use that *temporal* response to extract the cookies (also\
+      \ headers and status code), and will put them in the final response that contains the value\
+      \ you returned, filtered by any `response_model`."
+  verified: false
+- question_id: ambiguous-001
+  category: ambiguous
+  question: How do I disable syntax highlighting or change its theme in Swagger UI?
+  answer: Either by setting the syntaxHighlight boolean or the syntaxHighlight.theme key in swagger_ui_parameters
+    when creating the app or calling get_swagger_ui_html.
+  spans:
+  - relative_path: how-to/configure-swagger-ui.md
+    quote: "But you can disable it by setting `syntaxHighlight` to `False`:\n\n```python\nfrom fastapi\
+      \ import FastAPI\n\napp = FastAPI(swagger_ui_parameters={\"syntaxHighlight\": False})\n\n@app.get(\"\
+      /users/{username}\")\nasync def read_user(username: str):\n    return {\"message\": f\"Hello\
+      \ {username}\"}\n```\n\n...and then Swagger UI won't show the syntax highlighting anymore:"
+  - relative_path: how-to/configure-swagger-ui.md
+    quote: "The same way you could set the syntax highlighting theme with the key `\"syntaxHighlight.theme\"\
+      ` (notice that it has a dot in the middle):\n\n```python\nfrom fastapi import FastAPI\n\napp\
+      \ = FastAPI(swagger_ui_parameters={\"syntaxHighlight.theme\": \"obsidian\"})\n\n@app.get(\"\
+      /users/{username}\")\nasync def read_user(username: str):\n    return {\"message\": f\"Hello\
+      \ {username}\"}\n```\n\nThat configuration would change the syntax highlighting color theme:"
+  verified: false
+- question_id: ambiguous-002
+  category: ambiguous
+  question: When should I use PUT versus PATCH to update an item in my API?
+  answer: They can both be used; use PUT to replace and PATCH to partially update, depending on whether
+    you want full replacement or partial updates.
+  spans:
+  - relative_path: tutorial/body-updates.md
+    quote: "`PUT` is used to receive data that should replace the existing data.\n\nThat means that\
+      \ if you want to update the item `bar` using `PUT` with a body containing:\n\n```Python\n{\n\
+      \    \"name\": \"Barz\",\n    \"price\": 3,\n    \"description\": None,\n}\n```\n\nbecause it\
+      \ doesn't include the already stored attribute `\"tax\": 20.2`, the input model would take the\
+      \ default value of `\"tax\": 10.5`.\nAnd the data would be saved with that \"new\" `tax` of\
+      \ `10.5`."
+  - relative_path: tutorial/body-updates.md
+    quote: 'You can also use the HTTP `PATCH` operation to *partially* update data.
+
+
+      This means that you can send only the data that you want to update, leaving the rest intact.
+
+
+      `PATCH` is less commonly used and known than `PUT`.
+
+
+      And many teams use only `PUT`, even for partial updates.
+
+
+      You are **free** to use them however you want, **FastAPI** doesn''t impose any restrictions.
+
+      But this guide shows you, more or less, how they are intended to be used.'
+  verified: false
+- question_id: ambiguous-003
+  category: ambiguous
+  question: What's the recommended secure way to compare the provided username/password to the expected
+    values?
+  answer: Use secrets.compare_digest on UTF-8 encoded bytes of username and password
+  spans:
+  - relative_path: advanced/security/http-basic-auth.md
+    quote: 'For this, use the Python standard module `secrets` to check the username and password.
+
+
+      `secrets.compare_digest()` needs to take `bytes` or a `str` that only contains ASCII characters
+      (the ones in English), this means it wouldn''t work with characters like `á`, as in `Sebastián`.
+
+
+      To handle that, we first convert the `username` and `password` to `bytes` encoding them with
+      UTF-8.
+
+
+      Then we can use `secrets.compare_digest()` to ensure that `credentials.username` is `"stanleyjobson"`,
+      and that `credentials.password` is `"swordfish"`.'
+  - relative_path: advanced/security/http-basic-auth.md
+    quote: 'But by using the `secrets.compare_digest()` it will be secure against a type of attacks
+      called "timing attacks".
+
+
+      But what''s a "timing attack"?
+
+
+      Let''s imagine some attackers are trying to guess the username and password.'
+  verified: false
+- question_id: ambiguous-004
+  category: ambiguous
+  question: How do I access the username and password sent by the client inside my path operation?
+  answer: Use HTTPBasic dependency which returns HTTPBasicCredentials with username and password
+  spans:
+  - relative_path: advanced/security/http-basic-auth.md
+    quote: "* Import `HTTPBasic` and `HTTPBasicCredentials`.\n* Create a \"`security` scheme\" using\
+      \ `HTTPBasic`.\n* Use that `security` with a dependency in your *path operation*.\n* It returns\
+      \ an object of type `HTTPBasicCredentials`:\n    * It contains the `username` and `password`\
+      \ sent."
+  - relative_path: advanced/security/http-basic-auth.md
+    quote: "from fastapi import Depends, FastAPI\nfrom fastapi.security import HTTPBasic, HTTPBasicCredentials\n\
+      \napp = FastAPI()\n\nsecurity = HTTPBasic()\n\n@app.get(\"/users/me\")\ndef read_current_user(credentials:\
+      \ Annotated[HTTPBasicCredentials, Depends(security)]):\n    return {\"username\": credentials.username,\
+      \ \"password\": credentials.password}"
+  verified: false
+- question_id: ambiguous-005
+  category: ambiguous
+  question: How can I make FastAPI read multiple related headers into a single object for reuse across
+    endpoints?
+  answer: You can declare a Pydantic model for the headers and use Annotated with Header to have FastAPI
+    extract them into that model.
+  spans:
+  - relative_path: tutorial/header-param-models.md
+    quote: 'If you have a group of related **header parameters**, you can create a **Pydantic model**
+      to declare them.
+
+
+      This would allow you to **re-use the model** in **multiple places** and also to declare validations
+      and metadata for all the parameters at once. 😎
+
+
+      This is supported since FastAPI version `0.115.0`. 🤓'
+  - relative_path: tutorial/header-param-models.md
+    quote: "Declare the **header parameters** that you need in a **Pydantic model**, and then declare\
+      \ the parameter as `Header`:\n\n```python\nfrom typing import Annotated\n\nfrom fastapi import\
+      \ FastAPI, Header\nfrom pydantic import BaseModel\n\napp = FastAPI()\n\nclass CommonHeaders(BaseModel):\n\
+      \    host: str\n    save_data: bool\n    if_modified_since: str | None = None\n    traceparent:\
+      \ str | None = None\n    x_tag: list[str] = []\n\n@app.get(\"/items/\")\nasync def read_items(headers:\
+      \ Annotated[CommonHeaders, Header()]):\n    return headers\n```"
+  verified: false
+- question_id: ambiguous-006
+  category: ambiguous
+  question: What will happen if a client sends headers that aren't defined in my Pydantic header model?
+  answer: You can forbid extra fields via model_config so the client will get an error response if
+    they send extra headers.
+  spans:
+  - relative_path: tutorial/header-param-models.md
+    quote: 'In some special use cases (probably not very common), you might want to **restrict** the
+      headers that you want to receive.
+
+
+      You can use Pydantic''s model configuration to `forbid` any `extra` fields:'
+  - relative_path: tutorial/header-param-models.md
+    quote: "If a client tries to send some **extra headers**, they will receive an **error** response.\n\
+      \nFor example, if the client tries to send a `tool` header with a value of `plumbus`, they will\
+      \ receive an **error** response telling them that the header parameter `tool` is not allowed:\n\
+      \n```json\n{\n    \"detail\": [\n        {\n            \"type\": \"extra_forbidden\",\n   \
+      \         \"loc\": [\"header\", \"tool\"],\n            \"msg\": \"Extra inputs are not permitted\"\
+      ,\n            \"input\": \"plumbus\",\n        }\n    ]\n}\n```"
+  verified: false
+- question_id: ambiguous-007
+  category: ambiguous
+  question: Is there a way to see which headers are required by my endpoint in the automatic docs?
+  answer: FastAPI will extract header fields into the Pydantic model and show the required headers
+    in the docs UI at /docs.
+  spans:
+  - relative_path: tutorial/header-param-models.md
+    quote: "Declare the **header parameters** that you need in a **Pydantic model**, and then declare\
+      \ the parameter as `Header`:\n\n```python\nfrom typing import Annotated\n\nfrom fastapi import\
+      \ FastAPI, Header\nfrom pydantic import BaseModel\n\napp = FastAPI()\n\nclass CommonHeaders(BaseModel):\n\
+      \    host: str\n    save_data: bool\n    if_modified_since: str | None = None\n    traceparent:\
+      \ str | None = None\n    x_tag: list[str] = []\n\n@app.get(\"/items/\")\nasync def read_items(headers:\
+      \ Annotated[CommonHeaders, Header()]):\n    return headers\n```"
+  - relative_path: tutorial/header-param-models.md
+    quote: 'You can see the required headers in the docs UI at `/docs`:'
+  verified: false
+- question_id: ambiguous-008
+  category: ambiguous
+  question: Should I declare a Response parameter in my path operation function or create and return
+    a Response object directly when I want to set cookies?
+  answer: Ambiguous — either approach can be used
+  spans:
+  - relative_path: advanced/response-cookies.md
+    quote: "You can declare a parameter of type `Response` in your *path operation function*.\n\n\
+      And then you can set cookies in that *temporal* response object.\n\n```python\nfrom fastapi\
+      \ import FastAPI, Response\n\napp = FastAPI()\n\n@app.post(\"/cookie-and-object/\")\ndef create_cookie(response:\
+      \ Response):\n    response.set_cookie(key=\"fakesession\", value=\"fake-cookie-session-value\"\
+      )\n    return {\"message\": \"Come to the dark side, we have cookies\"}\n```\n\nAnd then you\
+      \ can return any object you need, as you normally would (a `dict`, a database model, etc)."
+  - relative_path: advanced/response-cookies.md
+    quote: "You can also create cookies when returning a `Response` directly in your code.\n\nTo do\
+      \ that, you can create a response as described in [Return a Response Directly](response-directly.md){.internal-link\
+      \ target=_blank}.\n\nThen set Cookies in it, and then return it:\n\n```python\nfrom fastapi\
+      \ import FastAPI\nfrom fastapi.responses import JSONResponse\n\napp = FastAPI()\n\n@app.post(\"\
+      /cookie/\")\ndef create_cookie():\n    content = {\"message\": \"Come to the dark side, we have\
+      \ cookies\"}\n    response = JSONResponse(content=content)\n    response.set_cookie(key=\"fakesession\"\
+      , value=\"fake-cookie-session-value\")\n    return response\n```"
+  verified: false
+- question_id: ambiguous-009
+  category: ambiguous
+  question: If I set cookies on a Response parameter in a dependency, will FastAPI include those cookies
+    in the final response?
+  answer: Likely yes — dependencies can set cookies and FastAPI extracts cookies from temporal responses
+  spans:
+  - relative_path: advanced/response-cookies.md
+    quote: You can also declare the `Response` parameter in dependencies, and set cookies (and headers)
+      in them.
+  - relative_path: advanced/response-cookies.md
+    quote: 'And if you declared a `response_model`, it will still be used to filter and convert the
+      object you returned.
+
+
+      **FastAPI** will use that *temporal* response to extract the cookies (also headers and status
+      code), and will put them in the final response that contains the value you returned, filtered
+      by any `response_model`.'
+  verified: false
+- question_id: ambiguous-010
+  category: ambiguous
+  question: Will setting cookies on a Response parameter affect how my response data is filtered by
+    a response_model?
+  answer: It's unclear — FastAPI extracts cookies from the temporal Response and still applies response_model
+    filtering
+  spans:
+  - relative_path: advanced/response-cookies.md
+    quote: 'And if you declared a `response_model`, it will still be used to filter and convert the
+      object you returned.
+
+
+      **FastAPI** will use that *temporal* response to extract the cookies (also headers and status
+      code), and will put them in the final response that contains the value you returned, filtered
+      by any `response_model`.'
+  - relative_path: advanced/response-cookies.md
+    quote: 'Keep in mind that if you return a response directly instead of using the `Response` parameter,
+      FastAPI will return it directly.
+
+
+      So, you will have to make sure your data is of the correct type. E.g. it is compatible with
+      JSON, if you are returning a `JSONResponse`.
+
+
+      And also that you are not sending any data that should have been filtered by a `response_model`.'
+  verified: false
+- question_id: no_answer-001
+  category: no_answer
+  question: What is FastAPI's official enterprise support SLA (response times, severity levels, and
+    escalation path) for production incidents?
+  answer: The documentation does not provide any information about enterprise support contracts, SLAs,
+    or formal escalation procedures.
+  spans: []
+  verified: false
+- question_id: no_answer-002
+  category: no_answer
+  question: Are there any published performance benchmarks comparing FastAPI to specific competitors
+    (e.g., Express, Spring Boot, Django) under identical workloads?
+  answer: The documentation does not include third-party or vendor-run benchmark results against named
+    competing frameworks.
+  spans: []
+  verified: false
+  notes: 'CHECK: retrieval confidence 0.63 sits in the range measured for answerable questions, so
+    the corpus may well answer this one.'
+- question_id: no_answer-003
+  category: no_answer
+  question: What long-term project roadmap or planned major features/releases does the FastAPI core
+    team have for the next 12–24 months?
+  answer: The docs do not contain an internal roadmap, release timeline, or planned feature list from
+    the FastAPI maintainers.
+  spans: []
+  verified: false
+  notes: 'CHECK: retrieval confidence 0.64 sits in the range measured for answerable questions, so
+    the corpus may well answer this one.'
+- question_id: no_answer-004
+  category: no_answer
+  question: Which companies or organizations are using FastAPI in production at scale, and are there
+    case studies with production metrics (request volumes, latencies, uptime)?
+  answer: The documentation does not publish an official list of enterprise adopters or detailed production
+    case studies with metrics.
+  spans: []
+  verified: false
+  notes: 'CHECK: retrieval confidence 0.59 sits in the range measured for answerable questions, so
+    the corpus may well answer this one.'
+- question_id: no_answer-005
+  category: no_answer
+  question: Does the FastAPI project offer commercial licensing, white-glove support, or paid training,
+    and what are the pricing or contract terms?
+  answer: The documentation does not mention any commercial offerings, pricing, or paid professional
+    services.
+  spans: []
+  verified: false
+  notes: 'CHECK: retrieval confidence 0.56 sits in the range measured for answerable questions, so
+    the corpus may well answer this one.'
+- question_id: no_answer-006
+  category: no_answer
+  question: What is the project's tested and supported compatibility matrix for specific Python versions,
+    OS releases, and ASGI servers (exact tested minor versions)?
+  answer: The documentation provides general compatibility guidance but does not publish an exhaustive,
+    version-specific compatibility matrix with exact tested minor versions and OS releases.
+  spans: []
+  verified: false
+- question_id: no_answer-007
+  category: no_answer
+  question: What security audit history exists for FastAPI (third-party audits, CVEs closure timeline,
+    or a public security disclosure process)?
+  answer: The docs do not include a record of formal third-party security audits, a CVE timeline,
+    or a detailed vulnerability disclosure/response policy.
+  spans: []
+  verified: false
+  notes: 'CHECK: retrieval confidence 0.57 sits in the range measured for answerable questions, so
+    the corpus may well answer this one.'
+- question_id: no_answer-008
+  category: no_answer
+  question: What are the recommended scaling and operational patterns for running FastAPI across multiple
+    regions with multi-cluster orchestration and geo-failover?
+  answer: The documentation covers deployment basics but does not provide detailed, prescriptive multi-region
+    scaling, geo-failover, or multi-cluster orchestration patterns.
+  spans: []
+  verified: false
+- question_id: no_answer-009
+  category: no_answer
+  question: Are there official performance tuning guides or recommended configurations for specific
+    cloud providers (AWS, GCP, Azure) including instance types and autoscaling rules?
+  answer: The documentation does not include cloud-provider-specific tuning guides, recommended instance
+    types, or concrete autoscaling configurations.
+  spans: []
+  verified: false
+- question_id: no_answer-010
+  category: no_answer
+  question: What is the governance model for the FastAPI project (maintainer roles, decision-making
+    process, how to propose or approve breaking changes)?
+  answer: The documentation does not describe the project's governance, maintainer responsibilities,
+    or formal process for proposing and approving major or breaking changes.
+  spans: []
+  verified: false
+  notes: 'CHECK: retrieval confidence 0.61 sits in the range measured for answerable questions, so
+    the corpus may well answer this one.'

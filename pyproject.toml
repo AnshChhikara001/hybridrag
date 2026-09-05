@@ -17,6 +17,8 @@ dependencies = [
     "tiktoken>=0.14.0",
     "openai>=3.7.0",
     "google-genai>=2.22.0",
+    "pyyaml>=6.0.3",
+    "types-pyyaml>=6.0.12.20260815",
 ]
 
 [dependency-groups]
