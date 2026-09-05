@@ -55,7 +55,15 @@ jobs:
         run: uv run mypy
 
       - name: Tests
-        # "not slow" excludes the two tests that download the 67 MB embedding model.
-        # Everything else runs against the 16 KB fixture corpus committed to the repo,
-        # so this needs no network, no API key, and no external corpus.
+        # "not slow" excludes the tests that embed with a real model and the live provider
+        # tests, which need API keys this runner deliberately does not have.
+        #
+        # It does NOT make the run offline. Two chunking tests construct the real
+        # tokenizer, which downloads the embedding model (~67 MB) on every run, because
+        # token-window overflow is a property of real sub-word vocabularies that a stub
+        # cannot exhibit. That download is not cached today; caching ~/.cache/huggingface
+        # would cut most of the runtime.
+        #
+        # No API key and no external corpus: everything else runs against the fixture
+        # corpus committed to the repo.
         run: uv run pytest -m "not slow"
