@@ -8,6 +8,7 @@ from hybridrag.generation.answerer import (
     retrieval_confidence,
 )
 from hybridrag.generation.base import Completion, GenerationError, LanguageModel
+from hybridrag.generation.cache import CachedLanguageModel
 from hybridrag.generation.citations import parse_citation_numbers, resolve_citations
 from hybridrag.generation.gemini import DEFAULT_MODEL, GeminiModel
 from hybridrag.generation.models import Answer, AnswerConfidence, Citation, CitationReport
@@ -28,6 +29,7 @@ __all__ = [
     "AnswerConfidence",
     "Answerer",
     "BudgetExceededError",
+    "CachedLanguageModel",
     "Citation",
     "CitationReport",
     "Completion",

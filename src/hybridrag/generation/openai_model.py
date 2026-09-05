@@ -86,6 +86,17 @@ class OpenAIModel:
         return self.model_name.startswith(_REASONING_PREFIXES)
 
     @property
+    def fingerprint(self) -> str:
+        # Temperature is omitted from the request on reasoning models, so it is omitted
+        # from the fingerprint too -- otherwise changing a field the API ignores would
+        # discard a cache that is still perfectly valid.
+        effort = self.reasoning_effort if self._is_reasoning_model else "n/a"
+        temperature = "n/a" if self._is_reasoning_model else self.temperature
+        return (
+            f"openai|{self.model_name}|t={temperature}|effort={effort}|max={self.max_output_tokens}"
+        )
+
+    @property
     def estimated_cost_usd(self) -> float:
         input_rate, output_rate = _PRICE_PER_1M_TOKENS[self.model_name]
         return (self.input_tokens * input_rate + self.output_tokens * output_rate) / 1_000_000

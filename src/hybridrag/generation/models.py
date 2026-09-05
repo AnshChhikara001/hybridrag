@@ -102,6 +102,13 @@ class Answer(BaseModel):
     output_tokens: NonNegativeInt = 0
     cost_usd: NonNegativeFloat = 0.0
     latency_s: NonNegativeFloat = 0.0
+    cached: bool = Field(
+        default=False,
+        description=(
+            "Generation was served from the response cache, so `latency_s` is a lookup "
+            "and `cost_usd` is 0. A latency benchmark must filter these out."
+        ),
+    )
 
     @property
     def sources(self) -> list[str]:

@@ -89,6 +89,13 @@ class GeminiModel:
         )
 
     @property
+    def fingerprint(self) -> str:
+        return (
+            f"gemini|{self.model_name}|t={self.temperature}"
+            f"|think={self.thinking_budget}|max={self.max_output_tokens}"
+        )
+
+    @property
     def estimated_cost_usd(self) -> float:
         """Cumulative spend, from the published rate for this model."""
         input_rate, output_rate = _PRICE_PER_1M_TOKENS[self.model_name]

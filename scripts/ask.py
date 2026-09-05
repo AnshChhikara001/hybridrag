@@ -26,6 +26,7 @@ from hybridrag.embedding_openai import OpenAIEmbedder
 from hybridrag.generation import (
     Answer,
     Answerer,
+    CachedLanguageModel,
     GeminiModel,
     GenerationError,
     LanguageModel,
@@ -105,9 +106,10 @@ def _report(answer: Answer, *, show_chunks: bool) -> None:
         if show_chunks:
             typer.echo(f"      {' '.join(result.chunk.text.split())[:220]}...")
 
+    source = "cached" if answer.cached else "generated"
     typer.echo(
         f"\n{answer.model}  {answer.input_tokens} in / {answer.output_tokens} out  "
-        f"${answer.cost_usd:.6f}  {answer.latency_s:.2f}s"
+        f"${answer.cost_usd:.6f}  {answer.latency_s:.2f}s  ({source})"
     )
 
 
@@ -117,6 +119,9 @@ def ask(
     k: Annotated[int, typer.Option(help="Context blocks to retrieve.")] = 5,
     chunks: Annotated[bool, typer.Option(help="Show a snippet of each retrieved chunk.")] = False,
     dense_only: Annotated[bool, typer.Option(help="Ablate sparse, for comparison.")] = False,
+    no_cache: Annotated[
+        bool, typer.Option(help="Bypass the response cache, for true latency or a fresh answer.")
+    ] = False,
     provider: Annotated[
         str | None, typer.Option(help="Override the configured provider: gemini or openai.")
     ] = None,
@@ -140,9 +145,16 @@ def ask(
     if dense_only:
         retriever = retriever.ablation("dense")
 
+    # Cached by default: the same demo question is asked many times while iterating, and
+    # the free tier rate-limited this project once already.
+    model = CachedLanguageModel(
+        _language_model(provider),
+        settings.cache_dir / "completions.sqlite",
+        read_only=no_cache,
+    )
     answerer = Answerer(
         retriever,
-        _language_model(provider),
+        model,
         k=k,
         confidence_threshold=settings.retrieval_confidence_threshold,
     )
@@ -161,6 +173,7 @@ def ask(
         )
         raise typer.Exit(code=1) from error
     finally:
+        model.close()
         cached.close()
         store.close()
 

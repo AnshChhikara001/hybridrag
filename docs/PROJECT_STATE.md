@@ -3,7 +3,7 @@
 Recovery file. Current architecture, locked decisions and their rationale, progress, and
 the next step. Updated whenever a decision or milestone lands.
 
-**Last updated:** 2026-09-04 · **Status:** Vertical slice complete — question in, cited answer out
+**Last updated:** 2026-09-05 · **Status:** Slice merged to main, green in CI; response cache in
 
 ---
 
@@ -42,6 +42,8 @@ Full requirements: `docs/project-brief.md`. Operating rules: `CLAUDE.md`.
 | D19 | **The corpus is fetched, pinned, and never vendored** | It lived only in a temp directory and vanished on a reboot. `scripts/fetch_corpus.sh` pins tag `0.115.6` so a re-fetch reproduces the same corpus and evaluation numbers stay comparable. Checking out `docs_src` and `fastapi` alongside the docs took unresolved includes from 1 to 0. |
 | D16 | **Semantic chunking stays heading-blind, overlap-free, and pure** | The loader knows every section boundary; feeding that in would make this a variant of the structure-aware chunker and Phase 4 would compare two spellings of one idea. No overlap, because a boundary chosen for a topic change is not worth blurring. Where a topic exceeds the token budget it is subdivided at the *next-largest* distance inside it, iteratively (not recursively -- `argmax` can land at a group edge, and a 10,611-token section would recurse once per sentence). |
 | D17 | **`Embedder` protocol owns the query/document asymmetry** | `bge` was trained with an instruction prefix on queries only; omitting it costs retrieval quality and applying it to documents costs it again. Keeping it inside the embedder means no caller can get it wrong, and the OpenAI adapter simply carries an empty instruction. The protocol also guarantees L2-normalised vectors, so cosine reduces to a dot product for Chroma, dedup, and semantic chunking alike. |
+| D26 | **The response cache keys on a model *fingerprint*, not just the prompt** | Hashing the prompt alone keeps serving temperature-0 answers after temperature is raised — a silent wrong result during exactly the parameter sweeps an evaluation consists of. Each adapter declares the settings that change its output (`LanguageModel.fingerprint`), so correctness lives with the adapter rather than in the cache's guesswork. Measured: warm call $0.000000 / 0.00s against $0.000141 / 3.85s cold, 6.4x faster end to end. |
+| D27 | **On reasoning models the cache is what makes a run reproducible** | `gpt-5-nano` rejects `temperature`, so "temperature 0 for determinism" does not apply to it: the same prompt returned 172 output tokens once and 259 the next time. Re-running an evaluation would therefore move the numbers without any code changing. The cache pins the answer to the prompt, which is the only reproducibility available on that model family. A deliberate `--no-cache` / `read_only` path exists for when a fresh answer is the point. |
 | D23 | **Two independent refusal paths, not one** | The pre-generation gate reads dense cosine and catches *out-of-domain* questions without spending a request. The model's own sentinel catches *in-domain but unanswerable* ones, which the gate cannot see. Measured: "capital of France" scores 0.141 and is refused for $0.000000 in 0.00s; "FastAPI's enterprise support SLA" scores 0.495, clears the gate correctly, and is refused by the model after reading the chunks. Either layer alone gets one of these wrong. |
 | D24 | **The prompt must say when to answer, not only when to refuse** | An early draft said "partial information is not an answer" and produced a false refusal on "how do I run FastAPI in Docker" with five chunks of `docker.md` in context, one a complete Dockerfile. Cause was an interaction, isolated by testing one variable at a time: the strict prompt answers correctly *with* reasoning enabled, and a plain prompt answers correctly *without* it. A model with no reasoning budget cannot weigh sufficiency, so refusal wording wins by default. Chunked retrieval always delivers partial context, so the refusal condition is now narrow — "only when no block relates to the question at all". |
 | D25 | **Two generation providers, because one was not enough** | Gemini's free tier returned 503 then 429 mid-build, exactly the hostility D12 assumed. `LanguageModel` made the OpenAI adapter a drop-in, so the slice finished on `gpt-5-nano` at **$0.000125 per query** while Gemini was unavailable. D4's "reversible in one config line" is now demonstrated rather than asserted. |
@@ -66,7 +68,7 @@ GitHub Actions.
 
 ## Budget
 
-Ceiling **$1.00**. **Spent to date: ~$0.0086.** Generation allowance raised to $0.50 by the user; almost none of it is needed while the free tier is up.
+Ceiling **$1.00**. **Spent to date: ~$0.0089.** Generation allowance raised to $0.50 by the user; almost none of it is needed while the free tier is up.
 
 | item | cost |
 |---|---|
@@ -74,8 +76,9 @@ Ceiling **$1.00**. **Spent to date: ~$0.0086.** Generation allowance raised to $
 | Full corpus index, structure-aware (334,955 tokens) | $0.0067 |
 | Wasted run: corpus root missing its code examples (44,152 tokens) | $0.0009 |
 | Generation: ~8 `gpt-5-nano` calls while Gemini was rate-limited | ~$0.0010 |
+| Cache verification (3 calls) | $0.0003 |
 | Gemini generation (free tier) | $0.0000 |
-| **Total** | **~$0.0086** |
+| **Total** | **~$0.0089** |
 
 The wasted run is recorded rather than quietly dropped: it embedded a prose-only corpus
 built from the wrong root, and is what led to D22. The corrected rebuild cost **$0.0000** —
@@ -97,7 +100,11 @@ BM25 costs nothing: only the dense half of hybrid retrieval spends.
 - [x] Vertical slice — tokenizer, BM25 index, Chroma index, embedding cache, OpenAI adapter
 - [x] Vertical slice — chunk store, RRF retriever, reproducible build and query scripts
 - [x] Vertical slice — **complete**: grounded generation, inline citations, two refusal paths
-- [ ] LLM response cache (D12), then Phase 2 ← *current*
+- [x] CI green on a clean Linux runner; slice merged to `main` (PR #3)
+- [x] LLM response cache (D12) — fingerprint-keyed, read-only bypass
+- [ ] Phase 4 — evaluation: golden set + Tier-1 metrics ← *current*
+- [ ] Then Phase 2's reranker, measured against that baseline
+- [ ] Still open from Phase 1: **near-duplicate detection** (`dedup_threshold` is wired to nothing)
 - [ ] Phase 2 — hybrid retrieval · [ ] Phase 3 — generation & citations
 - [ ] Phase 4 — evaluation · [ ] Phase 5 — API & dashboard · [ ] Phase 6 — polish
 
