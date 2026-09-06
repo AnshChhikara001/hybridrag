@@ -28,6 +28,14 @@ class Completion(BaseModel):
     thinking_tokens: NonNegativeInt = 0
     cost_usd: NonNegativeFloat = 0.0
     latency_s: NonNegativeFloat = 0.0
+    cached: bool = Field(
+        default=False,
+        description=(
+            "Served from the response cache. Then `cost_usd` is 0 because nothing was "
+            "spent again, and `latency_s` is lookup time rather than generation time -- "
+            "so any latency benchmark has to exclude these."
+        ),
+    )
 
 
 @runtime_checkable
@@ -35,6 +43,19 @@ class LanguageModel(Protocol):
     """Generates text from a prompt."""
 
     model_name: str
+
+    @property
+    def fingerprint(self) -> str:
+        """Every setting that changes what this model returns, as one stable string.
+
+        Exists for the response cache. Hashing the prompt alone would keep serving
+        temperature-0 answers after temperature was raised, or non-reasoning answers after
+        reasoning was enabled -- a silent wrong result during exactly the parameter sweeps
+        an evaluation run consists of. Making each implementation declare its own
+        output-affecting settings puts that correctness in one place per adapter rather
+        than in the cache's guesswork.
+        """
+        ...
 
     def generate(
         self,
