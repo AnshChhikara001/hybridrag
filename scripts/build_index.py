@@ -30,8 +30,15 @@ from hybridrag.config import get_settings
 from hybridrag.embedding import Embedder, FastEmbedEmbedder
 from hybridrag.embedding_cache import CachedEmbedder
 from hybridrag.embedding_openai import OpenAIEmbedder
-from hybridrag.indexing import DenseIndex, SparseIndex
-from hybridrag.loaders import CorpusLoader
+from hybridrag.indexing import (
+    DenseIndex,
+    SparseIndex,
+    chroma_path,
+    collection_name,
+    sparse_path,
+    store_path,
+)
+from hybridrag.loaders import CorpusLoader, default_include_root
 from hybridrag.models import Chunk, ChunkingStrategy
 from hybridrag.tokenization import HuggingFaceTokenCounter
 
@@ -62,33 +69,39 @@ def _build_embedder(choice: EmbedderChoice, budget_tokens: int | None) -> Embedd
     return OpenAIEmbedder(settings.openai_api_key, token_budget=budget_tokens)
 
 
-def _default_include_root(corpus: Path) -> Path | None:
-    """Where `{* ... *}` directives resolve from, for a corpus laid out like FastAPI's.
+def _build_chunker(strategy: ChunkingStrategy, embedder: Embedder) -> Chunker:
+    """Construct one chunking strategy.
 
-    Its prose lives in `docs/en/docs` and its 684 example files in `docs_src`, a sibling
-    of `docs`. Walking from the repository root instead would sweep six `requirements*.txt`
-    files into a documentation corpus and rewrite every relative path -- and every id
-    derived from one -- so discovery stays narrow and only resolution widens.
+    The semantic chunker needs an embedder and the other two do not, which is why this is
+    a branch rather than a uniform call -- and why the script previously could not build
+    semantic at all: it passed the same three arguments to every strategy.
+
+    Budgets must be counted in the embedding model's own tokens, so the tokenizer is the
+    local model's even when embedding is hosted: it is what the 512-token budget was
+    measured against, and changing it would renumber every chunk id.
     """
-    for parent in corpus.resolve().parents:
-        if (parent / "docs_src").is_dir():
-            return parent
-    return None
-
-
-def _chunk_corpus(
-    corpus: Path, strategy: ChunkingStrategy, include_root: Path | None
-) -> list[Chunk]:
-    """Load and chunk every document, with the tokenizer the embedder itself uses."""
     settings = get_settings()
-    # Budgets must be counted in the embedding model's own tokens, so this is the local
-    # model's tokenizer even when embedding is hosted -- it is what the 512-token budget
-    # was measured against, and changing it would renumber every chunk id.
-    chunker = CHUNKERS[strategy](
-        HuggingFaceTokenCounter(settings.embedding_model),
+    tokenizer = HuggingFaceTokenCounter(settings.embedding_model)
+    if strategy is ChunkingStrategy.SEMANTIC:
+        return SemanticChunker(
+            tokenizer,
+            embedder,
+            max_tokens=settings.chunk_tokens,
+            overlap_tokens=0,  # D16: a boundary chosen for a topic change is not blurred.
+            percentile=settings.semantic_percentile,
+        )
+    return CHUNKERS[strategy](
+        tokenizer,
         max_tokens=settings.chunk_tokens,
         overlap_tokens=settings.chunk_overlap_tokens,
     )
+
+
+def _chunk_corpus(
+    corpus: Path, strategy: ChunkingStrategy, include_root: Path | None, embedder: Embedder
+) -> list[Chunk]:
+    """Load and chunk every document."""
+    chunker = _build_chunker(strategy, embedder)
     loader = CorpusLoader(corpus, include_root=include_root)
 
     chunks: list[Chunk] = []
@@ -132,31 +145,39 @@ def build(
     def elapsed() -> str:
         return f"[{time.perf_counter() - started:6.1f}s]"
 
-    resolved_include_root = include_root or _default_include_root(corpus)
+    resolved_include_root = include_root or default_include_root(corpus)
+    # Built before chunking, because the semantic strategy embeds every sentence to find
+    # its boundaries. Those vectors go through the same cache as the chunk vectors, so a
+    # second run over an unchanged corpus re-embeds nothing.
+    inner = _build_embedder(embedder, budget_tokens)
+    cached = CachedEmbedder(inner, settings.cache_dir / "embeddings.sqlite")
+
     typer.echo(f"{elapsed()} loading and chunking {corpus}")
     typer.echo(f"  includes resolve from {resolved_include_root or corpus}")
-    chunks = _chunk_corpus(corpus, strategy, resolved_include_root)
+    chunks = _chunk_corpus(corpus, strategy, resolved_include_root, cached)
     if not chunks:
         typer.echo("error: the corpus produced no chunks.")
         raise typer.Exit(code=1)
 
-    inner = _build_embedder(embedder, budget_tokens)
-    cached = CachedEmbedder(inner, settings.cache_dir / "embeddings.sqlite")
-
-    store = ChunkStore(settings.index_dir / "chunks.sqlite")
+    store = ChunkStore(store_path(settings.index_dir))
     # Cleared first: re-chunking with different parameters yields a different number of
     # chunks, and upsert alone would leave the previous run's tail behind as orphans.
     store.delete_strategy(strategy)
     store.add(chunks)
     typer.echo(f"{elapsed()} chunk store: {len(store)} chunks total")
 
-    dense = DenseIndex.embedded(cached, settings.index_dir / "chroma")
+    # One collection and one BM25 file per strategy: the three arms of the chunking
+    # comparison must not share an ANN graph or a set of IDF statistics (see
+    # `indexing/layout.py`).
+    dense = DenseIndex.embedded(
+        cached, chroma_path(settings.index_dir), collection_name=collection_name(strategy)
+    )
     dropped = dense.delete_strategy(strategy)
     dense.add(chunks)
     typer.echo(f"{elapsed()} dense index: {len(dense)} vectors ({dropped} stale dropped)")
 
     sparse = SparseIndex.build(chunks)
-    sparse.save(settings.index_dir / "sparse.json")
+    sparse.save(sparse_path(settings.index_dir, strategy))
     typer.echo(f"{elapsed()} sparse index: {len(sparse)} documents")
 
     # Checked in both directions. A missing-only check passes while an index quietly

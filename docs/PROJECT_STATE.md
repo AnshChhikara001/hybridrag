@@ -3,7 +3,7 @@
 Recovery file. Current architecture, locked decisions and their rationale, progress, and
 the next step. Updated whenever a decision or milestone lands.
 
-**Last updated:** 2026-09-05 · **Status:** Phase 4 — 59 golden candidates drafted, awaiting hand-verification
+**Last updated:** 2026-09-06 · **Status:** Phase 4 — Tier-1 retrieval measured; 9-arm grid, bootstrap intervals and report landed
 
 ---
 
@@ -55,6 +55,10 @@ Full requirements: `docs/project-brief.md`. Operating rules: `CLAUDE.md`.
 | D20 | **Fusion reads ranks, never scores** | BM25 is unbounded and corpus-dependent; cosine sits in [-1, 1]. Min-max normalising per query makes the fused ranking depend on each list's *spread*, so one outlier rescales everything under it. RRF reads only positions, so it needs no per-corpus calibration. `rank_constant` (RRF's `k`, renamed because `k` already means "how many results") is 60: rank 1 and rank 2 differ by 1.6%, so agreement between retrievers outranks either one's first place. |
 | D21 | **The chunk store is the corpus of record** | Chroma holds vectors plus two filter fields, BM25 holds analysed terms, and neither holds text. One SQLite file holds the chunks, so the indexes are comparable by identifier set alone and a re-chunk cannot leave one copy stale. `get_many` returns chunks **in the order requested**: the caller's sequence is a ranking, and SQL's own row order would silently reorder search results into something that reads as working retrieval and measures as noise. |
 | D22 | **Document discovery and include resolution use separate roots** | FastAPI keeps prose in `docs/en/docs` and its 684 example files in `docs_src`, a sibling. One root cannot serve both: narrow loses all 383 includes (and the identifiers that justify BM25), wide sweeps six `requirements*.txt` files into the corpus and rewrites every `relative_path` — and every id derived from one. |
+| D33 | **One index set per chunking strategy**, never a shared index with a filter | The nine-arm grid needs three dense collections and three BM25 files. Sharing would corrupt the comparison in a different way per index: BM25's IDF is document frequency *over the index*, so three strategies in one file triples N and reweights every term; and HNSW is one graph, where a metadata filter prunes after the approximate traversal, so recall degrades by however much of the graph belongs to the other strategies. Naming lives in `indexing/layout.py` so the builder, the query script and the harness cannot disagree — a disagreement shows up as an empty index, not an error. |
+| D34 | **nDCG's gains are *marginal* span coverage, and its ideal comes from the index** | Span truth is binary per span, and nDCG needs a graded gain. A chunk is therefore worth the coverage it *adds* to what outranks it, which pays a strategy nothing for re-delivering text already retrieved — the fixed-size strategy's 64-token overlap earns zero. The ideal ranking is built greedily from every chunk in that strategy's index that touches a span, never from what the arm returned: normalising against an arm's own results would score a retriever that found one of three needed chunks as perfect for ordering that one correctly. |
+| D35 | **Every comparison is a paired bootstrap; arms that cannot be separated are reported as unseparated** | At 29 answerable questions a five-point gap is roughly one question changing its mind. Resampling the arms independently would mostly measure which questions each draw contained, because question difficulty dominates the variance — so the same resampled questions are scored under both arms, cancelling that term. Reported as a difference with its interval plus P(>0), and where the interval spans zero the report says so rather than calling the larger mean a win. |
+| D36 | **MRR is the rank at which a question *becomes answerable*, not the rank of the first relevant chunk** | For a lookup these are the same number. For multi-hop they are not: a question that genuinely needs two documents is not answered at the rank of the first one, and scoring it there would report the strict all-spans rule (D29) as satisfied by half the evidence. Reciprocal rank is also zeroed beyond rank 10, since a span found at rank 34 never reaches the generator's context. |
 | D15 | **Chunkers own boundary placement only** | `Chunker.chunk()` turns spans into validated chunks once, in the base class, so the three strategies differ in boundary placement and nothing else -- the variable Phase 4 isolates. |
 
 ## Environment (measured)
@@ -73,7 +77,7 @@ GitHub Actions.
 
 ## Budget
 
-Ceiling **$1.00**. **Spent to date: ~$0.263.** Generation allowance raised to $0.50 by the user; almost none of it is needed while the free tier is up.
+Ceiling **$1.00**. **Spent to date: ~$0.283.** Generation allowance raised to $0.50 by the user; almost none of it is needed while the free tier is up.
 
 | item | cost |
 |---|---|
@@ -92,8 +96,12 @@ every chunk hit the cache, which also proves the rebuild reproduces the original
 byte for byte.
 
 Re-indexing the same configuration is $0 -- the embedding cache is keyed on model and
-text. What costs money is each genuinely new chunking configuration, at ~$0.007 each.
-BM25 costs nothing: only the dense half of hybrid retrieval spends.
+text. What costs money is each genuinely new chunking configuration. Measured, for the
+two indexes Phase 4 needed: **fixed $0.0081** (405K tokens) and **semantic $0.0117**
+(587K tokens -- higher because it embeds every *sentence* to find topic boundaries, then
+the chunks). Rebuilding **structure cost $0.0000**, every vector served from cache.
+BM25 costs nothing, and **the whole nine-arm evaluation grid costs $0.000000** once the
+query embeddings are cached: Tier 1 involves no language model at all.
 
 ## Progress
 
@@ -110,19 +118,20 @@ BM25 costs nothing: only the dense half of hybrid retrieval spends.
 - [x] LLM response cache (D12) — fingerprint-keyed, read-only bypass
 - [x] Phase 4 — golden-set schema, span resolution, relevance rules (28 tests)
 - [x] Phase 4 — 59 candidates drafted (24 lookup / 15 multi-hop / 10 ambiguous / 10 no-answer)
-- [ ] Phase 4 — **hand-verification of all 59** ← *current, and mine to do*
-- [ ] Phase 4 — Tier-1 metrics, the 9-arm ablation grid, bootstrap CIs, report
-- [ ] Then Phase 2's reranker, measured against that baseline
+- [x] Phase 4 — golden set hand-verified and cut to 35 (18/6/5/6), 40 spans, 0 failures
+- [x] Phase 4 — **Tier-1 metrics, the 9-arm grid, bootstrap CIs and the report** (43 tests)
+- [ ] Phase 4 — Tier 2: judge selection by measured human agreement, then answer quality
+- [ ] Then Phase 2's reranker, measured against the Tier-1 baseline above
 - [ ] Still open from Phase 1: **near-duplicate detection** (`dedup_threshold` is wired to nothing)
 - [ ] Phase 2 — hybrid retrieval · [ ] Phase 3 — generation & citations
 - [ ] Phase 4 — evaluation · [ ] Phase 5 — API & dashboard · [ ] Phase 6 — polish
 
 ## Known risks
 
-1. ~~**Hybrid may not beat dense-only.**~~ First evidence in, on three hand-picked queries:
-   hybrid matches the better retriever every time and beats both on the identifier query.
-   Not yet a measurement — three queries chosen by hand are an illustration, and the golden
-   set in Phase 4 is what turns this into a number that can be reported.
+1. ~~**Hybrid may not beat dense-only.**~~ **Settled, measured.** Across all three chunking
+   strategies hybrid leads both single retrievers on Recall@5 (+0.069 to +0.103). Only one
+   of those leads clears a 95% paired interval at n=29, and one contrast goes the other way
+   (dense/structure beats hybrid/structure on Recall@budget, −0.069). Reported as such.
 6. **Dense returns near-duplicate chunks from one document.** All three top results for a
    query often come from the same page, so the generator sees one section three times
    instead of three sources. Diversity is a Phase 2 concern, once metrics can judge it.
@@ -182,14 +191,86 @@ Phase 4's golden set is what produces a number worth reporting.
 Against the same work locally at ~28 minutes, that is **~96x faster**.
 
 
+## Tier-1 retrieval results (2026-09-06, 29 answerable questions)
+
+Full report: `evals/reports/retrieval.md`; raw records: `evals/reports/retrieval_results.json`.
+The grid is nine arms — three chunking strategies x three retrievers — scored on span
+coverage, every number carrying a 95% percentile bootstrap interval, every comparison a
+*paired* bootstrap over the same resampled questions.
+
+| arm | Recall@5 | nDCG@10 | Recall@2000 tok |
+|---|---|---|---|
+| **hybrid/fixed** | **0.897** [0.793, 1.000] | 0.792 | **0.897** |
+| hybrid/semantic | 0.828 [0.690, 0.966] | 0.788 | 0.862 |
+| dense/fixed | 0.828 [0.690, 0.966] | 0.742 | 0.793 |
+| hybrid/structure | 0.759 [0.586, 0.897] | 0.738 | 0.759 |
+| sparse/fixed | 0.793 [0.621, 0.931] | 0.779 | 0.724 |
+
+Four results worth keeping, two of them uncomfortable:
+
+1. **Hybrid beats both of its parts in all three strategies** on Recall@5 — the project's
+   central claim, now a number rather than three hand-picked queries. Honest caveat: at
+   n=29 only `hybrid − sparse` on fixed chunking clears a 95% paired interval
+   (+0.172 [+0.034, +0.310]). The rest are leads, not proofs, and the report says so.
+2. **The dumbest chunker wins.** Fixed-size beats structure-aware by +0.138 [+0.034, +0.276]
+   on both Recall@5 and Recall@budget — the one chunking difference that *is* significant.
+   The elaborate strategies lose to a sliding window. Reported rather than buried.
+
+   The *mechanism* took two attempts, and the first was wrong. The obvious explanation —
+   heading-shaped chunks split answer spans — is false: measured, fixed holds **100%** of
+   the 40 spans whole, structure **98%**, semantic **95%**. A 2-point difference cannot
+   produce a 14-point recall gap, and equalising the token budget (D14) does not close it
+   either, so it is not simply that fixed retrieves more text.
+
+   What is measured is **distractor suppression**. Across the 145 top-5 slots the 29
+   questions fill, chunks from `release-notes.md` occupy 4% under fixed against **9% under
+   structure** — twice as often — even though fixed's index is a *higher* proportion
+   changelog (40% against 35%). Chunking the changelog into 512-token windows merges many
+   small release entries into fewer, topically diffuse chunks that match a specific query
+   less strongly, where structure gives each entry its own tight, precisely matchable
+   chunk. This is a measured contributor, not a proof that it is the whole gap; the honest
+   statement is that fixed wins, that span splitting is ruled out, and that distractor
+   competition is the leading surviving explanation. It is also exactly the job D28 kept
+   the changelog in the corpus to give the reranker.
+3. **Semantic chunking is not worth its cost.** It sits between the two, separated from
+   neither (fixed − semantic: +0.069 [−0.103, +0.241]), while costing $0.0117 and 3 minutes
+   to build against fixed's $0.0081 and 15 seconds.
+4. **The pre-generation refusal gate catches 0 of 6 unanswerable questions** — and produces
+   0 false refusals. Exactly what D23 predicted: these are *in-domain but unanswerable*
+   questions, so they retrieve real FastAPI chunks and score like real questions (no_answer
+   max 0.640 against answerable min 0.361). The gate's value is against *out-of-domain*
+   queries, where it does separate; everything in this set is the model's own sentinel to
+   catch. The threshold of 0.30 is confirmed safe — nothing answerable falls below it.
+
+Remaining failures for the leading arm are three questions at rank 10, all ranking failures
+rather than chunking ones: `lookup-017`, `multi_hop-005`, `multi_hop-013`. Multi-hop is the
+weak category at 0.667 against lookup's 0.944, which is the reranker's target in Phase 2.
+
+Two instrumentation bugs were found and fixed while producing this, both of which would
+have been reported as findings: the first arm measured 398 ms against every later arm's
+3 ms because it paid the query-embedding round trip the others read from cache (queries are
+now warmed before any arm is timed), and "questions with no covering chunk" reported 6 on
+every strategy because it counted the six `no_answer` questions, which have no span by
+definition.
+
+**Correction to an earlier note:** semantic chunking is not 28 minutes per corpus pass. That
+figure was local embedding; hosted, it is **177 seconds**. The 28-minute number stands only
+for the keyless path.
+
 ## Next step
 
-Phase 1.4 — dense (Chroma) and sparse (`rank_bm25` + identifier-preserving tokenizer)
-indexes built over the same chunks and kept in sync, near-duplicate detection at cosine
-> 0.95, and the ingest CLI. Grill the design first.
+Phase 4, Tier 2 — answer quality. Judge selection first, by measurement rather than by
+taste: run both candidate judges over ~20 hand-labelled decisions (~$0.05) and adopt the
+cheapest that agrees with the human, reporting the agreement percentage (D11). Then answer
+correctness, faithfulness and citation accuracy on the Tier-1 winning arm plus contrasts.
 
-Open question carried into Phase 4: whether to damp semantic chunking's thin-chunk problem
-with a neighbour buffer (see Corpus facts). Decide with retrieval metrics, not by taste.
+Estimated remaining Phase 4 spend: ~$0.09 with a `gpt-5-nano` judge, ~$0.22 with
+`gpt-5-mini`. The judge-agreement experiment decides which.
+
+**Closed by the Tier-1 results:** the open question of whether to damp semantic chunking's
+thin chunks with a neighbour buffer. Semantic is not separable from fixed and costs more to
+build, so tuning it further would be spending effort on the arm the measurement does not
+favour. Decided with metrics, as intended.
 
 ## Generation, first end-to-end results
 

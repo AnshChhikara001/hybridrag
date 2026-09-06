@@ -22,7 +22,15 @@ from hybridrag.config import get_settings
 from hybridrag.embedding import Embedder, FastEmbedEmbedder
 from hybridrag.embedding_cache import CachedEmbedder
 from hybridrag.embedding_openai import OpenAIEmbedder
-from hybridrag.indexing import DenseIndex, SparseIndex
+from hybridrag.indexing import (
+    DenseIndex,
+    SparseIndex,
+    chroma_path,
+    collection_name,
+    sparse_path,
+    store_path,
+)
+from hybridrag.models import ChunkingStrategy
 from hybridrag.retrieval import HybridRetriever, RetrievedChunk
 
 app = typer.Typer(add_completion=False)
@@ -63,26 +71,35 @@ def query(
     question: Annotated[str, typer.Argument(help="The question to retrieve for.")],
     k: Annotated[int, typer.Option(help="Results to show per retriever.")] = 5,
     text: Annotated[bool, typer.Option(help="Print a snippet of each chunk.")] = False,
+    strategy: Annotated[
+        ChunkingStrategy, typer.Option(help="Which chunking strategy's indexes to query.")
+    ] = ChunkingStrategy.STRUCTURE,
     index_dir: Annotated[Path | None, typer.Option(help="Overrides the configured path.")] = None,
 ) -> None:
     """Retrieve for one question through hybrid, dense-only and sparse-only."""
     settings = get_settings()
     root = index_dir or settings.index_dir
-    if not (root / "sparse.json").is_file():
-        typer.echo(f"error: no index at {root}. Run scripts/build_index.py first.")
+    bm25 = sparse_path(root, strategy)
+    if not bm25.is_file():
+        typer.echo(
+            f"error: no {strategy.value} index at {root}. Run:\n"
+            f"  uv run python scripts/build_index.py <corpus> --strategy {strategy.value}"
+        )
         raise typer.Exit(code=1)
 
     cached = CachedEmbedder(_embedder(), settings.cache_dir / "embeddings.sqlite")
-    store = ChunkStore(root / "chunks.sqlite")
+    store = ChunkStore(store_path(root))
     retriever = HybridRetriever(
         {
-            "dense": DenseIndex.embedded(cached, root / "chroma"),
-            "sparse": SparseIndex.load(root / "sparse.json"),
+            "dense": DenseIndex.embedded(
+                cached, chroma_path(root), collection_name=collection_name(strategy)
+            ),
+            "sparse": SparseIndex.load(bm25),
         },
         store,
     )
 
-    typer.echo(f'query: "{question}"   ({len(store)} chunks indexed)')
+    typer.echo(f'query: "{question}"   ({strategy.value}, {len(store)} chunks in the store)')
     _show("hybrid (RRF)", retriever.retrieve(question, k=k), text=text)
     _show("dense only", retriever.ablation("dense").retrieve(question, k=k), text=text)
     _show("sparse only", retriever.ablation("sparse").retrieve(question, k=k), text=text)
