@@ -33,8 +33,27 @@ __all__ = [
     "TextLoader",
     "UnsupportedFormatError",
     "content_hash",
+    "default_include_root",
     "normalise_text",
 ]
+
+
+def default_include_root(corpus: Path) -> Path | None:
+    """Where `{* ... *}` directives resolve from, for a corpus laid out like FastAPI's.
+
+    Its prose lives in `docs/en/docs` and its 684 example files in `docs_src`, a sibling
+    of `docs`. Walking from the repository root instead would sweep six `requirements*.txt`
+    files into a documentation corpus and rewrite every relative path -- and every id
+    derived from one -- so discovery stays narrow and only resolution widens (D22).
+
+    Lives here rather than in the build script because evaluation must load the corpus the
+    *same* way the index was built: a different include root shifts every character offset
+    and would silently invalidate every golden span.
+    """
+    for parent in corpus.resolve().parents:
+        if (parent / "docs_src").is_dir():
+            return parent
+    return None
 
 
 class CorpusLoader:

@@ -3,7 +3,7 @@
 Recovery file. Current architecture, locked decisions and their rationale, progress, and
 the next step. Updated whenever a decision or milestone lands.
 
-**Last updated:** 2026-09-04 · **Status:** Vertical slice complete — question in, cited answer out
+**Last updated:** 2026-09-06 · **Status:** Phase 4 — Tier-1 retrieval measured; 9-arm grid, bootstrap intervals and report landed
 
 ---
 
@@ -42,12 +42,23 @@ Full requirements: `docs/project-brief.md`. Operating rules: `CLAUDE.md`.
 | D19 | **The corpus is fetched, pinned, and never vendored** | It lived only in a temp directory and vanished on a reboot. `scripts/fetch_corpus.sh` pins tag `0.115.6` so a re-fetch reproduces the same corpus and evaluation numbers stay comparable. Checking out `docs_src` and `fastapi` alongside the docs took unresolved includes from 1 to 0. |
 | D16 | **Semantic chunking stays heading-blind, overlap-free, and pure** | The loader knows every section boundary; feeding that in would make this a variant of the structure-aware chunker and Phase 4 would compare two spellings of one idea. No overlap, because a boundary chosen for a topic change is not worth blurring. Where a topic exceeds the token budget it is subdivided at the *next-largest* distance inside it, iteratively (not recursively -- `argmax` can land at a group edge, and a 10,611-token section would recurse once per sentence). |
 | D17 | **`Embedder` protocol owns the query/document asymmetry** | `bge` was trained with an instruction prefix on queries only; omitting it costs retrieval quality and applying it to documents costs it again. Keeping it inside the embedder means no caller can get it wrong, and the OpenAI adapter simply carries an empty instruction. The protocol also guarantees L2-normalised vectors, so cosine reduces to a dot product for Chroma, dedup, and semantic chunking alike. |
+| D28 | **The changelog stays in the corpus; it is never a question source** | `release-notes.md` is 666 of 1,892 chunks — 35% of the corpus. Excluding it would lift every retrieval number, which is exactly why it stays: real internal corpora contain changelogs, and removing one to flatter your own metrics is undisclosable cherry-picking. It also gives the reranker a real job (distractor suppression) to be measured on. Project narrative (`history-design-future.md`, `alternatives.md`, `fastapi-people.md`, …) is likewise kept but excluded as a source — the first three lookup candidates were "which libraries did the author contribute to?", which measures nothing a docs assistant is for. |
+| D29 | **Each question category is scored by its own rule** | lookup: its one span covered. multi_hop: **all** spans covered, because a question needing two documents is not half-answered by one, and its spans must be in different documents. ambiguous: **any** acceptable span, since several answers are legitimately correct. no_answer: **excluded from recall entirely** and scored on refusal rate — scoring it 0 would drag the number down meaninglessly. |
+| D30 | **Golden spans are stored as quotes, resolved to offsets at load, matched whitespace-tolerantly** | Offsets in the file go stale silently when anything upstream shifts them, still parsing while pointing at the wrong text. A quote fails loudly instead, and is the only form a human can verify (D11). Matching then had to tolerate whitespace: models reliably collapse `\n\n` to `\n` when copying, which was the single largest cause of rejected candidates — quotes character-perfect for hundreds of characters diverging only at a paragraph break. Exact match is tried first; the fallback still demands a unique match and still resolves to the document's own bytes. Recovered lookups 18→24 and multi-hop 13→15 at **$0**. |
+| D31 | **Gemini's free tier cannot run the evaluation** | Measured, where D12 could only assume: `gemini-3.8-flash` free tier is **5 requests/minute and 20 per day** (429 `RESOURCE_EXHAUSTED`, quotaValue 5 then 20). Quotas are per-model, so other models still answer, but 20/day cannot serve a 50-question sweep. A client-side throttle now paces to the RPM quota — reacting with backoff alone spends the retry budget on calls that were always going to fail. **Supersedes Q8:** OpenAI runs evaluation; Gemini stays the $0 interactive-demo path, where 20/day is ample. |
+| D32 | **Verbatim documentation is transported in sentinel blocks, not JSON** | 52 of 130 replies were unparseable, for two reasons the corpus itself causes: the docs contain `"` characters (`a "context manager"`) that models fail to escape inside JSON strings, and they contain ``` code fences, so a regex stripping a markdown fence around a JSON envelope strips a Python example out of the middle of a quote instead. `<<<SPAN>>>`/`<<<ENDSPAN>>>` need no escaping and cannot collide with documentation. Multi-hop acceptance went 5 → 13 on that change alone. |
+| D26 | **The response cache keys on a model *fingerprint*, not just the prompt** | Hashing the prompt alone keeps serving temperature-0 answers after temperature is raised — a silent wrong result during exactly the parameter sweeps an evaluation consists of. Each adapter declares the settings that change its output (`LanguageModel.fingerprint`), so correctness lives with the adapter rather than in the cache's guesswork. Measured: warm call $0.000000 / 0.00s against $0.000141 / 3.85s cold, 6.4x faster end to end. |
+| D27 | **On reasoning models the cache is what makes a run reproducible** | `gpt-5-nano` rejects `temperature`, so "temperature 0 for determinism" does not apply to it: the same prompt returned 172 output tokens once and 259 the next time. Re-running an evaluation would therefore move the numbers without any code changing. The cache pins the answer to the prompt, which is the only reproducibility available on that model family. A deliberate `--no-cache` / `read_only` path exists for when a fresh answer is the point. |
 | D23 | **Two independent refusal paths, not one** | The pre-generation gate reads dense cosine and catches *out-of-domain* questions without spending a request. The model's own sentinel catches *in-domain but unanswerable* ones, which the gate cannot see. Measured: "capital of France" scores 0.141 and is refused for $0.000000 in 0.00s; "FastAPI's enterprise support SLA" scores 0.495, clears the gate correctly, and is refused by the model after reading the chunks. Either layer alone gets one of these wrong. |
 | D24 | **The prompt must say when to answer, not only when to refuse** | An early draft said "partial information is not an answer" and produced a false refusal on "how do I run FastAPI in Docker" with five chunks of `docker.md` in context, one a complete Dockerfile. Cause was an interaction, isolated by testing one variable at a time: the strict prompt answers correctly *with* reasoning enabled, and a plain prompt answers correctly *without* it. A model with no reasoning budget cannot weigh sufficiency, so refusal wording wins by default. Chunked retrieval always delivers partial context, so the refusal condition is now narrow — "only when no block relates to the question at all". |
 | D25 | **Two generation providers, because one was not enough** | Gemini's free tier returned 503 then 429 mid-build, exactly the hostility D12 assumed. `LanguageModel` made the OpenAI adapter a drop-in, so the slice finished on `gpt-5-nano` at **$0.000125 per query** while Gemini was unavailable. D4's "reversible in one config line" is now demonstrated rather than asserted. |
 | D20 | **Fusion reads ranks, never scores** | BM25 is unbounded and corpus-dependent; cosine sits in [-1, 1]. Min-max normalising per query makes the fused ranking depend on each list's *spread*, so one outlier rescales everything under it. RRF reads only positions, so it needs no per-corpus calibration. `rank_constant` (RRF's `k`, renamed because `k` already means "how many results") is 60: rank 1 and rank 2 differ by 1.6%, so agreement between retrievers outranks either one's first place. |
 | D21 | **The chunk store is the corpus of record** | Chroma holds vectors plus two filter fields, BM25 holds analysed terms, and neither holds text. One SQLite file holds the chunks, so the indexes are comparable by identifier set alone and a re-chunk cannot leave one copy stale. `get_many` returns chunks **in the order requested**: the caller's sequence is a ranking, and SQL's own row order would silently reorder search results into something that reads as working retrieval and measures as noise. |
 | D22 | **Document discovery and include resolution use separate roots** | FastAPI keeps prose in `docs/en/docs` and its 684 example files in `docs_src`, a sibling. One root cannot serve both: narrow loses all 383 includes (and the identifiers that justify BM25), wide sweeps six `requirements*.txt` files into the corpus and rewrites every `relative_path` — and every id derived from one. |
+| D33 | **One index set per chunking strategy**, never a shared index with a filter | The nine-arm grid needs three dense collections and three BM25 files. Sharing would corrupt the comparison in a different way per index: BM25's IDF is document frequency *over the index*, so three strategies in one file triples N and reweights every term; and HNSW is one graph, where a metadata filter prunes after the approximate traversal, so recall degrades by however much of the graph belongs to the other strategies. Naming lives in `indexing/layout.py` so the builder, the query script and the harness cannot disagree — a disagreement shows up as an empty index, not an error. |
+| D34 | **nDCG's gains are *marginal* span coverage, and its ideal comes from the index** | Span truth is binary per span, and nDCG needs a graded gain. A chunk is therefore worth the coverage it *adds* to what outranks it, which pays a strategy nothing for re-delivering text already retrieved — the fixed-size strategy's 64-token overlap earns zero. The ideal ranking is built greedily from every chunk in that strategy's index that touches a span, never from what the arm returned: normalising against an arm's own results would score a retriever that found one of three needed chunks as perfect for ordering that one correctly. |
+| D35 | **Every comparison is a paired bootstrap; arms that cannot be separated are reported as unseparated** | At 29 answerable questions a five-point gap is roughly one question changing its mind. Resampling the arms independently would mostly measure which questions each draw contained, because question difficulty dominates the variance — so the same resampled questions are scored under both arms, cancelling that term. Reported as a difference with its interval plus P(>0), and where the interval spans zero the report says so rather than calling the larger mean a win. |
+| D36 | **MRR is the rank at which a question *becomes answerable*, not the rank of the first relevant chunk** | For a lookup these are the same number. For multi-hop they are not: a question that genuinely needs two documents is not answered at the rank of the first one, and scoring it there would report the strict all-spans rule (D29) as satisfied by half the evidence. Reciprocal rank is also zeroed beyond rank 10, since a span found at rank 34 never reaches the generator's context. |
 | D15 | **Chunkers own boundary placement only** | `Chunker.chunk()` turns spans into validated chunks once, in the base class, so the three strategies differ in boundary placement and nothing else -- the variable Phase 4 isolates. |
 
 ## Environment (measured)
@@ -66,7 +77,7 @@ GitHub Actions.
 
 ## Budget
 
-Ceiling **$1.00**. **Spent to date: ~$0.0086.** Generation allowance raised to $0.50 by the user; almost none of it is needed while the free tier is up.
+Ceiling **$1.00**. **Spent to date: ~$0.283.** Generation allowance raised to $0.50 by the user; almost none of it is needed while the free tier is up.
 
 | item | cost |
 |---|---|
@@ -74,8 +85,10 @@ Ceiling **$1.00**. **Spent to date: ~$0.0086.** Generation allowance raised to $
 | Full corpus index, structure-aware (334,955 tokens) | $0.0067 |
 | Wasted run: corpus root missing its code examples (44,152 tokens) | $0.0009 |
 | Generation: ~8 `gpt-5-nano` calls while Gemini was rate-limited | ~$0.0010 |
+| Cache verification (3 calls) | $0.0003 |
+| Golden-set drafting, `gpt-5-mini` (44 billed calls over 5 runs) | $0.2538 |
 | Gemini generation (free tier) | $0.0000 |
-| **Total** | **~$0.0086** |
+| **Total** | **~$0.263** |
 
 The wasted run is recorded rather than quietly dropped: it embedded a prose-only corpus
 built from the wrong root, and is what led to D22. The corrected rebuild cost **$0.0000** —
@@ -83,8 +96,12 @@ every chunk hit the cache, which also proves the rebuild reproduces the original
 byte for byte.
 
 Re-indexing the same configuration is $0 -- the embedding cache is keyed on model and
-text. What costs money is each genuinely new chunking configuration, at ~$0.007 each.
-BM25 costs nothing: only the dense half of hybrid retrieval spends.
+text. What costs money is each genuinely new chunking configuration. Measured, for the
+two indexes Phase 4 needed: **fixed $0.0081** (405K tokens) and **semantic $0.0117**
+(587K tokens -- higher because it embeds every *sentence* to find topic boundaries, then
+the chunks). Rebuilding **structure cost $0.0000**, every vector served from cache.
+BM25 costs nothing, and **the whole nine-arm evaluation grid costs $0.000000** once the
+query embeddings are cached: Tier 1 involves no language model at all.
 
 ## Progress
 
@@ -97,16 +114,24 @@ BM25 costs nothing: only the dense half of hybrid retrieval spends.
 - [x] Vertical slice — tokenizer, BM25 index, Chroma index, embedding cache, OpenAI adapter
 - [x] Vertical slice — chunk store, RRF retriever, reproducible build and query scripts
 - [x] Vertical slice — **complete**: grounded generation, inline citations, two refusal paths
-- [ ] LLM response cache (D12), then Phase 2 ← *current*
+- [x] CI green on a clean Linux runner; slice merged to `main` (PR #3)
+- [x] LLM response cache (D12) — fingerprint-keyed, read-only bypass
+- [x] Phase 4 — golden-set schema, span resolution, relevance rules (28 tests)
+- [x] Phase 4 — 59 candidates drafted (24 lookup / 15 multi-hop / 10 ambiguous / 10 no-answer)
+- [x] Phase 4 — golden set hand-verified and cut to 35 (18/6/5/6), 40 spans, 0 failures
+- [x] Phase 4 — **Tier-1 metrics, the 9-arm grid, bootstrap CIs and the report** (43 tests)
+- [ ] Phase 4 — Tier 2: judge selection by measured human agreement, then answer quality
+- [ ] Then Phase 2's reranker, measured against the Tier-1 baseline above
+- [ ] Still open from Phase 1: **near-duplicate detection** (`dedup_threshold` is wired to nothing)
 - [ ] Phase 2 — hybrid retrieval · [ ] Phase 3 — generation & citations
 - [ ] Phase 4 — evaluation · [ ] Phase 5 — API & dashboard · [ ] Phase 6 — polish
 
 ## Known risks
 
-1. ~~**Hybrid may not beat dense-only.**~~ First evidence in, on three hand-picked queries:
-   hybrid matches the better retriever every time and beats both on the identifier query.
-   Not yet a measurement — three queries chosen by hand are an illustration, and the golden
-   set in Phase 4 is what turns this into a number that can be reported.
+1. ~~**Hybrid may not beat dense-only.**~~ **Settled, measured.** Across all three chunking
+   strategies hybrid leads both single retrievers on Recall@5 (+0.069 to +0.103). Only one
+   of those leads clears a 95% paired interval at n=29, and one contrast goes the other way
+   (dense/structure beats hybrid/structure on Recall@budget, −0.069). Reported as such.
 6. **Dense returns near-duplicate chunks from one document.** All three top results for a
    query often come from the same page, so the generator sees one section three times
    instead of three sources. Diversity is a Phase 2 concern, once metrics can judge it.
@@ -166,14 +191,86 @@ Phase 4's golden set is what produces a number worth reporting.
 Against the same work locally at ~28 minutes, that is **~96x faster**.
 
 
+## Tier-1 retrieval results (2026-09-06, 29 answerable questions)
+
+Full report: `evals/reports/retrieval.md`; raw records: `evals/reports/retrieval_results.json`.
+The grid is nine arms — three chunking strategies x three retrievers — scored on span
+coverage, every number carrying a 95% percentile bootstrap interval, every comparison a
+*paired* bootstrap over the same resampled questions.
+
+| arm | Recall@5 | nDCG@10 | Recall@2000 tok |
+|---|---|---|---|
+| **hybrid/fixed** | **0.897** [0.793, 1.000] | 0.792 | **0.897** |
+| hybrid/semantic | 0.828 [0.690, 0.966] | 0.788 | 0.862 |
+| dense/fixed | 0.828 [0.690, 0.966] | 0.742 | 0.793 |
+| hybrid/structure | 0.759 [0.586, 0.897] | 0.738 | 0.759 |
+| sparse/fixed | 0.793 [0.621, 0.931] | 0.779 | 0.724 |
+
+Four results worth keeping, two of them uncomfortable:
+
+1. **Hybrid beats both of its parts in all three strategies** on Recall@5 — the project's
+   central claim, now a number rather than three hand-picked queries. Honest caveat: at
+   n=29 only `hybrid − sparse` on fixed chunking clears a 95% paired interval
+   (+0.172 [+0.034, +0.310]). The rest are leads, not proofs, and the report says so.
+2. **The dumbest chunker wins.** Fixed-size beats structure-aware by +0.138 [+0.034, +0.276]
+   on both Recall@5 and Recall@budget — the one chunking difference that *is* significant.
+   The elaborate strategies lose to a sliding window. Reported rather than buried.
+
+   The *mechanism* took two attempts, and the first was wrong. The obvious explanation —
+   heading-shaped chunks split answer spans — is false: measured, fixed holds **100%** of
+   the 40 spans whole, structure **98%**, semantic **95%**. A 2-point difference cannot
+   produce a 14-point recall gap, and equalising the token budget (D14) does not close it
+   either, so it is not simply that fixed retrieves more text.
+
+   What is measured is **distractor suppression**. Across the 145 top-5 slots the 29
+   questions fill, chunks from `release-notes.md` occupy 4% under fixed against **9% under
+   structure** — twice as often — even though fixed's index is a *higher* proportion
+   changelog (40% against 35%). Chunking the changelog into 512-token windows merges many
+   small release entries into fewer, topically diffuse chunks that match a specific query
+   less strongly, where structure gives each entry its own tight, precisely matchable
+   chunk. This is a measured contributor, not a proof that it is the whole gap; the honest
+   statement is that fixed wins, that span splitting is ruled out, and that distractor
+   competition is the leading surviving explanation. It is also exactly the job D28 kept
+   the changelog in the corpus to give the reranker.
+3. **Semantic chunking is not worth its cost.** It sits between the two, separated from
+   neither (fixed − semantic: +0.069 [−0.103, +0.241]), while costing $0.0117 and 3 minutes
+   to build against fixed's $0.0081 and 15 seconds.
+4. **The pre-generation refusal gate catches 0 of 6 unanswerable questions** — and produces
+   0 false refusals. Exactly what D23 predicted: these are *in-domain but unanswerable*
+   questions, so they retrieve real FastAPI chunks and score like real questions (no_answer
+   max 0.640 against answerable min 0.361). The gate's value is against *out-of-domain*
+   queries, where it does separate; everything in this set is the model's own sentinel to
+   catch. The threshold of 0.30 is confirmed safe — nothing answerable falls below it.
+
+Remaining failures for the leading arm are three questions at rank 10, all ranking failures
+rather than chunking ones: `lookup-017`, `multi_hop-005`, `multi_hop-013`. Multi-hop is the
+weak category at 0.667 against lookup's 0.944, which is the reranker's target in Phase 2.
+
+Two instrumentation bugs were found and fixed while producing this, both of which would
+have been reported as findings: the first arm measured 398 ms against every later arm's
+3 ms because it paid the query-embedding round trip the others read from cache (queries are
+now warmed before any arm is timed), and "questions with no covering chunk" reported 6 on
+every strategy because it counted the six `no_answer` questions, which have no span by
+definition.
+
+**Correction to an earlier note:** semantic chunking is not 28 minutes per corpus pass. That
+figure was local embedding; hosted, it is **177 seconds**. The 28-minute number stands only
+for the keyless path.
+
 ## Next step
 
-Phase 1.4 — dense (Chroma) and sparse (`rank_bm25` + identifier-preserving tokenizer)
-indexes built over the same chunks and kept in sync, near-duplicate detection at cosine
-> 0.95, and the ingest CLI. Grill the design first.
+Phase 4, Tier 2 — answer quality. Judge selection first, by measurement rather than by
+taste: run both candidate judges over ~20 hand-labelled decisions (~$0.05) and adopt the
+cheapest that agrees with the human, reporting the agreement percentage (D11). Then answer
+correctness, faithfulness and citation accuracy on the Tier-1 winning arm plus contrasts.
 
-Open question carried into Phase 4: whether to damp semantic chunking's thin-chunk problem
-with a neighbour buffer (see Corpus facts). Decide with retrieval metrics, not by taste.
+Estimated remaining Phase 4 spend: ~$0.09 with a `gpt-5-nano` judge, ~$0.22 with
+`gpt-5-mini`. The judge-agreement experiment decides which.
+
+**Closed by the Tier-1 results:** the open question of whether to damp semantic chunking's
+thin chunks with a neighbour buffer. Semantic is not separable from fixed and costs more to
+build, so tuning it further would be spending effort on the arm the measurement does not
+favour. Decided with metrics, as intended.
 
 ## Generation, first end-to-end results
 
@@ -201,3 +298,23 @@ re-measuring on Gemini once the free tier is reachable, and a good Phase 4 compa
 completeness and the composite confidence score. The fields exist in `AnswerConfidence`
 and return `None`, so the API contract is settled without anything reporting a score it
 did not compute.
+
+## Golden-set drafting: what the $0.25 bought
+
+Five runs. Most of the spend went on two bugs rather than on questions, both worth
+recording because they are corpus-shaped rather than model-shaped:
+
+| run | change | accepted | spend |
+|---|---|---|---|
+| 1 | first attempt, JSON transport | 30 | $0.039 |
+| 2 | narrative docs excluded, no_answer without a document | 34 | $0.068 |
+| 3 | output cap 4k → 16k (wrong diagnosis: replies were not truncated) | 34 | $0.068 |
+| 4 | JSON → sentinel blocks | 31 | $0.068 |
+| 5 | whitespace-tolerant matching, then the last two prompts | **59** | $0.011 |
+
+Run 3 was a wasted $0.068 spent on a hypothesis I had not confirmed — the "truncated
+mid-JSON" counter was my own detector misreporting an unescaped-quote error. Reading one
+failing reply out of the cache, which cost nothing, was what actually found both causes.
+
+The cache earned its keep here: run 5 changed two prompts out of four categories and paid
+for 6 calls instead of 44.

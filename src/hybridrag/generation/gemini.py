@@ -13,14 +13,23 @@ Two things this file pins deliberately:
   work; reasoning tokens are billed as output, add latency, and are never shown to us.
   Some models reject a zero budget, so it is configurable rather than hardcoded.
 
-Retries are configured explicitly rather than left to the SDK's defaults, which gave up on
-the first 503 this hit. D12 assumes the free tier is hostile: its rate limits are not
-published, and a shared free model returns 503 under load. Backoff is exponential with
-jitter, so a Phase 4 evaluation sweep rides out a spike instead of dying at question 37.
+Two defences against the free tier, which D12 assumed would be hostile and which measured
+out at **5 requests per minute** for `gemini-3.8-flash` (429 `RESOURCE_EXHAUSTED`, quota
+`GenerateRequestsPerMinutePerProjectPerModel-FreeTier`, value 5).
+
+* A **client-side throttle** paces requests to that quota, so a long run never trips it.
+  Reacting to 429s with backoff alone does not work for a queue of dozens of calls: the
+  budget is spent on retries that were always going to fail. Pacing is what makes a 50
+  question sweep finish.
+* **Backoff** stays as the safety net for what pacing cannot predict -- 503s when the
+  shared model is under load, and any quota narrower than the one configured here.
+
+Cache hits never reach `generate`, so a re-run over unchanged prompts is not throttled.
 """
 
 from __future__ import annotations
 
+import threading
 import time
 
 from google.genai import Client, types
@@ -45,13 +54,16 @@ DEFAULT_MODEL = "gemini-3.8-flash"
 # just repeats the same mistake more slowly.
 _RETRY_STATUS_CODES = [429, 500, 502, 503, 504]
 _RETRY_OPTIONS = types.HttpRetryOptions(
-    attempts=5,
-    initial_delay=1.0,
-    max_delay=30.0,
+    attempts=8,
+    initial_delay=2.0,
+    max_delay=64.0,
     exp_base=2.0,
     jitter=1.0,
     http_status_codes=_RETRY_STATUS_CODES,
 )
+
+# Measured, not guessed: the free tier returned 429 with quotaValue 5 for this model.
+FREE_TIER_REQUESTS_PER_MINUTE = 5
 
 
 class GeminiModel:
@@ -66,6 +78,7 @@ class GeminiModel:
         thinking_budget: int | None = 0,
         max_output_tokens: int = 1024,
         timeout_ms: int = 120_000,
+        requests_per_minute: int | None = FREE_TIER_REQUESTS_PER_MINUTE,
     ) -> None:
         secret = api_key.get_secret_value() if isinstance(api_key, SecretStr) else api_key
         if not secret:
@@ -83,9 +96,21 @@ class GeminiModel:
         self.input_tokens = 0
         self.output_tokens = 0
         self.requests_made = 0
+        self.requests_per_minute = requests_per_minute
+        # A lock, because a threaded evaluation runner would otherwise pace each worker
+        # separately and collectively blow the same quota this exists to respect.
+        self._pace_lock = threading.Lock()
+        self._next_allowed_at = 0.0
         self._client = Client(
             api_key=secret,
             http_options=types.HttpOptions(timeout=timeout_ms, retry_options=_RETRY_OPTIONS),
+        )
+
+    @property
+    def fingerprint(self) -> str:
+        return (
+            f"gemini|{self.model_name}|t={self.temperature}"
+            f"|think={self.thinking_budget}|max={self.max_output_tokens}"
         )
 
     @property
@@ -109,6 +134,17 @@ class GeminiModel:
             thinking_config=thinking,
         )
 
+    def _await_slot(self) -> None:
+        """Hold the caller until the next request would be within quota."""
+        if not self.requests_per_minute:
+            return
+        interval = 60.0 / self.requests_per_minute
+        with self._pace_lock:
+            wait = self._next_allowed_at - time.monotonic()
+            if wait > 0:
+                time.sleep(wait)
+            self._next_allowed_at = time.monotonic() + interval
+
     def generate(
         self,
         prompt: str,
@@ -116,6 +152,7 @@ class GeminiModel:
         system: str | None = None,
         max_output_tokens: int | None = None,
     ) -> Completion:
+        self._await_slot()
         started = time.perf_counter()
         response = self._client.models.generate_content(
             model=self.model_name,
