@@ -20,12 +20,15 @@ from pydantic import BaseModel, Field
 
 from hybridrag.evaluation.golden import GoldenSet, QuestionCategory
 from hybridrag.evaluation.harness import METRICS, ArmResult
+from hybridrag.evaluation.judge import LabelSheet, Verdict
 from hybridrag.evaluation.stats import (
     DEFAULT_RESAMPLES,
     DEFAULT_SEED,
     Delta,
     Interval,
     bootstrap_ci,
+    bootstrap_kappa,
+    label_agreement,
     paired_delta,
 )
 from hybridrag.models import ChunkingStrategy
@@ -420,4 +423,148 @@ refusal-calibration section."""
   and is the only part of the evaluation that costs money."""
     )
 
+    return "\n\n".join(parts) + "\n"
+
+
+class JudgeRun(BaseModel):
+    """What one candidate judge said about every labelled item, and what it cost."""
+
+    model: str
+    verdicts: list[str] = Field(description="One verdict per item, in the sheet's order.")
+    cost_usd: float = 0.0
+    unreadable: list[str] = Field(default_factory=list)
+
+
+def render_judge_report(
+    sheet: LabelSheet,
+    runs: Sequence[JudgeRun],
+    *,
+    resamples: int = DEFAULT_RESAMPLES,
+    seed: int = DEFAULT_SEED,
+    substantial: float = 0.60,
+) -> str:
+    """The judge-validation report: agreement, its uncertainty, and what may be claimed.
+
+    The trivial baseline is printed beside every judge on purpose. On a sample this
+    lopsided a judge that answers "correct" unconditionally scores 90% raw agreement, so a
+    raw percentage alone is not evidence of anything -- and a reader who does not know the
+    base rate cannot tell the difference without seeing it.
+    """
+    items = [item for item in sheet.items if item.human_verdict is not None]
+    human = [item.human_verdict.value for item in items if item.human_verdict is not None]
+    sha, dirty = git_provenance()
+    counts: dict[str, int] = {}
+    for label in human:
+        counts[label] = counts.get(label, 0) + 1
+
+    distribution = ", ".join(f"{count} {name}" for name, count in sorted(counts.items()))
+    trivial = label_agreement([Verdict.CORRECT.value] * len(human), human)
+    proposed = sum(
+        1
+        for item in items
+        if item.proposed_verdict is not None and item.proposed_verdict == item.human_verdict
+    )
+    with_proposals = sum(1 for item in items if item.proposed_verdict is not None)
+
+    parts: list[str] = [
+        f"""# Judge validation — does an LLM judge agree with a human?
+
+Tier 2 grades answers with a language model, which is circular unless the judge is itself
+measured. Before any answer-quality number is reported, a human labelled a sample by hand
+and each candidate judge labelled the same sample; what follows is how far they agreed
+(D11).
+
+**Provenance** · commit `{sha}`{" **(uncommitted changes)**" if dirty else ""} ·
+answers from `{sheet.generation_model}` on arm `{sheet.arm}` · generated {sheet.generated_at} ·
+{len(items)} labelled items · bootstrap {resamples:,} resamples, seed {seed}
+
+**Human label distribution** · {distribution}""",
+        """## Agreement
+
+Cohen's kappa removes the agreement two labellers would reach by chance alone. The last row
+is the reason it is reported: a judge that replies "correct" to everything needs no
+intelligence at all and still scores the raw agreement shown.""",
+    ]
+
+    rows: list[list[str]] = []
+    for run in runs:
+        agreement = label_agreement(run.verdicts, human)
+        interval = bootstrap_kappa(run.verdicts, human, resamples=resamples, seed=seed)
+        rows.append(
+            [
+                f"`{run.model}`",
+                f"{agreement.raw:.0%}",
+                f"{interval.mean:.3f} [{interval.low:+.3f}, {interval.high:+.3f}]",
+                f"${run.cost_usd:.4f}",
+                str(len(run.unreadable)),
+            ]
+        )
+    rows.append(
+        [
+            "*always answers “correct”*",
+            f"{trivial.raw:.0%}",
+            f"{trivial.kappa:.3f}",
+            "$0.0000",
+            "0",
+        ]
+    )
+    parts.append(_table(rows, ["judge", "raw agreement", "kappa [95% CI]", "cost", "unreadable"]))
+
+    parts.append("## Where each judge parted company with the human")
+    for run in runs:
+        agreement = label_agreement(run.verdicts, human)
+        if not agreement.disagreements:
+            parts.append(f"**`{run.model}`** agreed on every item.")
+            continue
+        detail = [
+            [
+                items[position].question_id,
+                items[position].category.value,
+                human[position],
+                run.verdicts[position],
+            ]
+            for position in agreement.disagreements
+        ]
+        parts.append(f"**`{run.model}`** — {len(detail)} of {len(items)}")
+        parts.append(_table(detail, ["id", "category", "human", "judge"]))
+
+    parts.append(
+        f"""## How these labels were made
+
+{with_proposals} of {len(items)} items carried a model-proposed label for the human to
+adjudicate, and the human's final label matched the proposal on **{proposed}** of them.
+Proposals are stored in a separate field and never enter the statistics above; only the
+human's decision does. That distinction is what the numbers here rest on, so it is recorded
+rather than assumed."""
+    )
+
+    best = max(
+        runs,
+        key=lambda run: label_agreement(run.verdicts, human).kappa,
+        default=None,
+    )
+    if best is not None:
+        interval = bootstrap_kappa(best.verdicts, human, resamples=resamples, seed=seed)
+        verdict_line = (
+            f"clears the conventional {substantial} bar for substantial agreement"
+            if interval.mean >= substantial
+            else f"falls short of the conventional {substantial} bar"
+        )
+        caveat = (
+            " Its interval reaches below that bar, so at this sample size the point "
+            "estimate is the claim and the interval is the honest caveat."
+            if interval.low < substantial
+            else ""
+        )
+        parts.append(
+            f"""## What this licenses
+
+`{best.model}` {verdict_line} (kappa {interval.mean:.3f}).{caveat} Every Tier-2 number
+produced by this judge should be reported with that agreement figure beside it, not
+without.
+
+Twenty items is a small sample and the labels are lopsided, which is why the interval is
+wide rather than why it should be ignored: a judge indistinguishable from chance is still
+conclusively identified as such, and that is the decision this experiment existed to make."""
+        )
     return "\n\n".join(parts) + "\n"

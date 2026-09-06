@@ -3,7 +3,7 @@
 Recovery file. Current architecture, locked decisions and their rationale, progress, and
 the next step. Updated whenever a decision or milestone lands.
 
-**Last updated:** 2026-09-06 · **Status:** Phase 4 — Tier-1 retrieval measured; 9-arm grid, bootstrap intervals and report landed
+**Last updated:** 2026-09-06 · **Status:** Phase 4 — Tier 1 measured; judge validated against human labels, Tier 2 next
 
 ---
 
@@ -59,6 +59,8 @@ Full requirements: `docs/project-brief.md`. Operating rules: `CLAUDE.md`.
 | D34 | **nDCG's gains are *marginal* span coverage, and its ideal comes from the index** | Span truth is binary per span, and nDCG needs a graded gain. A chunk is therefore worth the coverage it *adds* to what outranks it, which pays a strategy nothing for re-delivering text already retrieved — the fixed-size strategy's 64-token overlap earns zero. The ideal ranking is built greedily from every chunk in that strategy's index that touches a span, never from what the arm returned: normalising against an arm's own results would score a retriever that found one of three needed chunks as perfect for ordering that one correctly. |
 | D35 | **Every comparison is a paired bootstrap; arms that cannot be separated are reported as unseparated** | At 29 answerable questions a five-point gap is roughly one question changing its mind. Resampling the arms independently would mostly measure which questions each draw contained, because question difficulty dominates the variance — so the same resampled questions are scored under both arms, cancelling that term. Reported as a difference with its interval plus P(>0), and where the interval spans zero the report says so rather than calling the larger mean a win. |
 | D36 | **MRR is the rank at which a question *becomes answerable*, not the rank of the first relevant chunk** | For a lookup these are the same number. For multi-hop they are not: a question that genuinely needs two documents is not answered at the rank of the first one, and scoring it there would report the strict all-spans rule (D29) as satisfied by half the evidence. Reciprocal rank is also zeroed beyond rank 10, since a span found at rank 34 never reaches the generator's context. |
+| D37 | **`gpt-5-mini` judges Tier 2; `gpt-5-nano` was disqualified by measurement** | The cheap judge is not merely weaker, it is **indistinguishable from chance**: kappa **0.007** [-0.040, +0.077] against 20 human labels, versus mini's **0.730** [+0.459, +1.000]. Two failure modes, both systematic: nano marked **5 of 6 correct refusals `incorrect`**, so it cannot apply the rule that declining an unanswerable question is right; and it downgraded 8 correct answers to `partial`. Measured rather than assumed, for $0.016 — and the 5x cost difference that made nano attractive buys nothing if the number it produces is noise. |
+| D38 | **A trivial baseline is printed beside every agreement figure** | The human labels ran 18 correct / 2 incorrect, and on a split that lopsided a judge answering "correct" unconditionally scores **90% raw agreement**. Raw agreement alone would therefore have made even nano look defensible at a glance. Cohen's kappa scores that judge 0.000, which is why it is the headline number and why the baseline row stays in the report. |
 | D15 | **Chunkers own boundary placement only** | `Chunker.chunk()` turns spans into validated chunks once, in the base class, so the three strategies differ in boundary placement and nothing else -- the variable Phase 4 isolates. |
 
 ## Environment (measured)
@@ -77,7 +79,7 @@ GitHub Actions.
 
 ## Budget
 
-Ceiling **$1.00**. **Spent to date: ~$0.283.** Generation allowance raised to $0.50 by the user; almost none of it is needed while the free tier is up.
+Ceiling **$1.00**. **Spent to date: ~$0.305.** Generation allowance raised to $0.50 by the user; almost none of it is needed while the free tier is up.
 
 | item | cost |
 |---|---|
@@ -257,15 +259,59 @@ definition.
 figure was local embedding; hosted, it is **177 seconds**. The 28-minute number stands only
 for the keyless path.
 
+## Judge validation (2026-09-06, 20 hand-adjudicated items)
+
+Full report: `evals/reports/judge_agreement.md`. Answers came from `gpt-5-nano` on the
+Tier-1 winning arm (`hybrid/fixed`); the sample was stratified toward failures on purpose,
+so its correctness rate says nothing about the system.
+
+| judge | raw agreement | kappa [95% CI] | cost |
+|---|---|---|---|
+| `gpt-5-nano` | 30% | 0.007 [-0.040, +0.077] | $0.0029 |
+| **`gpt-5-mini`** | **95%** | **0.730** [+0.459, +1.000] | $0.0135 |
+| *always answers "correct"* | 90% | 0.000 | $0 |
+
+`gpt-5-mini` disagreed with the human on exactly one item — `lookup-017`, where the answer
+describes `openapi_tags` while the reference gives the `tags=` parameter, and the judge
+called `partial` what the human called `incorrect`. That is a genuine boundary case rather
+than a failure of comprehension.
+
+**Honest caveat carried into every Tier-2 number:** the kappa interval reaches to +0.459,
+below the conventional 0.60 bar for "substantial". At n=20 with lopsided labels the point
+estimate is the claim and the interval is the caveat. What the sample *does* settle beyond
+doubt is the negative: a judge at chance level is unmistakable.
+
+**Label provenance:** labels were proposed by a stronger model (Claude Desktop) and
+adjudicated by the author, who agreed with all 20 proposals. Proposals live in a separate
+field and never enter the statistics. The defensible wording is "judge-human agreement,
+n=20, labels model-proposed and author-adjudicated" -- not "hand-labelled from scratch".
+
+### Two findings that came out of this for free
+
+1. **Tier 1's strict coverage rule understates answerability.** Of the three questions
+   Tier 1 scores as retrieval failures at rank 10, **two produced answers the human judged
+   correct** (`multi_hop-005`, `multi_hop-013`). Recall is measured at `min_ratio=1.0` --
+   the union of retrieved chunks must contain the *entire* answer span -- and partial
+   coverage evidently often suffices for a correct answer. The metric is not wrong, but it
+   is a lower bound on usefulness, and the report should say so.
+2. **A confirmed false refusal.** `multi_hop-002` retrieved successfully and the model
+   refused anyway; both the human and the mini judge call that incorrect. This is D23's
+   second refusal layer misfiring on a hard multi-hop question, and it is the first
+   reproducible instance of the failure D24 was written to prevent.
+
+**Tier 2 is cheaper than estimated.** Measured judge cost is **$0.000677 per call**, and
+the judge returns correctness *and* grounding in one call rather than three. So 35 questions
+x 2 arms = 70 generations (~$0.010) plus 70 judge calls (~$0.047) is about **$0.057**, not
+the $0.16-0.22 estimated before the judge existed.
+
 ## Next step
 
-Phase 4, Tier 2 — answer quality. Judge selection first, by measurement rather than by
-taste: run both candidate judges over ~20 hand-labelled decisions (~$0.05) and adopt the
-cheapest that agrees with the human, reporting the agreement percentage (D11). Then answer
-correctness, faithfulness and citation accuracy on the Tier-1 winning arm plus contrasts.
+Phase 4, Tier 2 — answer quality on the validated judge: correctness and grounding across
+the golden set for the Tier-1 winning arm plus a contrast arm, with citation accuracy
+measured deterministically by the existing citation verifier rather than by the judge.
+Every reported number carries the kappa 0.730 agreement figure beside it (D37).
 
-Estimated remaining Phase 4 spend: ~$0.09 with a `gpt-5-nano` judge, ~$0.22 with
-`gpt-5-mini`. The judge-agreement experiment decides which.
+Estimated remaining Phase 4 spend: **~$0.057**, measured rather than guessed.
 
 **Closed by the Tier-1 results:** the open question of whether to damp semantic chunking's
 thin chunks with a neighbour buffer. Semantic is not separable from fixed and costs more to
