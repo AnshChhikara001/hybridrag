@@ -1,0 +1,494 @@
+# FastAPI RAG evaluation golden set
+# Reviewed and filtered from golden_candidates.yaml (59 candidates -> 35 kept).
+# Every entry below was manually checked for question realism, evidence support,
+# category correctness and duplication. Spans trimmed to the smallest verbatim
+# passage that supports the answer.
+format_version: 1
+corpus_ref: 0.115.6
+questions:
+- question_id: lookup-001
+  category: lookup
+  question: How does the OAuth2 scopes mechanism describe the format and purpose of scopes?
+  answer: Scopes are described as a list of strings separated by spaces that represent permissions, and
+    each scope is just a string without spaces.
+  spans:
+  - relative_path: advanced/security/oauth2-scopes.md
+    quote: |-
+      The OAuth2 specification defines "scopes" as a list of strings separated by spaces.
+
+      The content of each of these strings can have any format, but should not contain spaces.
+
+      These scopes represent "permissions".
+  verified: true
+- question_id: lookup-002
+  category: lookup
+  question: Where do Query, Path and Body come from and what do they return?
+  answer: Remember that when you import `Query`, `Path`, and others from `fastapi`, those are actually
+    functions that return special classes.
+  spans:
+  - relative_path: tutorial/body-fields.md
+    quote: |-
+      Actually, `Query`, `Path` and others you'll see next create objects of subclasses of a common `Param` class, which is itself a subclass of Pydantic's `FieldInfo` class.
+
+      And Pydantic's `Field` returns an instance of `FieldInfo` as well.
+
+      `Body` also returns objects of a subclass of `FieldInfo` directly.
+  verified: true
+- question_id: lookup-003
+  category: lookup
+  question: Can I include extra JSON Schema metadata or non-OpenAPI keys using Field?
+  answer: You can use Pydantic's `Field` to declare extra validations and metadata for model attributes.
+  spans:
+  - relative_path: tutorial/body-fields.md
+    quote: |-
+      You can use Pydantic's `Field` to declare extra validations and metadata for model attributes.
+
+      You can also use the extra keyword arguments to pass additional JSON Schema metadata.
+  verified: true
+- question_id: lookup-004
+  category: lookup
+  question: How do I install the dependency required to receive form fields with FastAPI?
+  answer: pip install python-multipart
+  spans:
+  - relative_path: tutorial/request-forms.md
+    quote: |-
+      To use forms, first install `python-multipart`.
+
+      Make sure you create a [virtual environment](../virtual-environments.md){.internal-link target=_blank}, activate it, and then install it, for example:
+
+      ```console
+      $ pip install python-multipart
+      ```
+  verified: true
+- question_id: lookup-005
+  category: lookup
+  question: Why do I need to use Form when declaring form bodies instead of relying on default parameter
+    behavior?
+  answer: Because without it the parameters would be interpreted as query parameters or body (JSON) parameters.
+  spans:
+  - relative_path: tutorial/request-forms.md
+    quote: |-
+      `Form` is a class that inherits directly from `Body`.
+
+      To declare form bodies, you need to use `Form` explicitly, because without it the parameters would be interpreted as query parameters or body (JSON) parameters.
+  verified: true
+- question_id: lookup-006
+  category: lookup
+  question: Can I declare both Form parameters and JSON Body fields in the same path operation?
+  answer: No, you can't also declare `Body` fields that you expect to receive as JSON, as the request
+    will have the body encoded using `application/x-www-form-urlencoded` instead of `application/json`.
+  spans:
+  - relative_path: tutorial/request-forms.md
+    quote: |-
+      You can declare multiple `Form` parameters in a *path operation*, but you can't also declare `Body` fields that you expect to receive as JSON, as the request will have the body encoded using `application/x-www-form-urlencoded` instead of `application/json`.
+
+      This is not a limitation of **FastAPI**, it's part of the HTTP protocol.
+  verified: true
+- question_id: lookup-009
+  category: lookup
+  question: How can I include custom headers when raising an HTTPException?
+  answer: 'Pass a headers dict to HTTPException, e.g. raise HTTPException(status_code=404, detail="Item
+    not found", headers={"X-Error": "There goes my error"})'
+  spans:
+  - relative_path: tutorial/handling-errors.md
+    quote: |-
+      @app.get("/items-header/{item_id}")
+      async def read_item_header(item_id: str):
+          if item_id not in items:
+              raise HTTPException(
+                  status_code=404,
+                  detail="Item not found",
+                  headers={"X-Error": "There goes my error"},
+              )
+          return {"item": items[item_id]}
+  verified: true
+- question_id: lookup-010
+  category: lookup
+  question: How do I create a global custom exception handler that returns a JSONResponse with status
+    418?
+  answer: 'Define a handler with @app.exception_handler(UnicornException) that returns JSONResponse(status_code=418,
+    content={"message": ...})'
+  spans:
+  - relative_path: tutorial/handling-errors.md
+    quote: |-
+      @app.exception_handler(UnicornException)
+      async def unicorn_exception_handler(request: Request, exc: UnicornException):
+          return JSONResponse(
+              status_code=418,
+              content={"message": f"Oops! {exc.name} did something. There goes a rainbow..."},
+          )
+  verified: true
+- question_id: lookup-011
+  category: lookup
+  question: What do I specify in the decorator argument for identifying the webhook event?
+  answer: Pass an identifier string like "new-subscription" to the decorator, which serves as the webhook
+    name (event identifier).
+  spans:
+  - relative_path: advanced/openapi-webhooks.md
+    quote: Notice that with webhooks you are actually not declaring a *path* (like `/items/`), the text
+      you pass there is just an **identifier** of the webhook (the name of the event), for example in
+      `@app.webhooks.post("new-subscription")`, the webhook name is `new-subscription`.
+  verified: true
+- question_id: lookup-012
+  category: lookup
+  question: Which OpenAPI and FastAPI versions add webhook support?
+  answer: Webhooks are available in OpenAPI 3.1.0 and above, supported by FastAPI 0.99.0 and above.
+  spans:
+  - relative_path: advanced/openapi-webhooks.md
+    quote: Webhooks are available in OpenAPI 3.1.0 and above, supported by FastAPI `0.99.0` and above.
+  verified: true
+- question_id: lookup-013
+  category: lookup
+  question: How do I import the custom FastAPI response classes like FileResponse and HTMLResponse?
+  answer: from fastapi.responses import ( FileResponse, HTMLResponse, JSONResponse, ORJSONResponse, PlainTextResponse,
+    RedirectResponse, Response, StreamingResponse, UJSONResponse, )
+  spans:
+  - relative_path: reference/responses.md
+    quote: |-
+      You can import them directly from `fastapi.responses`:
+
+      ```python
+      from fastapi.responses import (
+          FileResponse,
+          HTMLResponse,
+          JSONResponse,
+          ORJSONResponse,
+          PlainTextResponse,
+          RedirectResponse,
+          Response,
+          StreamingResponse,
+          UJSONResponse,
+      )
+      ```
+  verified: true
+- question_id: lookup-016
+  category: lookup
+  question: How can I set the HTTP status code used in the response and included in the OpenAPI schema?
+  answer: Use the status_code parameter on the path operation decorator, e.g. status_code=status.HTTP_201_CREATED
+  spans:
+  - relative_path: tutorial/path-operation-configuration.md
+    quote: |-
+      You can define the (HTTP) `status_code` to be used in the response of your *path operation*.
+
+      You can pass directly the `int` code, like `404`.
+
+      But if you don't remember what each number code is for, you can use the shortcut constants in `status`:
+  verified: true
+- question_id: lookup-017
+  category: lookup
+  question: How do I add tags to group related path operations and have them appear in the OpenAPI docs?
+  answer: Pass the tags parameter with a list of strings (or Enum members) to the path operation decorator,
+    e.g. tags=["items"]
+  spans:
+  - relative_path: tutorial/path-operation-configuration.md
+    quote: 'You can add tags to your *path operation*, pass the parameter `tags` with a `list` of `str`
+      (commonly just one `str`):'
+  verified: true
+- question_id: lookup-018
+  category: lookup
+  question: How can I mark a path operation as deprecated without removing it?
+  answer: Pass deprecated=True to the path operation decorator
+  spans:
+  - relative_path: tutorial/path-operation-configuration.md
+    quote: 'If you need to mark a *path operation* as deprecated, but without removing it, pass the parameter
+      `deprecated`:'
+  verified: true
+- question_id: lookup-019
+  category: lookup
+  question: How do you define logic to run before the application starts and after it shuts down?
+  answer: Use the `lifespan` parameter of the `FastAPI` app with an async context manager (function decorated
+    with `@asynccontextmanager`) that yields.
+  spans:
+  - relative_path: advanced/events.md
+    quote: |-
+      You can define logic (code) that should be executed before the application **starts up**. This means that this code will be executed **once**, **before** the application **starts receiving requests**.
+
+      The same way, you can define logic (code) that should be executed when the application is **shutting down**. In this case, this code will be executed **once**, **after** having handled possibly **many requests**.
+  verified: true
+- question_id: lookup-021
+  category: lookup
+  question: What happens to code placed after the `yield` in the lifespan async context manager?
+  answer: It is executed after the application has finished handling requests, during shutdown, for cleaning
+    up resources.
+  spans:
+  - relative_path: advanced/events.md
+    quote: And then, right after the `yield`, we unload the model. This code will be executed **after**
+      the application **finishes handling requests**, right before the *shutdown*. This could, for example,
+      release resources like memory or a GPU.
+  verified: true
+- question_id: lookup-022
+  category: lookup
+  question: How do I convert a Pydantic model and its datetime fields into JSON-compatible Python data
+    structures before storing in a database?
+  answer: Use FastAPI's jsonable_encoder() to convert the model to JSON-compatible types, e.g., dict and
+    ISO-format strings for datetimes.
+  spans:
+  - relative_path: tutorial/encoder.md
+    quote: |-
+      There are some cases where you might need to convert a data type (like a Pydantic model) to something compatible with JSON (like a `dict`, `list`, etc).
+
+      For example, if you need to store it in a database.
+
+      For that, **FastAPI** provides a `jsonable_encoder()` function.
+  verified: true
+- question_id: lookup-023
+  category: lookup
+  question: What does jsonable_encoder return when given a Pydantic model with datetime fields?
+  answer: It returns a Python data structure (like a dict) with values converted to JSON-compatible types,
+    such as datetime converted to ISO-format strings.
+  spans:
+  - relative_path: tutorial/encoder.md
+    quote: |-
+      In this example, it would convert the Pydantic model to a `dict`, and the `datetime` to a `str`.
+
+      The result of calling it is something that can be encoded with the Python standard `json.dumps()`.
+
+      It doesn't return a large `str` containing the data in JSON format (as a string). It returns a Python standard data structure (e.g. a `dict`) with values and sub-values that are all compatible with JSON.
+  verified: true
+- question_id: multi_hop-002
+  category: multi_hop
+  question: If I mount a sub-application at /subapi and also run behind a proxy that serves the app under
+    /api/v1, how will the sub-application know to use the combined prefix so its docs UI is fetched from
+    /api/v1/subapi/docs?
+  answer: 'You must rely on ASGI root_path handling: FastAPI sets root_path for mounted sub-apps and the
+    server/proxy can pass an external root_path so the browser-facing docs use the combined prefix.'
+  spans:
+  - relative_path: advanced/sub-applications.md
+    quote: |-
+      When you mount a sub-application as described above, FastAPI will take care of communicating the mount path for the sub-application using a mechanism from the ASGI specification called a `root_path`.
+      That way, the sub-application will know to use that path prefix for the docs UI.
+  - relative_path: advanced/behind-a-proxy.md
+    quote: |-
+      The `root_path` is a mechanism provided by the ASGI specification (that FastAPI is built on, through Starlette).
+
+      The `root_path` is used to handle these specific cases.
+
+      And it's also used internally when mounting sub-applications.
+
+      Having a proxy with a stripped path prefix, in this case, means that you could declare a path at `/app` in your code, but then, you add a layer on top (the proxy) that would put your **FastAPI** application under a path like `/api/v1`.
+  verified: true
+- question_id: multi_hop-005
+  category: multi_hop
+  question: If I want to accept partial updates without accidentally overwriting stored fields with model
+    defaults and also ensure the response is validated and filtered by a Pydantic model when returning
+    the updated item, what combination of techniques from both endpoints should I apply?
+  answer: Use PATCH with exclude_unset to build update_data and model_copy/update on stored model, then
+    return it with a response_model so FastAPI validates and filters the returned data.
+  spans:
+  - relative_path: tutorial/body-updates.md
+    quote: |-
+      If you want to receive partial updates, it's very useful to use the parameter `exclude_unset` in Pydantic's model's `.model_dump()`.
+
+      Like `item.model_dump(exclude_unset=True)`.
+  - relative_path: tutorial/response-model.md
+    quote: FastAPI will use this `response_model` to do all the data documentation, validation, etc. and
+      also to **convert and filter the output data** to its type declaration.
+  verified: true
+- question_id: multi_hop-006
+  category: multi_hop
+  question: If I mount a StaticFiles instance at "/static" on my main FastAPI app and also mount a separate
+    FastAPI sub-application at "/subapi", will the OpenAPI docs at "/docs" include the static files mount
+    or the sub-application's path operations?
+  answer: 'You must combine both behaviors: mounted static files are a mounted sub-application and mounted
+    sub-applications (including StaticFiles) are independent, so the main app''s docs won''t include them.'
+  spans:
+  - relative_path: tutorial/static-files.md
+    quote: |-
+      "Mounting" means adding a complete "independent" application in a specific path, that then takes care of handling all the sub-paths.
+
+      This is different from using an `APIRouter` as a mounted application is completely independent. The OpenAPI and docs from your main application won't include anything from the mounted application, etc.
+  - relative_path: advanced/sub-applications.md
+    quote: '"Mounting" means adding a completely "independent" application in a specific path, that then
+      takes care of handling everything under that path, with the _path operations_ declared in that sub-application.'
+  verified: true
+- question_id: multi_hop-008
+  category: multi_hop
+  question: If I want to both set cookies in a response and have the response documented in OpenAPI with
+    a specific media type, how can I both set cookies and ensure the response_class media type is included
+    in the automatic docs?
+  answer: You declare a Response parameter (or return a Response) to set cookies and also set response_class
+    in the path operation decorator so FastAPI can document the media type in OpenAPI.
+  spans:
+  - relative_path: advanced/response-cookies.md
+    quote: |-
+      You can declare a parameter of type `Response` in your *path operation function*.
+
+      And then you can set cookies in that *temporal* response object.
+  - relative_path: advanced/custom-response.md
+    quote: |-
+      If you want to override the response from inside of the function but at the same time document the "media type" in OpenAPI, you can use the `response_class` parameter AND return a `Response` object.
+
+      The `response_class` will then be used only to document the OpenAPI *path operation*, but your `Response` will be used as is.
+  verified: true
+- question_id: multi_hop-013
+  category: multi_hop
+  question: How can I both set Field-level validation like gt=0 for a price attribute and also include
+    multiple example bodies for that same model in the OpenAPI docs returned by FastAPI?
+  answer: 'You use Pydantic''s Field on the model attribute for validations (e.g., price: float = Field(gt=0,
+    ...)) and provide examples either via model json_schema_extra or Field/examples or via Body(examples=[...])
+    when declaring the request body.'
+  spans:
+  - relative_path: tutorial/body-fields.md
+    quote: |-
+      You can then use `Field` with model attributes:
+  - relative_path: tutorial/schema-extra-example.md
+    quote: |-
+      When using any of:
+
+      * `Path()`
+      * `Query()`
+      * `Header()`
+      * `Cookie()`
+      * `Body()`
+      * `Form()`
+      * `File()`
+
+      you can also declare a group of `examples` with additional information that will be added to their **JSON Schemas** inside of **OpenAPI**.
+  verified: true
+- question_id: multi_hop-014
+  category: multi_hop
+  question: How should I annotate a function parameter to accept both form fields and uploaded files in
+    the same POST endpoint and why can't I also expect JSON Body fields in that endpoint?
+  answer: Use File and Form (e.g., Annotated[bytes, File()] and Annotated[str, Form()]) together because
+    the request will be encoded as multipart/form-data, so you cannot declare Body fields expecting application/json
+    in the same operation.
+  spans:
+  - relative_path: tutorial/request-forms-and-files.md
+    quote: Use `File` and `Form` together when you need to receive data and files in the same request.
+  - relative_path: tutorial/request-files.md
+    quote: |-
+      You can declare multiple `File` and `Form` parameters in a *path operation*, but you can't also declare `Body` fields that you expect to receive as JSON, as the request will have the body encoded using `multipart/form-data` instead of `application/json`.
+
+      This is not a limitation of **FastAPI**, it's part of the HTTP protocol.
+  verified: true
+- question_id: ambiguous-001
+  category: ambiguous
+  question: How do I disable syntax highlighting or change its theme in Swagger UI?
+  answer: Either by setting the syntaxHighlight boolean or the syntaxHighlight.theme key in swagger_ui_parameters
+    when creating the app or calling get_swagger_ui_html.
+  spans:
+  - relative_path: how-to/configure-swagger-ui.md
+    quote: |-
+      But you can disable it by setting `syntaxHighlight` to `False`:
+  - relative_path: how-to/configure-swagger-ui.md
+    quote: |-
+      The same way you could set the syntax highlighting theme with the key `"syntaxHighlight.theme"` (notice that it has a dot in the middle):
+  verified: true
+- question_id: ambiguous-002
+  category: ambiguous
+  question: When should I use PUT versus PATCH to update an item in my API?
+  answer: They can both be used; use PUT to replace and PATCH to partially update, depending on whether
+    you want full replacement or partial updates.
+  spans:
+  - relative_path: tutorial/body-updates.md
+    quote: '`PUT` is used to receive data that should replace the existing data.'
+  - relative_path: tutorial/body-updates.md
+    quote: |-
+      You can also use the HTTP `PATCH` operation to *partially* update data.
+
+      This means that you can send only the data that you want to update, leaving the rest intact.
+
+      `PATCH` is less commonly used and known than `PUT`.
+
+      And many teams use only `PUT`, even for partial updates.
+
+      You are **free** to use them however you want, **FastAPI** doesn't impose any restrictions.
+  verified: true
+- question_id: ambiguous-006
+  category: ambiguous
+  question: What will happen if a client sends headers that aren't defined in my Pydantic header model?
+  answer: You can forbid extra fields via model_config so the client will get an error response if they
+    send extra headers.
+  spans:
+  - relative_path: tutorial/header-param-models.md
+    quote: |-
+      In some special use cases (probably not very common), you might want to **restrict** the headers that you want to receive.
+
+      You can use Pydantic's model configuration to `forbid` any `extra` fields:
+  - relative_path: tutorial/header-param-models.md
+    quote: |-
+      If a client tries to send some **extra headers**, they will receive an **error** response.
+  verified: true
+- question_id: ambiguous-008
+  category: ambiguous
+  question: Should I declare a Response parameter in my path operation function or create and return a
+    Response object directly when I want to set cookies?
+  answer: Either approach can be used - declaring a Response parameter, or creating and returning a Response
+    object directly.
+  spans:
+  - relative_path: advanced/response-cookies.md
+    quote: |-
+      You can declare a parameter of type `Response` in your *path operation function*.
+
+      And then you can set cookies in that *temporal* response object.
+  - relative_path: advanced/response-cookies.md
+    quote: |-
+      You can also create cookies when returning a `Response` directly in your code.
+  verified: true
+- question_id: ambiguous-009
+  category: ambiguous
+  question: If I set cookies on a Response parameter in a dependency, will FastAPI include those cookies
+    in the final response?
+  answer: Yes - dependencies can set cookies on the temporal response, and FastAPI extracts them into
+    the final response.
+  spans:
+  - relative_path: advanced/response-cookies.md
+    quote: You can also declare the `Response` parameter in dependencies, and set cookies (and headers)
+      in them.
+  - relative_path: advanced/response-cookies.md
+    quote: '**FastAPI** will use that *temporal* response to extract the cookies (also headers and status
+      code), and will put them in the final response that contains the value you returned, filtered by
+      any `response_model`.'
+  verified: true
+- question_id: no_answer-001
+  category: no_answer
+  question: What is FastAPI's official enterprise support SLA (response times, severity levels, and escalation
+    path) for production incidents?
+  answer: The documentation does not provide any information about enterprise support contracts, SLAs,
+    or formal escalation procedures.
+  spans: []
+  verified: true
+- question_id: no_answer-003
+  category: no_answer
+  question: What long-term project roadmap or planned major features/releases does the FastAPI core team
+    have for the next 12-24 months?
+  answer: The docs do not contain an internal roadmap, release timeline, or planned feature list from
+    the FastAPI maintainers.
+  spans: []
+  verified: true
+  notes: 'Manually re-checked (was flagged CHECK): the docs discuss the project''s history and general
+    future outlook, but publish no roadmap, release timeline or planned feature list.'
+- question_id: no_answer-006
+  category: no_answer
+  question: What is the project's tested and supported compatibility matrix for specific Python versions,
+    OS releases, and ASGI servers (exact tested minor versions)?
+  answer: The documentation provides general compatibility guidance but does not publish an exhaustive,
+    version-specific compatibility matrix with exact tested minor versions and OS releases.
+  spans: []
+  verified: true
+- question_id: no_answer-007
+  category: no_answer
+  question: What security audit history exists for FastAPI (third-party audits, CVEs closure timeline,
+    or a public security disclosure process)?
+  answer: The docs do not include a record of formal third-party security audits, a CVE timeline, or a
+    detailed vulnerability disclosure/response policy.
+  spans: []
+  verified: true
+  notes: 'Manually re-checked (was flagged CHECK): the docs cover application-level security (OAuth2,
+    JWT, HTTP Basic) but contain no audit history, CVE timeline or disclosure policy.'
+- question_id: no_answer-008
+  category: no_answer
+  question: What are the recommended scaling and operational patterns for running FastAPI across multiple
+    regions with multi-cluster orchestration and geo-failover?
+  answer: The documentation covers deployment basics but does not provide detailed, prescriptive multi-region
+    scaling, geo-failover, or multi-cluster orchestration patterns.
+  spans: []
+  verified: true
+- question_id: no_answer-009
+  category: no_answer
+  question: Are there official performance tuning guides or recommended configurations for specific cloud
+    providers (AWS, GCP, Azure) including instance types and autoscaling rules?
+  answer: The documentation does not include cloud-provider-specific tuning guides, recommended instance
+    types, or concrete autoscaling configurations.
+  spans: []
+  verified: true
