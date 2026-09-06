@@ -32,7 +32,15 @@ from hybridrag.generation import (
     LanguageModel,
     OpenAIModel,
 )
-from hybridrag.indexing import DenseIndex, SparseIndex
+from hybridrag.indexing import (
+    DenseIndex,
+    SparseIndex,
+    chroma_path,
+    collection_name,
+    sparse_path,
+    store_path,
+)
+from hybridrag.models import ChunkingStrategy
 from hybridrag.retrieval import HybridRetriever
 
 app = typer.Typer(add_completion=False)
@@ -125,20 +133,29 @@ def ask(
     provider: Annotated[
         str | None, typer.Option(help="Override the configured provider: gemini or openai.")
     ] = None,
+    strategy: Annotated[
+        ChunkingStrategy, typer.Option(help="Which chunking strategy's indexes to answer from.")
+    ] = ChunkingStrategy.FIXED,
     index_dir: Annotated[Path | None, typer.Option(help="Overrides the configured path.")] = None,
 ) -> None:
     """Answer one question from the indexed corpus, with citations."""
     settings = get_settings()
     root = index_dir or settings.index_dir
-    if not (root / "sparse.json").is_file():
-        typer.echo(f"error: no index at {root}. Run scripts/build_index.py first.")
+    bm25 = sparse_path(root, strategy)
+    if not bm25.is_file():
+        typer.echo(
+            f"error: no {strategy.value} index at {root}. Build it first:\n"
+            f"  uv run python scripts/build_index.py <corpus> --strategy {strategy.value}"
+        )
         raise typer.Exit(code=1)
     cached = CachedEmbedder(_embedder(), settings.cache_dir / "embeddings.sqlite")
-    store = ChunkStore(root / "chunks.sqlite")
+    store = ChunkStore(store_path(root))
     retriever = HybridRetriever(
         {
-            "dense": DenseIndex.embedded(cached, root / "chroma"),
-            "sparse": SparseIndex.load(root / "sparse.json"),
+            "dense": DenseIndex.embedded(
+                cached, chroma_path(root), collection_name=collection_name(strategy)
+            ),
+            "sparse": SparseIndex.load(bm25),
         },
         store,
     )
