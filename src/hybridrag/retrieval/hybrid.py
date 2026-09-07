@@ -49,10 +49,28 @@ class RetrievedChunk(BaseModel):
     hits: dict[str, RetrieverHit] = Field(
         default_factory=dict, description="Per-retriever rank and score; absent means it missed."
     )
+    rerank_score: float | None = Field(
+        default=None,
+        description="Cross-encoder score, if a reranking pass reordered this result. `score` "
+        "is left as the original fused RRF value either way, so a caller can always see "
+        "what fusion alone would have said and never confuses the two scales.",
+    )
 
     @property
     def retrievers(self) -> tuple[str, ...]:
         return tuple(sorted(self.hits))
+
+
+@runtime_checkable
+class Retriever(Protocol):
+    """Anything that turns a query into ranked, hydrated chunks.
+
+    `HybridRetriever` satisfies this structurally, and so does `RerankingRetriever`
+    (`rerank.py`) -- which is what lets `run_arm` score a reranked pipeline with no change
+    to the harness, and lets a reranker wrap either one interchangeably.
+    """
+
+    def retrieve(self, query: str, k: int = 10) -> list[RetrievedChunk]: ...
 
 
 class HybridRetriever:

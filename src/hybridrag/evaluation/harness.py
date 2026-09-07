@@ -31,7 +31,7 @@ from hybridrag.evaluation.metrics import (
     evaluate_question,
 )
 from hybridrag.models import Chunk, ChunkingStrategy, Document
-from hybridrag.retrieval import HybridRetriever
+from hybridrag.retrieval import Retriever
 from hybridrag.retrieval.fusion import RetrieverHit
 
 # How deep each arm retrieves. Deeper than any reported cutoff on purpose: Recall@budget
@@ -77,6 +77,13 @@ class ArmResult(BaseModel):
     )
     median_latency_ms: float = 0.0
     depth: int = DEFAULT_DEPTH
+    top5_paths: dict[str, list[str]] = Field(
+        default_factory=dict,
+        description="Each answerable question's top-5 `relative_path`s, best first. "
+        "Deliberately generic -- this harness has no notion of any one corpus's "
+        "distractor documents -- so a caller can compute a distractor rate for whatever "
+        "file it wants (`distractor_rate`) without a second pass over the retriever.",
+    )
 
     @property
     def name(self) -> str:
@@ -181,21 +188,28 @@ def _top_dense(hits: Mapping[str, RetrieverHit]) -> float | None:
 def run_arm(
     retriever_name: str,
     strategy: ChunkingStrategy,
-    retriever: HybridRetriever,
+    retriever: Retriever,
     golden: GoldenSet,
     located: Mapping[str, Sequence[LocatedSpan]],
     pools: Mapping[str, Sequence[Chunk]],
     *,
     depth: int = DEFAULT_DEPTH,
     cutoffs: Sequence[int] = DEFAULT_CUTOFFS,
+    ndcg_at: int = 10,
     budget: int = DEFAULT_TOKEN_BUDGET,
     min_ratio: float = 1.0,
 ) -> ArmResult:
-    """Retrieve for every verified question and score it. No LLM, no cost."""
+    """Retrieve for every verified question and score it. No LLM, no cost.
+
+    `ndcg_at` also sets the horizon nDCG and MRR are read at (`evaluate_question`'s
+    `ndcg_at`) -- it defaults to 10 to match every existing report, but the reranker
+    comparison scores its arms at 5, matching what the reranker actually keeps.
+    """
     scored: list[QuestionMetrics] = []
     refusals: list[RefusalProbe] = []
     answerable: list[RefusalProbe] = []
     latencies: list[float] = []
+    top5_paths: dict[str, list[str]] = {}
 
     for question in golden.verified():
         started = time.perf_counter()
@@ -214,6 +228,7 @@ def run_arm(
             refusals.append(probe)
             continue
         answerable.append(probe)
+        top5_paths[question.question_id] = [result.chunk.relative_path for result in results[:5]]
         scored.append(
             evaluate_question(
                 question,
@@ -221,6 +236,7 @@ def run_arm(
                 [result.chunk for result in results],
                 pools.get(question.question_id, ()),
                 cutoffs=cutoffs,
+                ndcg_at=ndcg_at,
                 budget=budget,
                 min_ratio=min_ratio,
                 top_dense_score=top_dense,
@@ -235,7 +251,22 @@ def run_arm(
         answerable_scores=answerable,
         median_latency_ms=median(latencies) if latencies else 0.0,
         depth=depth,
+        top5_paths=top5_paths,
     )
+
+
+def distractor_rate(arms: Iterable[ArmResult], *, filename: str) -> float:
+    """Share of top-5 slots, across every question in every given arm, filled by `filename`.
+
+    Deliberately takes a filename rather than knowing one: this harness has no notion of
+    which document in a corpus is a distractor. Accepts an iterable of arms rather than one,
+    because the natural unit to report this over is often several strategies or several
+    questions' worth of slots at once, not a single arm scored in isolation.
+    """
+    slots = [path for arm in arms for paths in arm.top5_paths.values() for path in paths]
+    if not slots:
+        raise ValueError("cannot compute a distractor rate over zero top-5 slots")
+    return sum(1 for path in slots if path == filename) / len(slots)
 
 
 def answerable(golden: GoldenSet) -> list[GoldenQuestion]:
