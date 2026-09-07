@@ -6,9 +6,15 @@ retrieval to see what moved.
 
     uv run python scripts/evaluate_retrieval.py data/raw/fastapi/docs/en/docs
     uv run python scripts/evaluate_retrieval.py <corpus> --strategy structure   # one arm set
+    uv run python scripts/evaluate_retrieval.py <corpus> --rerank               # + reranker.md
 
 Every strategy named must already be indexed. A missing index fails the run rather than
 being skipped: an arm silently absent from a comparison table is worse than no table.
+
+`--rerank` adds a second, separate report (`reranker.md`): a cross-encoder rerank pass
+(D8) against each strategy's plain-hybrid baseline, both rescored at a 5-wide horizon.
+Still $0 and still no language model -- the cross-encoder is local -- but it downloads
+~80 MB on a cold cache, which is why it is opt-in rather than run by default.
 """
 
 from __future__ import annotations
@@ -33,11 +39,14 @@ from hybridrag.evaluation import (
     ChunkStats,
     GoldenSet,
     GridResult,
+    RerankerRun,
     answerable,
     build_pools,
+    distractor_rate,
     locate_all,
     provenance,
     render,
+    render_reranker_report,
     run_arm,
 )
 from hybridrag.indexing import (
@@ -53,6 +62,12 @@ from hybridrag.models import ChunkingStrategy, Document
 from hybridrag.retrieval import HybridRetriever
 from hybridrag.retrieval.fusion import DEFAULT_RANK_CONSTANT
 from hybridrag.retrieval.hybrid import DEFAULT_CANDIDATES
+from hybridrag.retrieval.rerank import (
+    DEFAULT_RERANK_DEPTH,
+    DEFAULT_RERANK_MODEL,
+    CrossEncoderReranker,
+    RerankingRetriever,
+)
 
 app = typer.Typer(add_completion=False)
 
@@ -126,6 +141,23 @@ def evaluate(
         float, typer.Option(help="Span fraction that must be covered to count as retrieved.")
     ] = 1.0,
     index_dir: Annotated[Path | None, typer.Option(help="Overrides the configured path.")] = None,
+    rerank: Annotated[
+        bool,
+        typer.Option(
+            help="Also score a cross-encoder rerank pass (D8) against plain hybrid, "
+            "per strategy, at a 5-wide horizon. Writes reranker.md separately."
+        ),
+    ] = False,
+    rerank_model: Annotated[
+        str, typer.Option(help="fastembed cross-encoder model id.")
+    ] = DEFAULT_RERANK_MODEL,
+    rerank_depth: Annotated[
+        int, typer.Option(help="Candidates fetched and reranked before keeping the top 5.")
+    ] = DEFAULT_RERANK_DEPTH,
+    distractor_filename: Annotated[
+        str,
+        typer.Option(help="Corpus file whose top-5 share is reported as the distractor rate."),
+    ] = "release-notes.md",
 ) -> None:
     """Score every (chunking strategy x retriever) arm against the golden set."""
     settings = get_settings()
@@ -162,6 +194,12 @@ def evaluate(
     store = ChunkStore(store_path(root))
     arms: list[ArmResult] = []
     shape: list[ChunkStats] = []
+    rerank_baselines: list[ArmResult] = []
+    rerank_arms: list[ArmResult] = []
+    distractor_rates: dict[str, float] = {}
+    # One instance shared across strategies: the ONNX session loads on first use and stays
+    # loaded, so the 80 MB download and session start happen once per run, not per strategy.
+    reranker = CrossEncoderReranker(rerank_model) if rerank else None
 
     for chunking in strategies:
         bm25_path = sparse_path(root, chunking)
@@ -218,6 +256,52 @@ def evaluate(
             recall = sum(result.series("recall@5")) / max(1, len(result.questions))
             typer.echo(f"  {result.name:<20} recall@5 {recall:.3f}")
 
+        if reranker is not None:
+            # Rescored at ndcg_at=5, not the grid's default 10: 5 is what the reranker
+            # actually keeps (D8) and what the generator actually reads, so this is the
+            # only horizon "did the reranker earn its place" can be judged at fairly.
+            baseline_at5 = run_arm(
+                "hybrid",
+                chunking,
+                hybrid,
+                golden,
+                located,
+                pools,
+                depth=depth,
+                ndcg_at=5,
+                budget=budget,
+                min_ratio=min_ratio,
+            )
+            reranking_retriever = RerankingRetriever(hybrid, reranker, rerank_depth=rerank_depth)
+            reranked_result = run_arm(
+                "reranked",
+                chunking,
+                reranking_retriever,
+                golden,
+                located,
+                pools,
+                depth=5,
+                ndcg_at=5,
+                budget=budget,
+                min_ratio=min_ratio,
+            )
+            rerank_baselines.append(baseline_at5)
+            rerank_arms.append(reranked_result)
+            distractor_rates[baseline_at5.name] = distractor_rate(
+                [baseline_at5], filename=distractor_filename
+            )
+            distractor_rates[reranked_result.name] = distractor_rate(
+                [reranked_result], filename=distractor_filename
+            )
+            reranked_recall = sum(reranked_result.series("recall@5")) / max(
+                1, len(reranked_result.questions)
+            )
+            typer.echo(
+                f"  {reranked_result.name:<20} recall@5 {reranked_recall:.3f} "
+                f"(plain hybrid at the same horizon: "
+                f"{sum(baseline_at5.series('recall@5')) / max(1, len(baseline_at5.questions)):.3f})"
+            )
+
     grid = GridResult(
         provenance=provenance(
             golden,
@@ -243,6 +327,20 @@ def evaluate(
     )
     (out_dir / "retrieval.md").write_text(render(grid, golden), encoding="utf-8")
     typer.echo(f"{elapsed()} wrote {out_dir / 'retrieval.md'} and retrieval_results.json")
+
+    if rerank_arms:
+        reranker_run = RerankerRun(
+            provenance=grid.provenance,
+            baselines=rerank_baselines,
+            reranked=rerank_arms,
+            distractor_filename=distractor_filename,
+            distractor_rates=distractor_rates,
+        )
+        (out_dir / "reranker_results.json").write_text(
+            json.dumps(reranker_run.model_dump(mode="json"), indent=2), encoding="utf-8"
+        )
+        (out_dir / "reranker.md").write_text(render_reranker_report(reranker_run), encoding="utf-8")
+        typer.echo(f"{elapsed()} wrote {out_dir / 'reranker.md'} and reranker_results.json")
 
     if isinstance(inner, OpenAIEmbedder):
         typer.echo(

@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "generated_at": "2026-09-07T01:22:16+00:00",
-    "git_sha": "552fc03",
+    "generated_at": "2026-09-07T14:57:48+00:00",
+    "git_sha": "e4beff8",
     "git_dirty": true,
     "corpus_ref": "0.115.6",
     "documents": 141,
@@ -760,8 +760,213 @@
           "top_dense_score": 0.6339238882064819
         }
       ],
-      "median_latency_ms": 8.088124974165112,
-      "depth": 50
+      "median_latency_ms": 8.176708011887968,
+      "depth": 50,
+      "top5_paths": {
+        "lookup-001": [
+          "advanced/security/oauth2-scopes.md",
+          "tutorial/security/oauth2-jwt.md",
+          "advanced/security/oauth2-scopes.md",
+          "advanced/security/oauth2-scopes.md",
+          "advanced/security/oauth2-scopes.md"
+        ],
+        "lookup-002": [
+          "tutorial/body-multiple-params.md",
+          "tutorial/path-params-numeric-validations.md",
+          "tutorial/query-params-str-validations.md",
+          "tutorial/body-fields.md",
+          "tutorial/path-params-numeric-validations.md"
+        ],
+        "lookup-003": [
+          "tutorial/body-fields.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/schema-extra-example.md",
+          "advanced/path-operation-advanced-configuration.md"
+        ],
+        "lookup-004": [
+          "tutorial/request-forms.md",
+          "tutorial/request-form-models.md",
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-files.md",
+          "tutorial/security/simple-oauth2.md"
+        ],
+        "lookup-005": [
+          "tutorial/request-forms.md",
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-forms.md",
+          "tutorial/body.md",
+          "tutorial/request-files.md"
+        ],
+        "lookup-006": [
+          "tutorial/request-forms.md",
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-forms-and-files.md",
+          "tutorial/body-multiple-params.md",
+          "tutorial/request-forms.md"
+        ],
+        "lookup-009": [
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "tutorial/dependencies/dependencies-with-yield.md",
+          "tutorial/handling-errors.md"
+        ],
+        "lookup-010": [
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md"
+        ],
+        "lookup-011": [
+          "advanced/openapi-webhooks.md",
+          "advanced/openapi-webhooks.md",
+          "advanced/openapi-callbacks.md",
+          "advanced/openapi-callbacks.md",
+          "tutorial/dependencies/dependencies-in-path-operation-decorators.md"
+        ],
+        "lookup-012": [
+          "advanced/openapi-webhooks.md",
+          "advanced/openapi-webhooks.md",
+          "release-notes.md",
+          "release-notes.md",
+          "advanced/generate-clients.md"
+        ],
+        "lookup-013": [
+          "reference/responses.md",
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "tutorial/request-files.md",
+          "advanced/custom-response.md"
+        ],
+        "lookup-016": [
+          "tutorial/response-status-code.md",
+          "advanced/additional-responses.md",
+          "tutorial/path-operation-configuration.md",
+          "advanced/path-operation-advanced-configuration.md",
+          "advanced/response-change-status-code.md"
+        ],
+        "lookup-017": [
+          "how-to/general.md",
+          "tutorial/metadata.md",
+          "tutorial/bigger-applications.md",
+          "tutorial/path-operation-configuration.md",
+          "advanced/generate-clients.md"
+        ],
+        "lookup-018": [
+          "release-notes.md",
+          "tutorial/path-operation-configuration.md",
+          "advanced/generate-clients.md",
+          "tutorial/dependencies/index.md",
+          "release-notes.md"
+        ],
+        "lookup-019": [
+          "advanced/events.md",
+          "advanced/events.md",
+          "advanced/events.md",
+          "advanced/events.md",
+          "deployment/concepts.md"
+        ],
+        "lookup-021": [
+          "advanced/events.md",
+          "advanced/events.md",
+          "advanced/events.md",
+          "tutorial/dependencies/dependencies-with-yield.md",
+          "tutorial/dependencies/dependencies-with-yield.md"
+        ],
+        "lookup-022": [
+          "tutorial/encoder.md",
+          "features.md",
+          "advanced/response-directly.md",
+          "tutorial/extra-data-types.md",
+          "tutorial/body-updates.md"
+        ],
+        "lookup-023": [
+          "tutorial/encoder.md",
+          "advanced/response-directly.md",
+          "tutorial/encoder.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md"
+        ],
+        "multi_hop-002": [
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "advanced/behind-a-proxy.md",
+          "advanced/wsgi.md",
+          "advanced/behind-a-proxy.md"
+        ],
+        "multi_hop-005": [
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "release-notes.md"
+        ],
+        "multi_hop-006": [
+          "advanced/sub-applications.md",
+          "tutorial/static-files.md",
+          "advanced/sub-applications.md",
+          "advanced/behind-a-proxy.md",
+          "how-to/custom-docs-ui-assets.md"
+        ],
+        "multi_hop-008": [
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "advanced/response-cookies.md",
+          "advanced/custom-response.md",
+          "advanced/custom-response.md"
+        ],
+        "multi_hop-013": [
+          "tutorial/response-model.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/body-fields.md",
+          "tutorial/body-multiple-params.md",
+          "tutorial/schema-extra-example.md"
+        ],
+        "multi_hop-014": [
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-forms.md",
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-files.md",
+          "tutorial/request-files.md"
+        ],
+        "ambiguous-001": [
+          "how-to/configure-swagger-ui.md",
+          "how-to/custom-docs-ui-assets.md",
+          "release-notes.md",
+          "how-to/custom-docs-ui-assets.md",
+          "tutorial/schema-extra-example.md"
+        ],
+        "ambiguous-002": [
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "index.md"
+        ],
+        "ambiguous-006": [
+          "tutorial/header-param-models.md",
+          "tutorial/header-param-models.md",
+          "tutorial/cookie-param-models.md",
+          "tutorial/header-params.md",
+          "tutorial/header-params.md"
+        ],
+        "ambiguous-008": [
+          "advanced/response-cookies.md",
+          "advanced/response-headers.md",
+          "advanced/response-change-status-code.md",
+          "reference/response.md",
+          "advanced/custom-response.md"
+        ],
+        "ambiguous-009": [
+          "advanced/response-cookies.md",
+          "advanced/response-headers.md",
+          "tutorial/cookie-param-models.md",
+          "advanced/response-headers.md",
+          "reference/response.md"
+        ]
+      }
     },
     {
       "retriever": "dense",
@@ -1498,8 +1703,213 @@
           "top_dense_score": 0.6339238882064819
         }
       ],
-      "median_latency_ms": 4.304999980377033,
-      "depth": 50
+      "median_latency_ms": 4.306582995923236,
+      "depth": 50,
+      "top5_paths": {
+        "lookup-001": [
+          "advanced/security/oauth2-scopes.md",
+          "advanced/security/oauth2-scopes.md",
+          "advanced/security/oauth2-scopes.md",
+          "tutorial/security/oauth2-jwt.md",
+          "advanced/security/oauth2-scopes.md"
+        ],
+        "lookup-002": [
+          "reference/parameters.md",
+          "tutorial/path-params-numeric-validations.md",
+          "tutorial/body-fields.md",
+          "tutorial/body-multiple-params.md",
+          "tutorial/body.md"
+        ],
+        "lookup-003": [
+          "tutorial/schema-extra-example.md",
+          "tutorial/body-fields.md",
+          "advanced/path-operation-advanced-configuration.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/body-fields.md"
+        ],
+        "lookup-004": [
+          "tutorial/request-forms.md",
+          "tutorial/request-form-models.md",
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-files.md",
+          "release-notes.md"
+        ],
+        "lookup-005": [
+          "tutorial/request-forms.md",
+          "tutorial/request-forms.md",
+          "tutorial/request-form-models.md",
+          "tutorial/request-forms-and-files.md",
+          "tutorial/body-multiple-params.md"
+        ],
+        "lookup-006": [
+          "tutorial/request-forms-and-files.md",
+          "tutorial/body-multiple-params.md",
+          "tutorial/request-forms.md",
+          "tutorial/body.md",
+          "tutorial/request-forms-and-files.md"
+        ],
+        "lookup-009": [
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "reference/exceptions.md",
+          "tutorial/dependencies/dependencies-with-yield.md"
+        ],
+        "lookup-010": [
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "tutorial/dependencies/dependencies-with-yield.md",
+          "tutorial/handling-errors.md"
+        ],
+        "lookup-011": [
+          "advanced/openapi-webhooks.md",
+          "advanced/websockets.md",
+          "advanced/openapi-webhooks.md",
+          "advanced/openapi-callbacks.md",
+          "advanced/websockets.md"
+        ],
+        "lookup-012": [
+          "advanced/openapi-webhooks.md",
+          "tutorial/security/index.md",
+          "release-notes.md",
+          "release-notes.md",
+          "advanced/openapi-webhooks.md"
+        ],
+        "lookup-013": [
+          "reference/responses.md",
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "tutorial/request-files.md",
+          "advanced/custom-response.md"
+        ],
+        "lookup-016": [
+          "tutorial/response-status-code.md",
+          "advanced/response-change-status-code.md",
+          "advanced/additional-responses.md",
+          "tutorial/response-status-code.md",
+          "tutorial/path-operation-configuration.md"
+        ],
+        "lookup-017": [
+          "how-to/general.md",
+          "tutorial/path-operation-configuration.md",
+          "tutorial/metadata.md",
+          "how-to/general.md",
+          "tutorial/metadata.md"
+        ],
+        "lookup-018": [
+          "tutorial/query-params-str-validations.md",
+          "how-to/general.md",
+          "tutorial/dependencies/dependencies-in-path-operation-decorators.md",
+          "tutorial/bigger-applications.md",
+          "release-notes.md"
+        ],
+        "lookup-019": [
+          "advanced/events.md",
+          "advanced/events.md",
+          "advanced/events.md",
+          "advanced/events.md",
+          "deployment/concepts.md"
+        ],
+        "lookup-021": [
+          "advanced/events.md",
+          "tutorial/dependencies/dependencies-with-yield.md",
+          "async.md",
+          "tutorial/dependencies/dependencies-with-yield.md",
+          "tutorial/dependencies/dependencies-with-yield.md"
+        ],
+        "lookup-022": [
+          "tutorial/encoder.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-nested-models.md",
+          "features.md",
+          "advanced/security/oauth2-scopes.md"
+        ],
+        "lookup-023": [
+          "tutorial/encoder.md",
+          "reference/encoders.md",
+          "tutorial/encoder.md",
+          "advanced/response-directly.md",
+          "tutorial/body-nested-models.md"
+        ],
+        "multi_hop-002": [
+          "advanced/sub-applications.md",
+          "advanced/behind-a-proxy.md",
+          "advanced/sub-applications.md",
+          "advanced/behind-a-proxy.md",
+          "advanced/wsgi.md"
+        ],
+        "multi_hop-005": [
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-nested-models.md",
+          "tutorial/body-updates.md"
+        ],
+        "multi_hop-006": [
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "tutorial/static-files.md",
+          "advanced/behind-a-proxy.md",
+          "tutorial/bigger-applications.md"
+        ],
+        "multi_hop-008": [
+          "advanced/custom-response.md",
+          "advanced/response-cookies.md",
+          "advanced/custom-response.md",
+          "advanced/response-directly.md",
+          "advanced/custom-response.md"
+        ],
+        "multi_hop-013": [
+          "tutorial/body-multiple-params.md",
+          "tutorial/body-fields.md",
+          "tutorial/body-multiple-params.md",
+          "reference/openapi/models.md",
+          "tutorial/schema-extra-example.md"
+        ],
+        "multi_hop-014": [
+          "tutorial/request-forms.md",
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-files.md",
+          "tutorial/request-files.md"
+        ],
+        "ambiguous-001": [
+          "how-to/configure-swagger-ui.md",
+          "how-to/configure-swagger-ui.md",
+          "how-to/configure-swagger-ui.md",
+          "how-to/configure-swagger-ui.md",
+          "how-to/custom-docs-ui-assets.md"
+        ],
+        "ambiguous-002": [
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "index.md"
+        ],
+        "ambiguous-006": [
+          "tutorial/header-param-models.md",
+          "tutorial/header-param-models.md",
+          "release-notes.md",
+          "tutorial/header-params.md",
+          "tutorial/header-params.md"
+        ],
+        "ambiguous-008": [
+          "advanced/response-cookies.md",
+          "advanced/response-headers.md",
+          "reference/response.md",
+          "advanced/response-change-status-code.md",
+          "advanced/custom-response.md"
+        ],
+        "ambiguous-009": [
+          "advanced/response-cookies.md",
+          "advanced/response-headers.md",
+          "tutorial/cookie-param-models.md",
+          "reference/response.md",
+          "advanced/response-headers.md"
+        ]
+      }
     },
     {
       "retriever": "sparse",
@@ -2236,8 +2646,213 @@
           "top_dense_score": null
         }
       ],
-      "median_latency_ms": 2.877167018596083,
-      "depth": 50
+      "median_latency_ms": 2.959292003652081,
+      "depth": 50,
+      "top5_paths": {
+        "lookup-001": [
+          "advanced/security/oauth2-scopes.md",
+          "tutorial/security/oauth2-jwt.md",
+          "advanced/security/oauth2-scopes.md",
+          "release-notes.md",
+          "advanced/security/oauth2-scopes.md"
+        ],
+        "lookup-002": [
+          "async.md",
+          "tutorial/body-multiple-params.md",
+          "advanced/advanced-dependencies.md",
+          "tutorial/response-model.md",
+          "tutorial/dependencies/index.md"
+        ],
+        "lookup-003": [
+          "tutorial/body-fields.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/schema-extra-example.md"
+        ],
+        "lookup-004": [
+          "tutorial/request-forms.md",
+          "tutorial/request-form-models.md",
+          "tutorial/request-forms-and-files.md",
+          "index.md",
+          "release-notes.md"
+        ],
+        "lookup-005": [
+          "tutorial/request-forms.md",
+          "release-notes.md",
+          "deployment/docker.md",
+          "tutorial/request-forms-and-files.md",
+          "tutorial/testing.md"
+        ],
+        "lookup-006": [
+          "tutorial/request-forms.md",
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-forms.md",
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-files.md"
+        ],
+        "lookup-009": [
+          "tutorial/handling-errors.md",
+          "tutorial/dependencies/dependencies-with-yield.md",
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "tutorial/dependencies/dependencies-in-path-operation-decorators.md"
+        ],
+        "lookup-010": [
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "advanced/additional-status-codes.md",
+          "tutorial/handling-errors.md"
+        ],
+        "lookup-011": [
+          "advanced/openapi-webhooks.md",
+          "advanced/openapi-webhooks.md",
+          "virtual-environments.md",
+          "advanced/openapi-callbacks.md",
+          "advanced/security/oauth2-scopes.md"
+        ],
+        "lookup-012": [
+          "advanced/openapi-webhooks.md",
+          "tutorial/schema-extra-example.md",
+          "advanced/openapi-webhooks.md",
+          "alternatives.md",
+          "tutorial/schema-extra-example.md"
+        ],
+        "lookup-013": [
+          "reference/responses.md",
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "advanced/additional-responses.md",
+          "advanced/custom-response.md"
+        ],
+        "lookup-016": [
+          "advanced/path-operation-advanced-configuration.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/response-status-code.md",
+          "tutorial/schema-extra-example.md",
+          "advanced/additional-responses.md"
+        ],
+        "lookup-017": [
+          "how-to/general.md",
+          "release-notes.md",
+          "release-notes.md",
+          "advanced/generate-clients.md",
+          "tutorial/bigger-applications.md"
+        ],
+        "lookup-018": [
+          "tutorial/path-operation-configuration.md",
+          "release-notes.md",
+          "tutorial/path-params-numeric-validations.md",
+          "release-notes.md",
+          "release-notes.md"
+        ],
+        "lookup-019": [
+          "advanced/events.md",
+          "advanced/events.md",
+          "advanced/events.md",
+          "deployment/concepts.md",
+          "fastapi-cli.md"
+        ],
+        "lookup-021": [
+          "advanced/events.md",
+          "advanced/events.md",
+          "advanced/events.md",
+          "release-notes.md",
+          "tutorial/dependencies/dependencies-with-yield.md"
+        ],
+        "lookup-022": [
+          "advanced/response-directly.md",
+          "tutorial/encoder.md",
+          "alternatives.md",
+          "tutorial/testing.md",
+          "advanced/response-directly.md"
+        ],
+        "lookup-023": [
+          "tutorial/encoder.md",
+          "advanced/response-directly.md",
+          "tutorial/body-updates.md",
+          "release-notes.md",
+          "tutorial/body-updates.md"
+        ],
+        "multi_hop-002": [
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "advanced/behind-a-proxy.md",
+          "advanced/wsgi.md",
+          "advanced/behind-a-proxy.md"
+        ],
+        "multi_hop-005": [
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "advanced/response-cookies.md"
+        ],
+        "multi_hop-006": [
+          "tutorial/static-files.md",
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "how-to/custom-docs-ui-assets.md",
+          "how-to/custom-docs-ui-assets.md"
+        ],
+        "multi_hop-008": [
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "advanced/custom-response.md"
+        ],
+        "multi_hop-013": [
+          "tutorial/query-param-models.md",
+          "tutorial/response-model.md",
+          "release-notes.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/response-model.md"
+        ],
+        "multi_hop-014": [
+          "tutorial/request-forms-and-files.md",
+          "tutorial/response-model.md",
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-forms.md",
+          "tutorial/request-files.md"
+        ],
+        "ambiguous-001": [
+          "how-to/configure-swagger-ui.md",
+          "how-to/custom-docs-ui-assets.md",
+          "how-to/custom-docs-ui-assets.md",
+          "tutorial/metadata.md",
+          "tutorial/metadata.md"
+        ],
+        "ambiguous-002": [
+          "tutorial/body-updates.md",
+          "tutorial/first-steps.md",
+          "tutorial/extra-models.md",
+          "tutorial/body.md",
+          "tutorial/body-updates.md"
+        ],
+        "ambiguous-006": [
+          "tutorial/header-param-models.md",
+          "tutorial/testing.md",
+          "tutorial/header-param-models.md",
+          "tutorial/cookie-param-models.md",
+          "tutorial/response-model.md"
+        ],
+        "ambiguous-008": [
+          "advanced/response-cookies.md",
+          "advanced/response-headers.md",
+          "advanced/response-change-status-code.md",
+          "reference/response.md",
+          "reference/request.md"
+        ],
+        "ambiguous-009": [
+          "advanced/response-cookies.md",
+          "advanced/response-headers.md",
+          "advanced/response-change-status-code.md",
+          "alternatives.md",
+          "advanced/response-cookies.md"
+        ]
+      }
     },
     {
       "retriever": "hybrid",
@@ -2974,8 +3589,213 @@
           "top_dense_score": 0.671623706817627
         }
       ],
-      "median_latency_ms": 11.239833984291181,
-      "depth": 50
+      "median_latency_ms": 11.51945799938403,
+      "depth": 50,
+      "top5_paths": {
+        "lookup-001": [
+          "advanced/security/oauth2-scopes.md",
+          "advanced/security/oauth2-scopes.md",
+          "advanced/security/oauth2-scopes.md",
+          "release-notes.md",
+          "tutorial/security/oauth2-jwt.md"
+        ],
+        "lookup-002": [
+          "tutorial/body-multiple-params.md",
+          "tutorial/body-multiple-params.md",
+          "tutorial/path-params-numeric-validations.md",
+          "tutorial/body-fields.md",
+          "release-notes.md"
+        ],
+        "lookup-003": [
+          "tutorial/body-fields.md",
+          "tutorial/body-fields.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/schema-extra-example.md"
+        ],
+        "lookup-004": [
+          "index.md",
+          "tutorial/request-form-models.md",
+          "tutorial/request-form-models.md",
+          "index.md",
+          "tutorial/request-forms.md"
+        ],
+        "lookup-005": [
+          "tutorial/request-forms.md",
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-forms.md",
+          "tutorial/security/simple-oauth2.md",
+          "tutorial/request-files.md"
+        ],
+        "lookup-006": [
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-forms.md",
+          "tutorial/body-multiple-params.md",
+          "tutorial/request-files.md",
+          "tutorial/request-forms.md"
+        ],
+        "lookup-009": [
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "tutorial/dependencies/dependencies-with-yield.md",
+          "reference/exceptions.md",
+          "tutorial/handling-errors.md"
+        ],
+        "lookup-010": [
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "advanced/additional-status-codes.md",
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md"
+        ],
+        "lookup-011": [
+          "advanced/openapi-callbacks.md",
+          "advanced/openapi-webhooks.md",
+          "advanced/openapi-webhooks.md",
+          "advanced/openapi-webhooks.md",
+          "advanced/openapi-callbacks.md"
+        ],
+        "lookup-012": [
+          "advanced/openapi-webhooks.md",
+          "release-notes.md",
+          "release-notes.md",
+          "advanced/openapi-webhooks.md",
+          "release-notes.md"
+        ],
+        "lookup-013": [
+          "reference/responses.md",
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "release-notes.md",
+          "advanced/custom-response.md"
+        ],
+        "lookup-016": [
+          "tutorial/response-status-code.md",
+          "tutorial/path-operation-configuration.md",
+          "advanced/additional-status-codes.md",
+          "advanced/additional-responses.md",
+          "advanced/additional-responses.md"
+        ],
+        "lookup-017": [
+          "how-to/general.md",
+          "tutorial/metadata.md",
+          "tutorial/metadata.md",
+          "tutorial/bigger-applications.md",
+          "advanced/path-operation-advanced-configuration.md"
+        ],
+        "lookup-018": [
+          "tutorial/path-operation-configuration.md",
+          "release-notes.md",
+          "advanced/generate-clients.md",
+          "advanced/generate-clients.md",
+          "tutorial/query-params-str-validations.md"
+        ],
+        "lookup-019": [
+          "advanced/events.md",
+          "advanced/events.md",
+          "advanced/events.md",
+          "advanced/events.md",
+          "deployment/concepts.md"
+        ],
+        "lookup-021": [
+          "advanced/events.md",
+          "advanced/events.md",
+          "tutorial/dependencies/dependencies-with-yield.md",
+          "tutorial/dependencies/dependencies-with-yield.md",
+          "release-notes.md"
+        ],
+        "lookup-022": [
+          "tutorial/encoder.md",
+          "tutorial/encoder.md",
+          "tutorial/body-updates.md",
+          "tutorial/extra-data-types.md",
+          "python-types.md"
+        ],
+        "lookup-023": [
+          "tutorial/encoder.md",
+          "tutorial/encoder.md",
+          "release-notes.md",
+          "release-notes.md",
+          "advanced/response-directly.md"
+        ],
+        "multi_hop-002": [
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "advanced/behind-a-proxy.md"
+        ],
+        "multi_hop-005": [
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "release-notes.md",
+          "tutorial/body-updates.md",
+          "tutorial/response-model.md"
+        ],
+        "multi_hop-006": [
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "tutorial/static-files.md"
+        ],
+        "multi_hop-008": [
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "advanced/response-cookies.md",
+          "advanced/response-cookies.md",
+          "advanced/custom-response.md"
+        ],
+        "multi_hop-013": [
+          "tutorial/body-multiple-params.md",
+          "tutorial/path-params-numeric-validations.md",
+          "advanced/path-operation-advanced-configuration.md",
+          "tutorial/body-fields.md",
+          "tutorial/metadata.md"
+        ],
+        "multi_hop-014": [
+          "tutorial/request-files.md",
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-forms.md",
+          "tutorial/request-files.md",
+          "tutorial/request-forms.md"
+        ],
+        "ambiguous-001": [
+          "how-to/configure-swagger-ui.md",
+          "how-to/configure-swagger-ui.md",
+          "how-to/configure-swagger-ui.md",
+          "release-notes.md",
+          "how-to/configure-swagger-ui.md"
+        ],
+        "ambiguous-002": [
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/first-steps.md",
+          "tutorial/body.md"
+        ],
+        "ambiguous-006": [
+          "tutorial/header-param-models.md",
+          "tutorial/header-param-models.md",
+          "release-notes.md",
+          "tutorial/header-params.md",
+          "release-notes.md"
+        ],
+        "ambiguous-008": [
+          "advanced/response-cookies.md",
+          "reference/response.md",
+          "advanced/response-headers.md",
+          "advanced/response-cookies.md",
+          "advanced/response-change-status-code.md"
+        ],
+        "ambiguous-009": [
+          "advanced/response-cookies.md",
+          "advanced/response-headers.md",
+          "advanced/response-cookies.md",
+          "reference/response.md",
+          "tutorial/cookie-param-models.md"
+        ]
+      }
     },
     {
       "retriever": "dense",
@@ -3712,8 +4532,213 @@
           "top_dense_score": 0.671623706817627
         }
       ],
-      "median_latency_ms": 6.420291989343241,
-      "depth": 50
+      "median_latency_ms": 6.544250005390495,
+      "depth": 50,
+      "top5_paths": {
+        "lookup-001": [
+          "advanced/security/oauth2-scopes.md",
+          "tutorial/security/simple-oauth2.md",
+          "tutorial/security/oauth2-jwt.md",
+          "advanced/security/oauth2-scopes.md",
+          "advanced/security/oauth2-scopes.md"
+        ],
+        "lookup-002": [
+          "reference/parameters.md",
+          "tutorial/path-params-numeric-validations.md",
+          "tutorial/body-multiple-params.md",
+          "tutorial/body-multiple-params.md",
+          "index.md"
+        ],
+        "lookup-003": [
+          "tutorial/body-fields.md",
+          "tutorial/body-fields.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/body.md"
+        ],
+        "lookup-004": [
+          "tutorial/request-form-models.md",
+          "tutorial/request-form-models.md",
+          "tutorial/index.md",
+          "tutorial/dependencies/index.md",
+          "index.md"
+        ],
+        "lookup-005": [
+          "tutorial/request-forms.md",
+          "tutorial/request-forms.md",
+          "tutorial/body.md",
+          "tutorial/request-forms-and-files.md",
+          "tutorial/security/simple-oauth2.md"
+        ],
+        "lookup-006": [
+          "tutorial/body-multiple-params.md",
+          "tutorial/request-forms-and-files.md",
+          "tutorial/body.md",
+          "tutorial/request-forms.md",
+          "tutorial/request-files.md"
+        ],
+        "lookup-009": [
+          "tutorial/handling-errors.md",
+          "advanced/websockets.md",
+          "advanced/response-headers.md",
+          "tutorial/handling-errors.md",
+          "reference/exceptions.md"
+        ],
+        "lookup-010": [
+          "tutorial/handling-errors.md",
+          "release-notes.md",
+          "tutorial/handling-errors.md",
+          "release-notes.md",
+          "tutorial/response-status-code.md"
+        ],
+        "lookup-011": [
+          "advanced/openapi-webhooks.md",
+          "advanced/openapi-webhooks.md",
+          "advanced/openapi-callbacks.md",
+          "advanced/openapi-webhooks.md",
+          "advanced/websockets.md"
+        ],
+        "lookup-012": [
+          "advanced/openapi-webhooks.md",
+          "tutorial/security/index.md",
+          "advanced/openapi-webhooks.md",
+          "features.md",
+          "release-notes.md"
+        ],
+        "lookup-013": [
+          "reference/responses.md",
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "reference/responses.md",
+          "release-notes.md"
+        ],
+        "lookup-016": [
+          "advanced/additional-status-codes.md",
+          "tutorial/response-status-code.md",
+          "advanced/response-change-status-code.md",
+          "tutorial/response-status-code.md",
+          "advanced/additional-responses.md"
+        ],
+        "lookup-017": [
+          "how-to/general.md",
+          "tutorial/metadata.md",
+          "tutorial/path-operation-configuration.md",
+          "tutorial/metadata.md",
+          "tutorial/bigger-applications.md"
+        ],
+        "lookup-018": [
+          "how-to/general.md",
+          "tutorial/path-operation-configuration.md",
+          "tutorial/query-params-str-validations.md",
+          "tutorial/path-operation-configuration.md",
+          "how-to/general.md"
+        ],
+        "lookup-019": [
+          "advanced/events.md",
+          "advanced/events.md",
+          "deployment/concepts.md",
+          "advanced/events.md",
+          "advanced/events.md"
+        ],
+        "lookup-021": [
+          "advanced/events.md",
+          "tutorial/dependencies/dependencies-with-yield.md",
+          "tutorial/dependencies/dependencies-with-yield.md",
+          "advanced/events.md",
+          "release-notes.md"
+        ],
+        "lookup-022": [
+          "tutorial/encoder.md",
+          "tutorial/encoder.md",
+          "alternatives.md",
+          "tutorial/body-updates.md",
+          "tutorial/sql-databases.md"
+        ],
+        "lookup-023": [
+          "tutorial/encoder.md",
+          "release-notes.md",
+          "tutorial/encoder.md",
+          "reference/encoders.md",
+          "release-notes.md"
+        ],
+        "multi_hop-002": [
+          "advanced/sub-applications.md",
+          "advanced/behind-a-proxy.md",
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md"
+        ],
+        "multi_hop-005": [
+          "tutorial/body-updates.md",
+          "release-notes.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "advanced/path-operation-advanced-configuration.md"
+        ],
+        "multi_hop-006": [
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "tutorial/static-files.md"
+        ],
+        "multi_hop-008": [
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "advanced/additional-responses.md",
+          "advanced/response-cookies.md",
+          "advanced/custom-response.md"
+        ],
+        "multi_hop-013": [
+          "tutorial/request-form-models.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/path-params-numeric-validations.md"
+        ],
+        "multi_hop-014": [
+          "tutorial/request-files.md",
+          "tutorial/request-forms.md",
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-files.md",
+          "tutorial/request-files.md"
+        ],
+        "ambiguous-001": [
+          "how-to/configure-swagger-ui.md",
+          "how-to/configure-swagger-ui.md",
+          "how-to/configure-swagger-ui.md",
+          "release-notes.md",
+          "how-to/configure-swagger-ui.md"
+        ],
+        "ambiguous-002": [
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/schema-extra-example.md"
+        ],
+        "ambiguous-006": [
+          "tutorial/header-param-models.md",
+          "tutorial/header-param-models.md",
+          "release-notes.md",
+          "tutorial/header-param-models.md",
+          "tutorial/header-param-models.md"
+        ],
+        "ambiguous-008": [
+          "advanced/response-cookies.md",
+          "advanced/response-headers.md",
+          "advanced/response-cookies.md",
+          "reference/response.md",
+          "advanced/response-change-status-code.md"
+        ],
+        "ambiguous-009": [
+          "advanced/response-cookies.md",
+          "advanced/response-headers.md",
+          "tutorial/cookie-param-models.md",
+          "advanced/response-cookies.md",
+          "tutorial/cookie-param-models.md"
+        ]
+      }
     },
     {
       "retriever": "sparse",
@@ -4450,8 +5475,213 @@
           "top_dense_score": null
         }
       ],
-      "median_latency_ms": 4.4287089840509,
-      "depth": 50
+      "median_latency_ms": 4.1668750054668635,
+      "depth": 50,
+      "top5_paths": {
+        "lookup-001": [
+          "advanced/security/oauth2-scopes.md",
+          "release-notes.md",
+          "advanced/security/oauth2-scopes.md",
+          "tutorial/security/oauth2-jwt.md",
+          "advanced/security/oauth2-scopes.md"
+        ],
+        "lookup-002": [
+          "tutorial/body-multiple-params.md",
+          "advanced/advanced-dependencies.md",
+          "async.md",
+          "tutorial/body-multiple-params.md",
+          "release-notes.md"
+        ],
+        "lookup-003": [
+          "tutorial/body-fields.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/body-fields.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/schema-extra-example.md"
+        ],
+        "lookup-004": [
+          "index.md",
+          "tutorial/request-form-models.md",
+          "tutorial/request-form-models.md",
+          "tutorial/request-forms.md",
+          "tutorial/request-forms-and-files.md"
+        ],
+        "lookup-005": [
+          "deployment/docker.md",
+          "tutorial/request-forms.md",
+          "tutorial/request-forms.md",
+          "tutorial/testing.md",
+          "tutorial/query-params-str-validations.md"
+        ],
+        "lookup-006": [
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-forms.md",
+          "tutorial/request-forms.md",
+          "tutorial/request-files.md",
+          "tutorial/body-fields.md"
+        ],
+        "lookup-009": [
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "tutorial/dependencies/dependencies-with-yield.md",
+          "tutorial/handling-errors.md"
+        ],
+        "lookup-010": [
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "advanced/additional-status-codes.md",
+          "tutorial/handling-errors.md"
+        ],
+        "lookup-011": [
+          "advanced/openapi-callbacks.md",
+          "advanced/openapi-webhooks.md",
+          "advanced/events.md",
+          "advanced/middleware.md",
+          "deployment/docker.md"
+        ],
+        "lookup-012": [
+          "advanced/openapi-webhooks.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/schema-extra-example.md",
+          "release-notes.md",
+          "tutorial/schema-extra-example.md"
+        ],
+        "lookup-013": [
+          "reference/responses.md",
+          "release-notes.md",
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "advanced/custom-response.md"
+        ],
+        "lookup-016": [
+          "tutorial/response-status-code.md",
+          "tutorial/path-operation-configuration.md",
+          "tutorial/schema-extra-example.md",
+          "advanced/generate-clients.md",
+          "advanced/additional-responses.md"
+        ],
+        "lookup-017": [
+          "how-to/general.md",
+          "tutorial/bigger-applications.md",
+          "release-notes.md",
+          "release-notes.md",
+          "tutorial/metadata.md"
+        ],
+        "lookup-018": [
+          "tutorial/path-operation-configuration.md",
+          "release-notes.md",
+          "management-tasks.md",
+          "advanced/generate-clients.md",
+          "release-notes.md"
+        ],
+        "lookup-019": [
+          "advanced/events.md",
+          "advanced/events.md",
+          "tutorial/middleware.md",
+          "advanced/events.md",
+          "advanced/events.md"
+        ],
+        "lookup-021": [
+          "advanced/events.md",
+          "advanced/events.md",
+          "release-notes.md",
+          "tutorial/dependencies/dependencies-with-yield.md",
+          "advanced/events.md"
+        ],
+        "lookup-022": [
+          "tutorial/encoder.md",
+          "advanced/response-directly.md",
+          "advanced/response-directly.md",
+          "alternatives.md",
+          "tutorial/testing.md"
+        ],
+        "lookup-023": [
+          "tutorial/encoder.md",
+          "advanced/response-directly.md",
+          "tutorial/body-updates.md",
+          "advanced/response-directly.md",
+          "tutorial/encoder.md"
+        ],
+        "multi_hop-002": [
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md"
+        ],
+        "multi_hop-005": [
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/response-model.md",
+          "release-notes.md"
+        ],
+        "multi_hop-006": [
+          "tutorial/static-files.md",
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md"
+        ],
+        "multi_hop-008": [
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "advanced/custom-response.md"
+        ],
+        "multi_hop-013": [
+          "release-notes.md",
+          "tutorial/metadata.md",
+          "tutorial/body-multiple-params.md",
+          "release-notes.md",
+          "tutorial/body-fields.md"
+        ],
+        "multi_hop-014": [
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-files.md",
+          "tutorial/request-forms.md",
+          "tutorial/request-forms.md",
+          "tutorial/response-model.md"
+        ],
+        "ambiguous-001": [
+          "how-to/configure-swagger-ui.md",
+          "how-to/configure-swagger-ui.md",
+          "tutorial/metadata.md",
+          "how-to/configure-swagger-ui.md",
+          "how-to/configure-swagger-ui.md"
+        ],
+        "ambiguous-002": [
+          "tutorial/first-steps.md",
+          "tutorial/body-updates.md",
+          "tutorial/body.md",
+          "tutorial/first-steps.md",
+          "tutorial/body-updates.md"
+        ],
+        "ambiguous-006": [
+          "tutorial/header-param-models.md",
+          "tutorial/header-param-models.md",
+          "tutorial/security/first-steps.md",
+          "advanced/security/http-basic-auth.md",
+          "tutorial/handling-errors.md"
+        ],
+        "ambiguous-008": [
+          "reference/response.md",
+          "advanced/response-cookies.md",
+          "advanced/response-headers.md",
+          "advanced/response-change-status-code.md",
+          "advanced/response-cookies.md"
+        ],
+        "ambiguous-009": [
+          "advanced/response-cookies.md",
+          "advanced/response-headers.md",
+          "advanced/response-change-status-code.md",
+          "advanced/response-cookies.md",
+          "reference/response.md"
+        ]
+      }
     },
     {
       "retriever": "hybrid",
@@ -5188,8 +6418,213 @@
           "top_dense_score": 0.6400729417800903
         }
       ],
-      "median_latency_ms": 14.408040995476767,
-      "depth": 50
+      "median_latency_ms": 14.831083011813462,
+      "depth": 50,
+      "top5_paths": {
+        "lookup-001": [
+          "advanced/security/oauth2-scopes.md",
+          "advanced/security/oauth2-scopes.md",
+          "advanced/security/oauth2-scopes.md",
+          "advanced/security/oauth2-scopes.md",
+          "advanced/security/oauth2-scopes.md"
+        ],
+        "lookup-002": [
+          "tutorial/body-multiple-params.md",
+          "reference/parameters.md",
+          "tutorial/body-multiple-params.md",
+          "tutorial/body-fields.md",
+          "tutorial/path-params-numeric-validations.md"
+        ],
+        "lookup-003": [
+          "tutorial/body-fields.md",
+          "tutorial/schema-extra-example.md",
+          "advanced/path-operation-advanced-configuration.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/schema-extra-example.md"
+        ],
+        "lookup-004": [
+          "tutorial/request-form-models.md",
+          "tutorial/request-forms.md",
+          "index.md",
+          "tutorial/request-forms.md",
+          "tutorial/request-files.md"
+        ],
+        "lookup-005": [
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-forms.md",
+          "tutorial/request-forms.md",
+          "tutorial/request-forms.md",
+          "tutorial/request-files.md"
+        ],
+        "lookup-006": [
+          "tutorial/request-forms-and-files.md",
+          "tutorial/body-multiple-params.md",
+          "tutorial/request-files.md",
+          "advanced/path-operation-advanced-configuration.md",
+          "tutorial/request-forms.md"
+        ],
+        "lookup-009": [
+          "tutorial/handling-errors.md",
+          "tutorial/dependencies/dependencies-with-yield.md",
+          "advanced/security/oauth2-scopes.md",
+          "tutorial/dependencies/dependencies-with-yield.md",
+          "tutorial/dependencies/dependencies-with-yield.md"
+        ],
+        "lookup-010": [
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md"
+        ],
+        "lookup-011": [
+          "advanced/openapi-webhooks.md",
+          "advanced/openapi-webhooks.md",
+          "advanced/openapi-callbacks.md",
+          "advanced/openapi-webhooks.md",
+          "how-to/configure-swagger-ui.md"
+        ],
+        "lookup-012": [
+          "release-notes.md",
+          "release-notes.md",
+          "advanced/openapi-webhooks.md",
+          "release-notes.md",
+          "release-notes.md"
+        ],
+        "lookup-013": [
+          "reference/responses.md",
+          "advanced/custom-response.md",
+          "release-notes.md",
+          "advanced/custom-response.md",
+          "advanced/templates.md"
+        ],
+        "lookup-016": [
+          "tutorial/response-status-code.md",
+          "tutorial/path-operation-configuration.md",
+          "advanced/additional-responses.md",
+          "advanced/response-change-status-code.md",
+          "advanced/path-operation-advanced-configuration.md"
+        ],
+        "lookup-017": [
+          "how-to/general.md",
+          "tutorial/metadata.md",
+          "advanced/generate-clients.md",
+          "tutorial/path-operation-configuration.md",
+          "advanced/path-operation-advanced-configuration.md"
+        ],
+        "lookup-018": [
+          "tutorial/path-operation-configuration.md",
+          "advanced/generate-clients.md",
+          "release-notes.md",
+          "release-notes.md",
+          "advanced/generate-clients.md"
+        ],
+        "lookup-019": [
+          "advanced/events.md",
+          "advanced/events.md",
+          "advanced/events.md",
+          "advanced/events.md",
+          "tutorial/background-tasks.md"
+        ],
+        "lookup-021": [
+          "release-notes.md",
+          "advanced/events.md",
+          "advanced/events.md",
+          "advanced/events.md",
+          "release-notes.md"
+        ],
+        "lookup-022": [
+          "tutorial/encoder.md",
+          "tutorial/encoder.md",
+          "tutorial/body-updates.md",
+          "tutorial/extra-data-types.md",
+          "tutorial/body-updates.md"
+        ],
+        "lookup-023": [
+          "tutorial/encoder.md",
+          "tutorial/encoder.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "release-notes.md"
+        ],
+        "multi_hop-002": [
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "advanced/behind-a-proxy.md",
+          "advanced/sub-applications.md",
+          "advanced/behind-a-proxy.md"
+        ],
+        "multi_hop-005": [
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "release-notes.md",
+          "release-notes.md"
+        ],
+        "multi_hop-006": [
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "tutorial/static-files.md",
+          "advanced/sub-applications.md",
+          "tutorial/static-files.md"
+        ],
+        "multi_hop-008": [
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "advanced/response-cookies.md",
+          "advanced/additional-responses.md"
+        ],
+        "multi_hop-013": [
+          "tutorial/body-fields.md",
+          "tutorial/body-multiple-params.md",
+          "tutorial/body-fields.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/metadata.md"
+        ],
+        "multi_hop-014": [
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-files.md",
+          "tutorial/request-forms.md",
+          "tutorial/request-files.md",
+          "tutorial/request-files.md"
+        ],
+        "ambiguous-001": [
+          "how-to/configure-swagger-ui.md",
+          "how-to/configure-swagger-ui.md",
+          "how-to/configure-swagger-ui.md",
+          "how-to/custom-docs-ui-assets.md",
+          "release-notes.md"
+        ],
+        "ambiguous-002": [
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/first-steps.md"
+        ],
+        "ambiguous-006": [
+          "tutorial/header-param-models.md",
+          "tutorial/header-param-models.md",
+          "release-notes.md",
+          "tutorial/handling-errors.md",
+          "release-notes.md"
+        ],
+        "ambiguous-008": [
+          "advanced/response-cookies.md",
+          "reference/response.md",
+          "advanced/response-headers.md",
+          "advanced/response-change-status-code.md",
+          "advanced/response-headers.md"
+        ],
+        "ambiguous-009": [
+          "advanced/response-cookies.md",
+          "advanced/response-headers.md",
+          "advanced/response-headers.md",
+          "tutorial/cookie-param-models.md",
+          "reference/response.md"
+        ]
+      }
     },
     {
       "retriever": "dense",
@@ -5926,8 +7361,213 @@
           "top_dense_score": 0.6400729417800903
         }
       ],
-      "median_latency_ms": 8.675791992573068,
-      "depth": 50
+      "median_latency_ms": 8.443958999123424,
+      "depth": 50,
+      "top5_paths": {
+        "lookup-001": [
+          "advanced/security/oauth2-scopes.md",
+          "advanced/security/oauth2-scopes.md",
+          "advanced/security/oauth2-scopes.md",
+          "advanced/security/oauth2-scopes.md",
+          "advanced/security/oauth2-scopes.md"
+        ],
+        "lookup-002": [
+          "tutorial/request-forms.md",
+          "reference/parameters.md",
+          "release-notes.md",
+          "tutorial/query-params.md",
+          "tutorial/body-multiple-params.md"
+        ],
+        "lookup-003": [
+          "tutorial/body-fields.md",
+          "tutorial/schema-extra-example.md",
+          "release-notes.md",
+          "release-notes.md",
+          "advanced/path-operation-advanced-configuration.md"
+        ],
+        "lookup-004": [
+          "tutorial/request-forms.md",
+          "tutorial/request-form-models.md",
+          "advanced/testing-dependencies.md",
+          "release-notes.md",
+          "index.md"
+        ],
+        "lookup-005": [
+          "tutorial/request-forms.md",
+          "tutorial/request-forms.md",
+          "tutorial/request-forms-and-files.md",
+          "release-notes.md",
+          "tutorial/security/simple-oauth2.md"
+        ],
+        "lookup-006": [
+          "tutorial/body-multiple-params.md",
+          "tutorial/request-forms.md",
+          "tutorial/body.md",
+          "tutorial/path-params.md",
+          "tutorial/request-forms-and-files.md"
+        ],
+        "lookup-009": [
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "advanced/security/oauth2-scopes.md",
+          "tutorial/dependencies/dependencies-with-yield.md",
+          "tutorial/handling-errors.md"
+        ],
+        "lookup-010": [
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "release-notes.md",
+          "tutorial/handling-errors.md",
+          "release-notes.md"
+        ],
+        "lookup-011": [
+          "advanced/openapi-webhooks.md",
+          "advanced/openapi-webhooks.md",
+          "advanced/openapi-callbacks.md",
+          "advanced/openapi-webhooks.md",
+          "tutorial/security/simple-oauth2.md"
+        ],
+        "lookup-012": [
+          "advanced/openapi-webhooks.md",
+          "reference/fastapi.md",
+          "tutorial/security/index.md",
+          "alternatives.md",
+          "release-notes.md"
+        ],
+        "lookup-013": [
+          "reference/responses.md",
+          "reference/response.md",
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "release-notes.md"
+        ],
+        "lookup-016": [
+          "tutorial/response-status-code.md",
+          "release-notes.md",
+          "tutorial/response-status-code.md",
+          "tutorial/path-operation-configuration.md",
+          "advanced/response-change-status-code.md"
+        ],
+        "lookup-017": [
+          "how-to/general.md",
+          "tutorial/path-operation-configuration.md",
+          "tutorial/metadata.md",
+          "tutorial/metadata.md",
+          "how-to/custom-docs-ui-assets.md"
+        ],
+        "lookup-018": [
+          "tutorial/path-operation-configuration.md",
+          "how-to/custom-docs-ui-assets.md",
+          "tutorial/security/first-steps.md",
+          "advanced/testing-dependencies.md",
+          "tutorial/extra-data-types.md"
+        ],
+        "lookup-019": [
+          "advanced/events.md",
+          "advanced/events.md",
+          "advanced/events.md",
+          "deployment/concepts.md",
+          "release-notes.md"
+        ],
+        "lookup-021": [
+          "release-notes.md",
+          "advanced/events.md",
+          "release-notes.md",
+          "tutorial/dependencies/dependencies-with-yield.md",
+          "tutorial/dependencies/dependencies-with-yield.md"
+        ],
+        "lookup-022": [
+          "tutorial/encoder.md",
+          "tutorial/body-updates.md",
+          "tutorial/encoder.md",
+          "tutorial/first-steps.md",
+          "advanced/response-directly.md"
+        ],
+        "lookup-023": [
+          "tutorial/encoder.md",
+          "tutorial/encoder.md",
+          "reference/encoders.md",
+          "tutorial/body-updates.md",
+          "advanced/response-directly.md"
+        ],
+        "multi_hop-002": [
+          "advanced/sub-applications.md",
+          "advanced/behind-a-proxy.md",
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "advanced/behind-a-proxy.md"
+        ],
+        "multi_hop-005": [
+          "tutorial/body-updates.md",
+          "release-notes.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md"
+        ],
+        "multi_hop-006": [
+          "tutorial/static-files.md",
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "advanced/behind-a-proxy.md"
+        ],
+        "multi_hop-008": [
+          "advanced/additional-responses.md",
+          "advanced/additional-responses.md",
+          "advanced/response-cookies.md",
+          "advanced/custom-response.md",
+          "advanced/custom-response.md"
+        ],
+        "multi_hop-013": [
+          "tutorial/schema-extra-example.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/body-fields.md",
+          "release-notes.md"
+        ],
+        "multi_hop-014": [
+          "tutorial/request-files.md",
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-files.md",
+          "tutorial/request-files.md",
+          "tutorial/request-forms.md"
+        ],
+        "ambiguous-001": [
+          "how-to/custom-docs-ui-assets.md",
+          "how-to/configure-swagger-ui.md",
+          "how-to/configure-swagger-ui.md",
+          "how-to/configure-swagger-ui.md",
+          "how-to/configure-swagger-ui.md"
+        ],
+        "ambiguous-002": [
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/sql-databases.md",
+          "tutorial/body-updates.md"
+        ],
+        "ambiguous-006": [
+          "tutorial/header-param-models.md",
+          "tutorial/header-param-models.md",
+          "release-notes.md",
+          "tutorial/header-param-models.md",
+          "advanced/response-directly.md"
+        ],
+        "ambiguous-008": [
+          "advanced/response-cookies.md",
+          "reference/response.md",
+          "advanced/response-headers.md",
+          "reference/responses.md",
+          "advanced/response-headers.md"
+        ],
+        "ambiguous-009": [
+          "advanced/response-cookies.md",
+          "advanced/response-headers.md",
+          "release-notes.md",
+          "tutorial/cookie-param-models.md",
+          "advanced/testing-dependencies.md"
+        ]
+      }
     },
     {
       "retriever": "sparse",
@@ -6664,8 +8304,213 @@
           "top_dense_score": null
         }
       ],
-      "median_latency_ms": 4.652375006116927,
-      "depth": 50
+      "median_latency_ms": 4.602542001521215,
+      "depth": 50,
+      "top5_paths": {
+        "lookup-001": [
+          "advanced/security/oauth2-scopes.md",
+          "advanced/security/oauth2-scopes.md",
+          "tutorial/security/oauth2-jwt.md",
+          "release-notes.md",
+          "advanced/security/oauth2-scopes.md"
+        ],
+        "lookup-002": [
+          "tutorial/body-multiple-params.md",
+          "tutorial/dependencies/index.md",
+          "tutorial/response-model.md",
+          "tutorial/body-multiple-params.md",
+          "tutorial/body-multiple-params.md"
+        ],
+        "lookup-003": [
+          "tutorial/body-fields.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/schema-extra-example.md"
+        ],
+        "lookup-004": [
+          "tutorial/request-form-models.md",
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-forms.md",
+          "index.md",
+          "tutorial/request-form-models.md"
+        ],
+        "lookup-005": [
+          "tutorial/request-forms.md",
+          "tutorial/request-forms.md",
+          "deployment/docker.md",
+          "tutorial/request-files.md",
+          "tutorial/request-forms-and-files.md"
+        ],
+        "lookup-006": [
+          "tutorial/request-forms.md",
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-files.md",
+          "tutorial/body-fields.md",
+          "tutorial/request-form-models.md"
+        ],
+        "lookup-009": [
+          "tutorial/handling-errors.md",
+          "tutorial/dependencies/dependencies-with-yield.md",
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "tutorial/dependencies/dependencies-with-yield.md"
+        ],
+        "lookup-010": [
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md",
+          "advanced/additional-status-codes.md",
+          "tutorial/handling-errors.md",
+          "tutorial/handling-errors.md"
+        ],
+        "lookup-011": [
+          "advanced/openapi-webhooks.md",
+          "advanced/openapi-webhooks.md",
+          "advanced/openapi-callbacks.md",
+          "advanced/events.md",
+          "advanced/events.md"
+        ],
+        "lookup-012": [
+          "tutorial/schema-extra-example.md",
+          "tutorial/schema-extra-example.md",
+          "advanced/path-operation-advanced-configuration.md",
+          "release-notes.md",
+          "release-notes.md"
+        ],
+        "lookup-013": [
+          "reference/responses.md",
+          "release-notes.md",
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "advanced/custom-response.md"
+        ],
+        "lookup-016": [
+          "advanced/path-operation-advanced-configuration.md",
+          "tutorial/path-operation-configuration.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/response-status-code.md",
+          "advanced/additional-responses.md"
+        ],
+        "lookup-017": [
+          "how-to/general.md",
+          "release-notes.md",
+          "tutorial/bigger-applications.md",
+          "tutorial/metadata.md",
+          "advanced/generate-clients.md"
+        ],
+        "lookup-018": [
+          "tutorial/path-operation-configuration.md",
+          "tutorial/dependencies/index.md",
+          "release-notes.md",
+          "advanced/generate-clients.md",
+          "release-notes.md"
+        ],
+        "lookup-019": [
+          "advanced/events.md",
+          "advanced/events.md",
+          "advanced/events.md",
+          "tutorial/background-tasks.md",
+          "tutorial/middleware.md"
+        ],
+        "lookup-021": [
+          "advanced/events.md",
+          "advanced/events.md",
+          "advanced/events.md",
+          "tutorial/dependencies/dependencies-with-yield.md",
+          "advanced/events.md"
+        ],
+        "lookup-022": [
+          "tutorial/encoder.md",
+          "tutorial/encoder.md",
+          "advanced/response-directly.md",
+          "advanced/response-directly.md",
+          "tutorial/body-updates.md"
+        ],
+        "lookup-023": [
+          "tutorial/encoder.md",
+          "advanced/response-directly.md",
+          "tutorial/body-updates.md",
+          "tutorial/encoder.md",
+          "release-notes.md"
+        ],
+        "multi_hop-002": [
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "advanced/behind-a-proxy.md",
+          "advanced/behind-a-proxy.md"
+        ],
+        "multi_hop-005": [
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md",
+          "tutorial/response-model.md",
+          "tutorial/response-model.md"
+        ],
+        "multi_hop-006": [
+          "advanced/sub-applications.md",
+          "advanced/sub-applications.md",
+          "tutorial/static-files.md",
+          "advanced/sub-applications.md",
+          "tutorial/static-files.md"
+        ],
+        "multi_hop-008": [
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "advanced/custom-response.md",
+          "advanced/response-cookies.md"
+        ],
+        "multi_hop-013": [
+          "tutorial/schema-extra-example.md",
+          "tutorial/body-fields.md",
+          "release-notes.md",
+          "tutorial/schema-extra-example.md",
+          "tutorial/query-param-models.md"
+        ],
+        "multi_hop-014": [
+          "tutorial/request-forms-and-files.md",
+          "tutorial/request-forms.md",
+          "tutorial/request-files.md",
+          "tutorial/response-model.md",
+          "tutorial/request-form-models.md"
+        ],
+        "ambiguous-001": [
+          "how-to/configure-swagger-ui.md",
+          "how-to/configure-swagger-ui.md",
+          "how-to/configure-swagger-ui.md",
+          "how-to/configure-swagger-ui.md",
+          "tutorial/metadata.md"
+        ],
+        "ambiguous-002": [
+          "tutorial/first-steps.md",
+          "tutorial/extra-models.md",
+          "tutorial/body.md",
+          "tutorial/body-updates.md",
+          "tutorial/body-updates.md"
+        ],
+        "ambiguous-006": [
+          "tutorial/header-param-models.md",
+          "tutorial/cookie-param-models.md",
+          "tutorial/header-param-models.md",
+          "tutorial/handling-errors.md",
+          "release-notes.md"
+        ],
+        "ambiguous-008": [
+          "advanced/response-cookies.md",
+          "reference/response.md",
+          "advanced/response-change-status-code.md",
+          "advanced/response-headers.md",
+          "advanced/response-headers.md"
+        ],
+        "ambiguous-009": [
+          "advanced/response-cookies.md",
+          "advanced/response-headers.md",
+          "advanced/response-change-status-code.md",
+          "advanced/response-headers.md",
+          "reference/response.md"
+        ]
+      }
     }
   ],
   "corpus": [

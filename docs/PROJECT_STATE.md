@@ -3,17 +3,17 @@
 Recovery file. Current architecture, locked decisions and their rationale, progress, and
 the next step. Updated whenever a decision or milestone lands.
 
-**Last updated:** 2026-09-07 · **Status:** Phases 1 and 4 **complete** — dedup and the processed store close Phase 1; the reranker is next and now has a baseline to beat
+**Last updated:** 2026-09-07 · **Status:** Phases 1 and 4 **complete**; Phase 2 **closed** — the reranker was built, measured on Tier 1, and does not ship as the default (a negative result); RRF weights are now swept and configurable. Phase 5 (API & dashboard) is next.
 
 ---
 
 ## What this project is
 
 A hybrid-retrieval RAG system over the public FastAPI documentation, standing in for "a
-company's internal docs." Dense vectors + BM25, fused with Reciprocal Rank Fusion, then
-reranked by a cross-encoder. Answers are grounded, carry inline citations, and every
-citation is verified. Architecture decisions are made from a measured evaluation suite
-rather than asserted.
+company's internal docs." Dense vectors + BM25, fused with Reciprocal Rank Fusion; a
+cross-encoder reranker was built and measured but does not currently sit in the default
+path (D53). Answers are grounded, carry inline citations, and every citation is verified.
+Architecture decisions are made from a measured evaluation suite rather than asserted.
 
 Full requirements: `docs/project-brief.md`. Operating rules: `CLAUDE.md`.
 
@@ -75,6 +75,9 @@ Full requirements: `docs/project-brief.md`. Operating rules: `CLAUDE.md`.
 | D50 | **Composite weights are equal, unfitted, and renormalised over what was actually measured** | With 29 answerable questions and two failures there is nothing to fit weights on that would not simply memorise this corpus, and a tuned weighting invites a question about overfitting that the sample size cannot answer. Equal weights make no claim to defend. An unmeasured component is renormalised away rather than scored zero: scoring it zero would penalise an answer for a check nobody ran, so the free path would look worse than the verified one on an identical answer — a number measuring the caller's configuration rather than the answer. `confidence.components` records which dimensions fed each composite, so a cheap composite and a thorough one are never mistaken for each other. |
 | D51 | **A refusal returns what was found, what could not be established, and which pages to open** | "I don't know" is honest and nearly worthless — the reader learns only that this route failed. All three facts come free from the retrieval results with no extra model call, so the cheapest possible response, the one a user is most likely to receive on a bad day, is also actionable. The sentinel phrase still opens the rendered text, because the Tier-2 judge and every downstream string check key off that line: the structure is an addition, never a replacement. The two refusal paths say different things, since a gate refusal means nothing came close and a model refusal means several pages came close and none of them said it. |
 | D15 | **Chunkers own boundary placement only** | `Chunker.chunk()` turns spans into validated chunks once, in the base class, so the three strategies differ in boundary placement and nothing else -- the variable Phase 4 isolates. |
+| D52 | **Reranker built on fastembed's ONNX cross-encoder, not `sentence-transformers`** | D8 named the model (`ms-marco-MiniLM-L-6-v2`), not the runtime. fastembed -- already this project's embedding dependency -- ships `Xenova/ms-marco-MiniLM-L-6-v2`, an ONNX build of the identical weights `sentence-transformers` would load through PyTorch. Adding `sentence-transformers` would mean a second inference runtime and a `torch` install running to hundreds of MB to a few GB on the 8 GB dev machine (see Environment, below); fastembed serves the same weights in ~80 MB over onnxruntime, already installed. Same model, same $0, one fewer heavy dependency. |
+| D53 | **The reranker does not separate from plain hybrid on Tier 1, and does not ship as the default** | Measured, paired bootstrap, 5-wide horizon (top-20 in, top-5 out, matching what the reranker actually returns): Recall@5 moves **-0.069 [-0.172, +0.000]** on fixed, **+0.000 [-0.103, +0.103]** on structure, **-0.034 [-0.172, +0.103]** on semantic -- no interval separates from zero, and fixed's own point estimate is a net loss. The distractor rate (top-5 slots from `release-notes.md`, D28) does not consistently improve either: fixed **4.1% → 6.9%** (worse), structure **9.7% → 10.3%** (worse), semantic **10.3% → 8.3%** (better). Full report: `evals/reports/reranker.md`. Leading candidate explanation, not proven: RRF fusion already combines two complementary signals -- BM25's exact-match on this corpus's 797 code identifiers (D1) and dense semantic similarity -- and a general-purpose MS MARCO cross-encoder, trained on web-passage QA rather than API documentation, is a *third*, weaker opinion on exactly the queries where lexical match already wins. Reported as a negative result, the way D43 reported dedup's, rather than shipped for the portfolio's sake. |
+| D54 | **RRF weights are configurable and swept; the equal 1:1 default is kept** | The brief requires fusion to be "configurable so you can tune it" (D20 built the knob; this exercises it). Dense:sparse swept 0.25:1 to 4:1 on the winning arm (hybrid/fixed), $0, no language model. Recall@5 is flat at 0.897 from 0.5:1 through 4:1 and drops only when sparse dominates outright (0.25:1 → 0.828). nDCG@10 is highest at 0.5:1 (favouring sparse 2x) at 0.819 against 1:1's 0.794, but only Recall@5 was paired-bootstrapped here, and every non-baseline interval on it includes zero -- so the apparent nDCG edge is not established as more than noise, and the unweighted default stays. Full table: `evals/reports/rrf_weights.md`. |
 
 ## Environment (measured)
 
@@ -87,12 +90,13 @@ are comfortable. A local generation LLM is not — hence the hosted free tier.
 ## Stack
 
 `uv` + `pyproject.toml` · Python 3.12 · FastAPI · Chroma · `rank_bm25` ·
-`sentence-transformers` · Streamlit · Docker + Compose · pytest · ruff · mypy ·
-GitHub Actions.
+`fastembed` (embeddings *and*, since Phase 2, cross-encoder reranking, D52 -- no
+`sentence-transformers`/`torch` dependency was added) · Streamlit · Docker + Compose ·
+pytest · ruff · mypy · GitHub Actions.
 
 ## Budget
 
-Ceiling **$1.00**. **Spent to date: ~$0.381.** Generation allowance raised to $0.50 by the user; almost none of it is needed while the free tier is up.
+Ceiling **$1.00**. **Spent to date: ~$0.381 — unchanged by Phase 2.** Generation allowance raised to $0.50 by the user; almost none of it is needed while the free tier is up.
 
 | item | cost |
 |---|---|
@@ -106,6 +110,7 @@ Ceiling **$1.00**. **Spent to date: ~$0.381.** Generation allowance raised to $0
 | Citation verification + negative control (96 calls, `gpt-5-mini`) | $0.0130 |
 | Tier-2 re-run after the refusal changed (structured refusal) | $0.0117 |
 | Phase 3 `--verify` demos and the free-scan cache misses | $0.0021 |
+| Phase 2: reranker build, 9-arm Tier-1 rerank comparison, RRF weight sweep (local cross-encoder + BM25/dense, no LLM, ~168s wall-clock) | $0.0000 |
 | **Total** | **~$0.290** |
 
 The wasted run is recorded rather than quietly dropped: it embedded a prose-only corpus
@@ -142,7 +147,10 @@ query embeddings are cached: Tier 1 involves no language model at all.
 - [x] Phase 1 **complete** — near-duplicate detection (document-scoped) and the processed store
 - [x] Phase 3 — claim segmentation, claim-level citation verification with a negative control
 - [x] Phase 3 — composite confidence scorer, structured refusal (**complete**, 505 tests)
-- [ ] Phase 5 — API & dashboard · [ ] Phase 2 — reranker + RRF weight sweep · [ ] Phase 6 — polish
+- [x] Phase 2 **complete** — cross-encoder reranker built and measured on Tier 1 (D52, D53);
+      does not separate from plain hybrid and does not ship as the default -- a reported
+      negative result, not a gap. RRF weights swept and configurable (D54). 532 tests.
+- [ ] Phase 5 — API & dashboard · [ ] Phase 6 — polish
 
 ## Known risks
 
@@ -154,8 +162,9 @@ query embeddings are cached: Tier 1 involves no language model at all.
    first assumed. Across the 29 answerable questions the top 5 chunks come from a mean of
    **3.28 distinct documents**, and 10 of 29 questions draw 3+ chunks from a single page.
    But they are *not* near-duplicates: **0 of 290 retrieved pairs** reach cosine 0.95, so
-   deduplication cannot address this. It is a diversity problem, which is the reranker's
-   job in Phase 2 and now has a number to beat.
+   deduplication cannot address this. **Tried the reranker on it (D53) and it did not
+   move the distractor rate consistently** -- the diversity problem stands, unresolved,
+   an open item rather than a closed one with a wrong fix quietly shipped.
 7. **The retrieval comparison is only as good as the corpus.** A one-directional index
    check let 1,892 stale vectors survive a rebuild undetected; verification is now
    two-way, in `scripts/build_index.py`.
@@ -473,18 +482,33 @@ retrieval results already computed, at no extra model call.
 
 ## Next step
 
-Phases 1, 3 and 4 are complete. **~$0.381 spent of $1.00**, and every report re-runs at $0.
+Phases 1, 2, 3 and 4 are complete. **~$0.381 spent of $1.00**, and every report re-runs at $0.
 
 Next, in order:
 
-1. **Phase 5** — FastAPI service, dashboard, Docker, seed script. Taken before the reranker
-   deliberately: the evaluation work is the strongest thing here and none of it is visible
-   without something to open. Docker gets explained in depth.
-2. **Phase 2's reranker** — the remaining substantive gap, with a measured baseline to beat
-   and a defined job (diversity, distractor suppression, multi-hop). Judged on Tier 1 and
-   the failure attribution, never on Tier 2, which is at its ceiling.
-3. **Phase 2's RRF weights** — implemented and configurable but never swept. Free on Tier 1.
-4. **Phase 6** — README and case study, where these numbers become the portfolio argument.
+1. **Phase 5** — FastAPI service, dashboard, Docker, seed script. The evaluation work is
+   the strongest thing here and none of it is visible without something to open. The
+   dashboard's "hybrid vs dense-only" comparison should sit beside a plain note that a
+   reranker was tried and measured out (D53) -- the brief asks for the comparison, not a
+   guarantee the fancy path wins. Docker gets explained in depth.
+2. **Phase 6** — README and case study, where these numbers become the portfolio argument.
+   The reranker negative result (D53) is exactly the kind of finding the brief rewards:
+   "prefer measured numbers... report negative results honestly."
+
+### Phase 2 — closed (2026-09-07)
+
+Built the reranker (D8, D52), judged it on Tier 1 only per the settled brief (never Tier 2,
+which sits at its ceiling, D39), and it did not earn a place as the default: see D53 for the
+measured paired-bootstrap comparison and the distractor-rate table, and
+`evals/reports/reranker.md` for the full report. RRF weights are now configurable and swept
+(D54): `evals/reports/rrf_weights.md`. Both add $0 to spend -- no language model, no
+external index rebuild, ~168s and ~4s wall-clock respectively.
+
+The reranker's code stays in the tree (`hybridrag.retrieval.rerank`, opt-in via
+`--rerank` on `scripts/evaluate_retrieval.py`) because a negative result is only credible
+if the thing that lost is inspectable, not deleted. It is not wired into the default query
+path (`scripts/ask.py`), since nothing measured justifies routing production queries
+through it.
 
 Phase 1 is now complete: loaders, three chunking strategies, synchronised dense and sparse
 indexes, deduplication, and processed-document storage.

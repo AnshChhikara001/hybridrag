@@ -19,6 +19,7 @@ from hybridrag.evaluation import (
     LocatedSpan,
     QuestionCategory,
     build_pools,
+    distractor_rate,
     locate_all,
     run_arm,
 )
@@ -247,6 +248,86 @@ class TestArmRun:
 
         with pytest.raises(ValueError, match="unknown metric"):
             result.series("recall@7")
+
+    def test_top5_paths_are_recorded_for_answerable_questions_only(
+        self, retriever: HybridRetriever, located: dict[str, list[LocatedSpan]]
+    ) -> None:
+        result = run_arm(
+            "hybrid",
+            ChunkingStrategy.STRUCTURE,
+            retriever,
+            GOLDEN,
+            located,
+            build_pools(CHUNKS, located),
+        )
+
+        assert set(result.top5_paths) == {"lookup-001", "lookup-002"}
+        assert result.top5_paths["lookup-001"] == ["guide.md", "guide.md"]
+
+    def test_ndcg_at_narrows_the_mrr_and_ndcg_horizon(
+        self, located: dict[str, list[LocatedSpan]]
+    ) -> None:
+        """The chunk `lookup-002` needs sits at rank 6 -- inside a horizon of 10, outside 5."""
+        distractors = [(f"filler-{i}", 10.0 - i) for i in range(5)]  # rank 1..5, none of them g3
+        sparse = StubIndex({"What filters the output?": [*distractors, ("g3", 1.0)]})
+        padded_store = ChunkStore.in_memory()
+        padded_store.add([*CHUNKS, *(chunk(f"filler-{i}", "other.md", 0, 1) for i in range(5))])
+        retriever = HybridRetriever({"sparse": sparse}, padded_store, candidates=10)
+        pools = build_pools(CHUNKS, located)
+
+        wide = run_arm(
+            "sparse", ChunkingStrategy.STRUCTURE, retriever, GOLDEN, located, pools, ndcg_at=10
+        )
+        narrow = run_arm(
+            "sparse", ChunkingStrategy.STRUCTURE, retriever, GOLDEN, located, pools, ndcg_at=5
+        )
+
+        lookup_002 = {r.question_id: r for r in wide.questions}["lookup-002"]
+        lookup_002_narrow = {r.question_id: r for r in narrow.questions}["lookup-002"]
+        assert lookup_002.reciprocal_rank == pytest.approx(1.0 / 6.0)
+        assert lookup_002_narrow.reciprocal_rank == 0.0
+
+
+class TestDistractorRate:
+    def test_the_rate_is_the_share_of_slots_matching_the_named_file(
+        self, retriever: HybridRetriever, located: dict[str, list[LocatedSpan]]
+    ) -> None:
+        result = run_arm(
+            "hybrid",
+            ChunkingStrategy.STRUCTURE,
+            retriever,
+            GOLDEN,
+            located,
+            build_pools(CHUNKS, located),
+        )
+
+        assert distractor_rate([result], filename="guide.md") == pytest.approx(1.0)
+        assert distractor_rate([result], filename="release-notes.md") == pytest.approx(0.0)
+
+    def test_an_arm_with_no_answerable_questions_has_no_slots_to_rate(self) -> None:
+        empty = run_arm(
+            "hybrid",
+            ChunkingStrategy.STRUCTURE,
+            HybridRetriever({"sparse": StubIndex({})}, ChunkStore.in_memory()),
+            GoldenSet(
+                corpus_ref="test",
+                questions=[
+                    GoldenQuestion(
+                        question_id="none-001",
+                        category=QuestionCategory.NO_ANSWER,
+                        question="What is the support SLA?",
+                        answer="",
+                        spans=[],
+                        verified=True,
+                    )
+                ],
+            ),
+            {},
+            {},
+        )
+
+        with pytest.raises(ValueError, match="zero top-5 slots"):
+            distractor_rate([empty], filename="release-notes.md")
 
 
 class TestReport:

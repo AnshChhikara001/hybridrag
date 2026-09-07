@@ -19,6 +19,7 @@ from hybridrag.evaluation.harness import (
     RefusalProbe,
     answerable,
     build_pools,
+    distractor_rate,
     locate_all,
     run_arm,
 )
@@ -41,11 +42,14 @@ from hybridrag.evaluation.metrics import (
     is_covered,
 )
 from hybridrag.evaluation.report import (
+    RERANKER_METRICS,
     ChunkStats,
     GridResult,
     Provenance,
+    RerankerRun,
     provenance,
     render,
+    render_reranker_report,
 )
 from hybridrag.evaluation.stats import (
     Agreement,
@@ -61,6 +65,7 @@ __all__ = [
     "DEFAULT_DEPTH",
     "DEFAULT_TOKEN_BUDGET",
     "METRICS",
+    "RERANKER_METRICS",
     "Agreement",
     "AnswerSpan",
     "ArmResult",
@@ -80,6 +85,7 @@ __all__ = [
     "QuestionCategory",
     "QuestionMetrics",
     "RefusalProbe",
+    "RerankerRun",
     "SpanNotFoundError",
     "Verdict",
     "answerable",
@@ -88,6 +94,7 @@ __all__ = [
     "build_pools",
     "coverage",
     "covered_ratio",
+    "distractor_rate",
     "evaluate_question",
     "is_covered",
     "is_hit",
@@ -97,5 +104,6 @@ __all__ = [
     "parse_decision",
     "provenance",
     "render",
+    "render_reranker_report",
     "run_arm",
 ]
