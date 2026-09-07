@@ -12,7 +12,7 @@ from collections.abc import Callable
 import pytest
 
 from hybridrag.chunk_store import ChunkStore
-from hybridrag.generation import Answerer, Completion
+from hybridrag.generation import Answerer, Completion, RefusalKind
 from hybridrag.generation.prompt import REFUSAL_SENTINEL
 from hybridrag.models import Chunk
 from hybridrag.retrieval import HybridRetriever
@@ -121,15 +121,32 @@ def test_confidence_reads_dense_cosine_not_the_fused_score(
     assert answer.confidence.both_retrievers_agree is True
 
 
-def test_phase_three_confidence_dimensions_are_declared_but_unset(
+def test_the_free_path_scores_what_it_can_and_says_what_it_skipped(
     store: ChunkStore, ids: list[str]
 ) -> None:
-    """Declared so the API contract is settled; None so nothing reports an uncomputed score."""
+    """No verifier attached: retrieval and structural coverage are free, completeness is not.
+
+    `components` is the honesty mechanism -- the composite is real, but it was built from
+    two dimensions out of three, and a consumer must be able to tell.
+    """
     confidence = Answerer(build_retriever(store, ids), StubModel()).answer("q").confidence
 
-    assert confidence.citation_coverage is None
+    assert confidence.citation_coverage == 1.0
+    assert confidence.citation_coverage_verified is False
     assert confidence.completeness is None
-    assert confidence.composite is None
+    assert confidence.components == ("citation_coverage", "retrieval")
+    assert confidence.composite is not None
+
+
+def test_an_unmeasured_component_does_not_score_zero(store: ChunkStore, ids: list[str]) -> None:
+    """Otherwise the cheap path looks worse than the thorough one on an identical answer."""
+    confidence = Answerer(build_retriever(store, ids), StubModel()).answer("q").confidence
+
+    assert confidence.composite is not None
+    assert confidence.retrieval_calibrated is not None
+    assert confidence.citation_coverage is not None
+    expected = (confidence.retrieval_calibrated + confidence.citation_coverage) / 2
+    assert confidence.composite == pytest.approx(expected)
 
 
 def test_low_retrieval_confidence_refuses_without_calling_the_model(
@@ -160,7 +177,12 @@ def test_the_model_can_refuse_even_when_retrieval_looks_confident(
 
     assert not answer.answered
     assert answer.refusal_reason == "The model judged the retrieved context insufficient to answer."
-    assert answer.text == "I don't know based on the indexed documentation."
+    assert answer.refusal is not None
+    assert answer.refusal.kind is RefusalKind.MODEL_DECLINED
+    # The sentinel phrase still opens it: the judge and every downstream string check
+    # key off that line, so the structure is an addition rather than a replacement.
+    assert answer.text.startswith("I don't know based on the indexed documentation.")
+    assert answer.refusal.documents_to_check
 
 
 @pytest.mark.parametrize(
