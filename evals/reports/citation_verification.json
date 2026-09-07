@@ -1,0 +1,788 @@
+{
+  "generated_at": "2026-09-07T06:26:16+00:00",
+  "git_sha": "552fc03",
+  "git_dirty": true,
+  "arm": "hybrid",
+  "strategy": "fixed",
+  "generation_model": "gpt-5-nano-2025-08-07",
+  "verifier_model": "gpt-5-mini-2025-08-07",
+  "questions": 29,
+  "answered": 29,
+  "coverage": [
+    0.3333333333333333,
+    0.75,
+    0.3333333333333333,
+    0.5,
+    0.5,
+    0.25,
+    0.5,
+    0.4444444444444444,
+    0.5,
+    1.0,
+    0.09090909090909091,
+    0.75,
+    0.0,
+    1.0,
+    0.8,
+    1.0,
+    0.5,
+    1.0,
+    0.3333333333333333,
+    0.75,
+    0.25,
+    0.3333333333333333,
+    0.5,
+    0.14285714285714285,
+    0.5,
+    0.3333333333333333,
+    0.3333333333333333,
+    1.0,
+    0.5
+  ],
+  "precision": [
+    1.0,
+    0.75,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    0.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    0.5,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    0.3333333333333333,
+    1.0,
+    1.0
+  ],
+  "claims": [
+    {
+      "question_id": "lookup-001",
+      "category": "lookup",
+      "claim_index": 2,
+      "claim_text": "They are used in security schemes in OpenAPI to declare and apply permissions for operations.",
+      "cited": [
+        1,
+        2,
+        4,
+        5
+      ],
+      "supported": true,
+      "control_supported": true,
+      "reason": "The passages explain that OAuth2 \"scopes\" represent permissions, that OpenAPI security schemes can include OAuth2, and that scopes are declared and used to control access for operations (including showing/selecting scopes in the API docs)."
+    },
+    {
+      "question_id": "lookup-002",
+      "category": "lookup",
+      "claim_index": 0,
+      "claim_text": "Query, Path and Body come from importing fastapi (they are actually functions) [1][5].",
+      "cited": [
+        1,
+        5
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "Passage [5] explicitly states that importing Query, Path and others from fastapi gives you functions which, when called, return instances of classes with the same name, and passage [1] shows use of Path/Query imported from fastapi, supporting the claim."
+    },
+    {
+      "question_id": "lookup-002",
+      "category": "lookup",
+      "claim_index": 1,
+      "claim_text": "When called, they return instances of classes of the same name (e.g., a Query function returns an instance of a class named Query) [5].",
+      "cited": [
+        5
+      ],
+      "supported": false,
+      "control_supported": false,
+      "reason": "The passage states that imported Query/Path are functions that return instances of classes with the same name, but it does not provide evidence or a clear statement that the returned instances are of classes named exactly the same (e.g., an instance of a class named Query), so the specific claim about the class having the same name is not supported by the quoted text."
+    },
+    {
+      "question_id": "lookup-002",
+      "category": "lookup",
+      "claim_index": 2,
+      "claim_text": "They are described as functions that return special classes [4].",
+      "cited": [
+        4
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The passage explicitly states that \"when you import `Query`, `Path`, and others from `fastapi`, those are actually functions that return special classes,\" directly supporting the claim."
+    },
+    {
+      "question_id": "lookup-002",
+      "category": "lookup",
+      "claim_index": 3,
+      "claim_text": "They are also mentioned as being subclasses of a common Param class, but the direct source for their origin and return value is that they are functions from fastapi that return class instances [1][5][4].",
+      "cited": [
+        1,
+        5,
+        4
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The passages explicitly state that Query, Path, Body, etc. are functions you import from fastapi that, when called, return instances of classes (and that these classes are subclasses of a common Param class / FieldInfo), so together they support the claim."
+    },
+    {
+      "question_id": "lookup-003",
+      "category": "lookup",
+      "claim_index": 2,
+      "claim_text": "OpenAPI metadata can also be added via extra keyword arguments to Field, and extra data can be exposed in the OpenAPI schema (e.g., using schema_extra or Field(examples)).",
+      "cited": [
+        1,
+        2
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The passages explicitly state that extra keyword arguments can be passed to Field (and Query/Path/Body) to include additional JSON Schema/OpenAPI metadata and that extra keys passed to Field will appear in the generated OpenAPI schema (including examples via Field(examples) or schema_extra/Config)."
+    },
+    {
+      "question_id": "lookup-004",
+      "category": "lookup",
+      "claim_index": 1,
+      "claim_text": "It\u2019s required to receive form fields with FastAPI.",
+      "cited": [
+        1,
+        3
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The passages state that to receive form fields you must use Form (and install python-multipart) and that without using Form parameters the fields would be interpreted as query or JSON body, so Form is required to declare form bodies."
+    },
+    {
+      "question_id": "lookup-005",
+      "category": "lookup",
+      "claim_index": 1,
+      "claim_text": "This ensures FastAPI reads form data from the correct place and not as JSON.",
+      "cited": [
+        1,
+        3
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The passages state that using Form ensures parameters are read from form-encoded data (not JSON) and that FastAPI will read that data from the right place instead of JSON, directly supporting the claim."
+    },
+    {
+      "question_id": "lookup-006",
+      "category": "lookup",
+      "claim_index": 3,
+      "claim_text": "This behavior is tied to HTTP protocol, not a FastAPI limitation.",
+      "cited": [
+        3
+      ],
+      "supported": true,
+      "control_supported": null,
+      "reason": "The passages explicitly explain that when files and form fields are used the request is encoded as multipart/form-data (not application/json) and state \"This is not a limitation of FastAPI,\" tying the behavior to the HTTP protocol rather than FastAPI."
+    },
+    {
+      "question_id": "lookup-009",
+      "category": "lookup",
+      "claim_index": 1,
+      "claim_text": "status_code, detail, and headers in HTTPException(..., headers={\"X-Error\": \"There goes my error\"}) [2]",
+      "cited": [
+        2
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The cited passage shows raising HTTPException with status_code=404, detail=\"Item not found\", and headers={\"X-Error\": \"There goes my error\"}, directly demonstrating those parameters."
+    },
+    {
+      "question_id": "lookup-010",
+      "category": "lookup",
+      "claim_index": 3,
+      "claim_text": "From [2]: example shows defining UnicornException and registering a handler with @app.exception_handler(UnicornException) that returns JSONResponse with status_code=418 and content={\"message\": \"...\"} [2]",
+      "cited": [
+        2
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The passage explicitly defines UnicornException, shows registering a handler with @app.exception_handler(UnicornException) that returns JSONResponse(status_code=418, content={\"message\": ...}), and describes that requesting /unicorns/yolo yields that JSON with status 418."
+    },
+    {
+      "question_id": "lookup-010",
+      "category": "lookup",
+      "claim_index": 5,
+      "claim_text": "The example demonstrates registering the handler on app and mapping it to a route that raises UnicornException, which yields a 418 with a JSON body as shown [2]",
+      "cited": [
+        2
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The passage shows registering a handler with @app.exception_handler(UnicornException), mapping it to the /unicorns/{name} route that raises UnicornException for name \"yolo\", and states the response will be a 418 status with the shown JSON body."
+    },
+    {
+      "question_id": "lookup-010",
+      "category": "lookup",
+      "claim_index": 7,
+      "claim_text": "The handler returns a JSONResponse with status_code=418 and a JSON body like {\"message\": \"Oops! ...\"} as in the Unicorn example [2]",
+      "cited": [
+        2
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The passage shows an exception handler returning JSONResponse(status_code=418, content={\"message\": f\"Oops! {exc.name} did something. There goes a rainbow...\"}), and explains the response for /unicorns/yolo will be {\"message\": \"Oops! yolo did something. There goes a rainbow...\"}, matching the claim."
+    },
+    {
+      "question_id": "lookup-010",
+      "category": "lookup",
+      "claim_index": 8,
+      "claim_text": "Cited: [2]",
+      "cited": [
+        2
+      ],
+      "supported": true,
+      "control_supported": true,
+      "reason": "The passage demonstrates creating a UnicornException, registering an exception handler with @app.exception_handler that returns a JSONResponse with status_code=418 and the shown content, and explains that raising UnicornException in the path operation (for /unicorns/yolo) will be handled and return that JSON and status code."
+    },
+    {
+      "question_id": "lookup-011",
+      "category": "lookup",
+      "claim_index": 1,
+      "claim_text": "\"new-subscription\" in @app.webhooks.post(\"new-subscription\") [1].",
+      "cited": [
+        1
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The passage explicitly shows @app.webhooks.post(\"new-subscription\") and states the text passed is just an identifier, naming the webhook \"new-subscription\", which directly supports the claim."
+    },
+    {
+      "question_id": "lookup-012",
+      "category": "lookup",
+      "claim_index": 0,
+      "claim_text": "OpenAPI 3.1.0 and above, supported by FastAPI 0.99.0 and above.",
+      "cited": [
+        1
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "Passage [1] explicitly states \"Webhooks are available in OpenAPI 3.1.0 and above, supported by FastAPI `0.99.0` and above,\" which directly matches the claim."
+    },
+    {
+      "question_id": "lookup-013",
+      "category": "lookup",
+      "claim_index": 10,
+      "claim_text": "UJSONResponse,",
+      "cited": [
+        1
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "Passage [1] explicitly lists UJSONResponse among the importable custom response classes and documents its members, which supports the claim."
+    },
+    {
+      "question_id": "lookup-016",
+      "category": "lookup",
+      "claim_index": 1,
+      "claim_text": "The value can be an int or an IntEnum, and it will be used in the response and shown in the OpenAPI schema [1].",
+      "cited": [
+        1
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "Passage [1] explicitly states that the `status_code` parameter can receive an IntEnum (e.g., http.HTTPStatus), that FastAPI will return that status code in the response, and that it will document it in the OpenAPI schema."
+    },
+    {
+      "question_id": "lookup-016",
+      "category": "lookup",
+      "claim_index": 2,
+      "claim_text": "It can also be specified via the status module constants, such as status.HTTP_201_CREATED [1].",
+      "cited": [
+        1
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "Passage [1] explicitly says the `status_code` parameter can alternatively receive an IntEnum such as Python's `http.HTTPStatus`, which includes constants like `HTTP_201_CREATED`."
+    },
+    {
+      "question_id": "lookup-016",
+      "category": "lookup",
+      "claim_index": 3,
+      "claim_text": "Additionally, you can declare the equivalent behavior with a Response object to change the status_code dynamically for certain responses, while still using the path operation decorator to define the default [5].",
+      "cited": [
+        5
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The passage explicitly explains declaring a Response parameter to set response.status_code dynamically while still using the path operation decorator's default, with an example and note that response_model filtering still applies."
+    },
+    {
+      "question_id": "lookup-017",
+      "category": "lookup",
+      "claim_index": 0,
+      "claim_text": "[1] You can also add additional metadata for the different tags used to group your path operations with the parameter `openapi_tags`.",
+      "cited": [
+        1
+      ],
+      "supported": false,
+      "control_supported": false,
+      "reason": "The passage only points to docs about adding tags to path operations and general OpenAPI metadata (license, version, contact), but it does not state that you can add additional metadata for tags via a parameter named openapi_tags."
+    },
+    {
+      "question_id": "lookup-017",
+      "category": "lookup",
+      "claim_index": 1,
+      "claim_text": "[4] Create metadata for your tags and pass it to the `openapi_tags` parameter: ...",
+      "cited": [
+        4
+      ],
+      "supported": false,
+      "control_supported": false,
+      "reason": "Passage [4] discusses using tags on path operations, enums for tags, and adding summary/description to operations, but does not show creating tag metadata nor passing it to an openapi_tags parameter."
+    },
+    {
+      "question_id": "lookup-018",
+      "category": "lookup",
+      "claim_index": 0,
+      "claim_text": "You can mark a path operation as deprecated by passing the parameter deprecated to the path operation decorator, e.g., @app.get(\"/path\", deprecated=True) [2].",
+      "cited": [
+        2
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The passage explicitly shows using the deprecated parameter on a path operation decorator (@app.get(\"/elements/\", tags=[\"items\"], deprecated=True)) and states that passing deprecated marks the path operation as deprecated."
+    },
+    {
+      "question_id": "lookup-019",
+      "category": "lookup",
+      "claim_index": 1,
+      "claim_text": "The code before yield runs before the app starts handling requests (startup), and the code after yield runs after handling requests (shutdown) [1][3].",
+      "cited": [
+        1,
+        3
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "Both passages explicitly explain that code before the yield in the lifespan context manager runs during startup before the app starts receiving requests, and code after the yield runs at shutdown after handling requests."
+    },
+    {
+      "question_id": "lookup-019",
+      "category": "lookup",
+      "claim_index": 2,
+      "claim_text": "Alternatively, you can use event handlers declared with @app.on_event(\"startup\") and @app.on_event(\"shutdown\") to run functions before startup and during shutdown [2].",
+      "cited": [
+        2
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The passage explicitly describes declaring event handler functions with @app.on_event(\"startup\") and @app.on_event(\"shutdown\") to run code before startup and during shutdown, including examples and details matching the claim."
+    },
+    {
+      "question_id": "lookup-019",
+      "category": "lookup",
+      "claim_index": 3,
+      "claim_text": "The deprecated alternative approach also uses startup/shutdown event handlers, but if you provide a lifespan parameter, those will not be called [2].",
+      "cited": [
+        2
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "Passage [2] explicitly states that if you provide a `lifespan` parameter, `startup` and `shutdown` event handlers will no longer be called and that it's either `lifespan` or events, matching the claim."
+    },
+    {
+      "question_id": "lookup-019",
+      "category": "lookup",
+      "claim_index": 4,
+      "claim_text": "So, define a lifespan context manager and yield around startup/setup code and teardown/cleanup code, or use @app.on_event(\"startup\") and @app.on_event(\"shutdown\") handlers [3][2].",
+      "cited": [
+        3,
+        2
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "Passage [3] shows defining a lifespan context manager with yield via the FastAPI lifespan parameter for startup and shutdown logic, and passage [2] documents using @app.on_event(\"startup\") and @app.on_event(\"shutdown\") as an alternative."
+    },
+    {
+      "question_id": "lookup-021",
+      "category": "lookup",
+      "claim_index": 0,
+      "claim_text": "The code after the yield will be executed after the application has finished handling requests (i.e., during shutdown) [1][3].",
+      "cited": [
+        1,
+        3
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "Passages [1] and [3] explicitly state that code after the yield in the asynccontextmanager-based lifespan function is executed after the application has finished handling requests (during shutdown)."
+    },
+    {
+      "question_id": "lookup-021",
+      "category": "lookup",
+      "claim_index": 1,
+      "claim_text": "It unloads or cleans up resources, such as releasing models or other resources, when the application stops.",
+      "cited": [
+        1,
+        3
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The cited passages show a lifespan context manager that loads models before the yield and explicitly clears/unloads them after the yield, stating this runs on shutdown to release resources."
+    },
+    {
+      "question_id": "lookup-022",
+      "category": "lookup",
+      "claim_index": 1,
+      "claim_text": "It converts non-JSON-compatible types (like datetime) to JSON-friendly representations (e.g., str) and returns a dict suitable for JSON.",
+      "cited": [
+        1,
+        4,
+        3
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The cited passages explicitly state that jsonable_encoder converts objects like Pydantic models to dicts and non-JSON-compatible types (e.g., datetime, UUID) to JSON-friendly representations such as ISO-format strings, producing a Python dict/list structure suitable for json.dumps() and for use in JSONResponse."
+    },
+    {
+      "question_id": "lookup-023",
+      "category": "lookup",
+      "claim_index": 0,
+      "claim_text": "It returns a JSON-compatible Python data structure (e.g., a dict) where datetime values are converted to JSON-compatible types (e.g., strings).",
+      "cited": [
+        1,
+        3
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The passages explicitly state jsonable_encoder returns a Python standard, JSON-compatible data structure (e.g., a dict) and that it converts datetime to a str (ISO format), so together they support the claim."
+    },
+    {
+      "question_id": "multi_hop-002",
+      "category": "multi_hop",
+      "claim_index": 2,
+      "claim_text": "Therefore, when you mount a sub-application at /subapi and run behind a proxy serving under /api/v1, the combined prefix (/api/v1/subapi) will be used automatically for the sub-application\u2019s docs UI, thanks to the root_path mechanism and FastAPI\u2019s internal handling of mounted sub-applications.",
+      "cited": [
+        1,
+        3,
+        5
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The cited passages explicitly state that FastAPI uses the ASGI root_path mechanism when mounting sub-applications and that FastAPI internally applies root_path (including when behind a proxy with a stripped prefix), causing the sub-application\u2019s docs UI to use the combined prefix (e.g., /api/v1/subapi) automatically."
+    },
+    {
+      "question_id": "multi_hop-005",
+      "category": "multi_hop",
+      "claim_index": 2,
+      "claim_text": "Update flow described in [2] and [4]: load stored_item_data into Item, then create update_data via item.dict(exclude_unset=True) to keep only user-supplied fields [2][4].",
+      "cited": [
+        2,
+        4
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "Both passages explicitly describe loading stored_item_data into a Pydantic Item model, creating update_data via item.dict(exclude_unset=True) to keep only user-supplied fields, and then copying/updating the stored model with those values."
+    },
+    {
+      "question_id": "multi_hop-005",
+      "category": "multi_hop",
+      "claim_index": 3,
+      "claim_text": "Applies updates by copying the stored model with update(update_data), then serializes with jsonable_encoder before saving [2][4].",
+      "cited": [
+        2,
+        4
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "Both passages explicitly show creating a copy of the stored Pydantic model with copy(update=update_data) (or model_copy(update=...)) and then serializing the updated model with jsonable_encoder before saving."
+    },
+    {
+      "question_id": "multi_hop-005",
+      "category": "multi_hop",
+      "claim_index": 4,
+      "claim_text": "Returns the updated model through a response model to ensure the output is validated/filtered by Pydantic, as shown in the PATCH examples where the response_model=Item is used [2][4].",
+      "cited": [
+        2,
+        4
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The passages show PATCH endpoints with response_model=Item and return the updated Pydantic model (updated_item), indicating the updated model is returned and validated/filtered by Pydantic as described."
+    },
+    {
+      "question_id": "multi_hop-005",
+      "category": "multi_hop",
+      "claim_index": 5,
+      "claim_text": "Optional note from [3] cautions about PUT overwriting defaults; use PATCH semantics for partial updates to avoid overwriting stored values with defaults [3].",
+      "cited": [
+        3
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The passage explicitly warns that using PUT can overwrite stored fields with model defaults (showing tax defaulting to 10.5) and recommends using PATCH semantics or Pydantic's exclude_unset/model_dump to perform partial updates and avoid overwriting values."
+    },
+    {
+      "question_id": "multi_hop-005",
+      "category": "multi_hop",
+      "claim_index": 6,
+      "claim_text": "If needed, emphasize using model_dump(exclude_unset=True) in Pydantic v2 and .dict(exclude_unset=True) in v1 to generate the partial dict for updates [3].",
+      "cited": [
+        3
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The passage explicitly explains using exclude_unset with model_dump (Pydantic v2) and .dict (v1), states .dict was renamed to .model_dump in v2, and recommends using model_dump(exclude_unset=True) to get only sent fields for partial updates."
+    },
+    {
+      "question_id": "multi_hop-005",
+      "category": "multi_hop",
+      "claim_index": 7,
+      "claim_text": "However, the core approach is: PATCH, exclude_unset on the input model, copy/update stored model, jsonable_encoder, return via response model [2][4].",
+      "cited": [
+        2,
+        4
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The cited passages explicitly describe using PATCH, creating an input dict with exclude_unset, copying/updating the stored Pydantic model with update (model.copy/update), encoding with jsonable_encoder for storage, and returning the updated model, which matches the claim."
+    },
+    {
+      "question_id": "multi_hop-006",
+      "category": "multi_hop",
+      "claim_index": 3,
+      "claim_text": "It will reflect the main app\u2019s own path operations only.",
+      "cited": [
+        3,
+        2
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "Both passages explain that a mounted sub-application is independent and \"takes care of handling everything under that path\" and that the main app's OpenAPI/docs won't include the mounted application's path operations, implying the main app will only reflect its own path operations."
+    },
+    {
+      "question_id": "multi_hop-008",
+      "category": "multi_hop",
+      "claim_index": 1,
+      "claim_text": "The cookies can be set via a Response object (e.g., in a parameter or in a dependency) and you can still rely on response_class in the decorator to document the media type in OpenAPI for that operation [3].",
+      "cited": [
+        3
+      ],
+      "supported": false,
+      "control_supported": false,
+      "reason": "The passage explains setting cookies via a Response parameter or returning a Response directly and mentions response_model filtering, but it does not state that using a Response parameter or dependency still allows relying on response_class in the decorator to document the media type in OpenAPI."
+    },
+    {
+      "question_id": "multi_hop-008",
+      "category": "multi_hop",
+      "claim_index": 2,
+      "claim_text": "Then return the content normally or return the Response object as appropriate, with the final OpenAPI docs reflecting the media type defined by response_class [2][5].",
+      "cited": [
+        2,
+        5
+      ],
+      "supported": true,
+      "control_supported": false,
+      "reason": "The passages explain that returning a Response (or subclass) places the path function's content into that Response, that FastAPI will return content normally otherwise, and that declaring response_class in the path decorator makes the OpenAPI docs reflect the response's media type (and JSON response classes will auto-convert/filter), which together support the claim."
+    },
+    {
+      "question_id": "multi_hop-013",
+      "category": "multi_hop",
+      "claim_index": 2,
+      "claim_text": "Price: float = Field(gt=0, description=\"The price must be greater than zero\") [3]",
+      "cited": [
+        3
+      ],
+      "supported": true,
+      "control_supported": null,
+      "reason": "The passage explicitly shows the line \"price: float = Field(gt=0, description='The price must be greater than zero')\" within the example and explains using Field for model attributes, directly supporting the claim."
+    },
+    {
+      "question_id": "multi_hop-013",
+      "category": "multi_hop",
+      "claim_index": 4,
+      "claim_text": "In the path operation, annotate the body parameter with Annotated[..., Body(openapi_examples=...)] (the exact examples structure is shown in the openapi_examples usage) [2][5]",
+      "cited": [
+        2,
+        5
+      ],
+      "supported": true,
+      "control_supported": null,
+      "reason": "The cited excerpts explicitly show using Annotated[..., Body(openapi_examples=...)] (and Body(..., examples=[...]) variants) and explain that openapi_examples is the parameter to declare OpenAPI-specific examples on a path operation's body parameter."
+    },
+    {
+      "question_id": "multi_hop-013",
+      "category": "multi_hop",
+      "claim_index": 6,
+      "claim_text": "Using Field for price validation is discussed in the Body - Fields section; Field supports validation parameters like gt.",
+      "cited": [
+        3
+      ],
+      "supported": true,
+      "control_supported": null,
+      "reason": "The passages explicitly show using pydantic.Field for the price attribute with gt=0, explain Field is used in the Body - Fields section, and state Field works the same way as Query/Path/Body and supports the same parameters."
+    },
+    {
+      "question_id": "multi_hop-013",
+      "category": "multi_hop",
+      "claim_index": 7,
+      "claim_text": "The openapi_examples parameter is used to supply multiple OpenAPI/OpenAPI-compatible examples for Body in path operations.",
+      "cited": [
+        2,
+        5
+      ],
+      "supported": true,
+      "control_supported": null,
+      "reason": "The passages explicitly state that FastAPI's openapi_examples parameter can be used to declare the OpenAPI-specific examples for Body (and other parameters), supplying multiple examples for path operations and that this field lives in the path operation (not inside JSON Schema)."
+    },
+    {
+      "question_id": "multi_hop-014",
+      "category": "multi_hop",
+      "claim_index": 6,
+      "claim_text": "This is part of the HTTP protocol, not a FastAPI limitation.",
+      "cited": [
+        1,
+        3,
+        2,
+        5
+      ],
+      "supported": true,
+      "control_supported": null,
+      "reason": "The cited passages explicitly state that the inability to mix JSON Body fields with form/file parameters is not a FastAPI limitation but rather \"it's part of the HTTP protocol\" and explain that form submissions use different encodings (application/x-www-form-urlencoded or multipart/form-data) than application/json."
+    },
+    {
+      "question_id": "ambiguous-001",
+      "category": "ambiguous",
+      "claim_index": 2,
+      "claim_text": "Disable syntax highlighting: swagger_ui_parameters={\"syntaxHighlight\": False} [1]",
+      "cited": [
+        1
+      ],
+      "supported": true,
+      "control_supported": null,
+      "reason": "The passage explicitly shows using swagger_ui_parameters={\"syntaxHighlight\": False} when creating FastAPI to disable syntax highlighting and explains that this will turn syntax highlighting off."
+    },
+    {
+      "question_id": "ambiguous-001",
+      "category": "ambiguous",
+      "claim_index": 3,
+      "claim_text": "Change the highlight theme: swagger_ui_parameters={\"syntaxHighlight.theme\": \"obsidian\"} [1]",
+      "cited": [
+        1
+      ],
+      "supported": true,
+      "control_supported": null,
+      "reason": "The passage explicitly shows using swagger_ui_parameters with the key \"syntaxHighlight.theme\" and the value \"obsidian\" in an example, stating that this will change the syntax highlighting color theme."
+    },
+    {
+      "question_id": "ambiguous-002",
+      "category": "ambiguous",
+      "claim_index": 2,
+      "claim_text": "The guidance notes that PATCH is optional and can be used to update only set values, while PUT replaces the data and may reset unspecified fields to defaults.",
+      "cited": [
+        4,
+        1,
+        3
+      ],
+      "supported": true,
+      "control_supported": null,
+      "reason": "The cited passages explicitly state that PUT replaces existing data and can reset unspecified fields to their model defaults, and that PATCH is for partial updates (sending only fields to change) with guidance to use exclude_unset to avoid overwriting unspecified values."
+    },
+    {
+      "question_id": "ambiguous-006",
+      "category": "ambiguous",
+      "claim_index": 0,
+      "claim_text": "[2] If a client tries to send some extra headers, they will receive an error response.",
+      "cited": [
+        2
+      ],
+      "supported": true,
+      "control_supported": null,
+      "reason": "The passage explicitly states that sending extra headers results in an error and gives the example error response showing the header \"tool\" being rejected as \"extra_forbidden.\""
+    },
+    {
+      "question_id": "ambiguous-006",
+      "category": "ambiguous",
+      "claim_index": 1,
+      "claim_text": "[4] You can use Pydantic's model configuration to forbid any extra fields: example shows extra: \"forbid\" in model_config.",
+      "cited": [
+        4
+      ],
+      "supported": false,
+      "control_supported": null,
+      "reason": "The cited passage discusses Header parameter handling (underscore conversion, duplicate headers, lists) and does not mention Pydantic model configuration or the use of \"extra: 'forbid'\" in model_config."
+    },
+    {
+      "question_id": "ambiguous-006",
+      "category": "ambiguous",
+      "claim_index": 2,
+      "claim_text": "[4] The behavior is described under Forbid Extra Headers.",
+      "cited": [
+        4
+      ],
+      "supported": false,
+      "control_supported": null,
+      "reason": "Passage [4] describes \"Automatic conversion\" of underscores to hyphens, how to disable it with convert_underscores, handling duplicate headers, and declaring headers with Header, but it does not mention or describe any behavior named \"Forbid Extra Headers.\""
+    },
+    {
+      "question_id": "ambiguous-008",
+      "category": "ambiguous",
+      "claim_index": 0,
+      "claim_text": "Declare a Response parameter in your path operation function to set cookies, as FastAPI uses the temporal response to extract cookies and include them in the final response [1].",
+      "cited": [
+        1
+      ],
+      "supported": true,
+      "control_supported": null,
+      "reason": "The passage explicitly explains declaring a Response parameter in the path operation, setting cookies on that temporal response, and that FastAPI will extract those cookies and include them in the final response."
+    },
+    {
+      "question_id": "ambiguous-008",
+      "category": "ambiguous",
+      "claim_index": 1,
+      "claim_text": "You can also create a Response directly (e.g., JSONResponse), then set cookies on it and return it, but note that returning a Response directly bypasses automatic filtering/serialization for the response model and the standard OpenAPI documentation will reflect that alternative [1].",
+      "cited": [
+        1
+      ],
+      "supported": true,
+      "control_supported": null,
+      "reason": "The passage explicitly shows creating and returning a JSONResponse with cookies, and warns that returning a Response directly bypasses FastAPI's automatic filtering/serialization for the response model and affects what is returned (i.e., you must ensure correct data types), matching the claim."
+    },
+    {
+      "question_id": "ambiguous-008",
+      "category": "ambiguous",
+      "claim_index": 2,
+      "claim_text": "So, use a Response parameter to set cookies in the normal flow, or return a Response directly if you prefer that approach with awareness of its implications [1].",
+      "cited": [
+        1
+      ],
+      "supported": true,
+      "control_supported": null,
+      "reason": "The passage explicitly explains using a Response parameter to set cookies during the normal flow and also describes returning a Response directly (with examples) while warning about its implications (data type/response_model), which matches the claim."
+    },
+    {
+      "question_id": "ambiguous-009",
+      "category": "ambiguous",
+      "claim_index": 1,
+      "claim_text": "FastAPI uses the temporal response created via the Response parameter (including when set in dependencies) and includes those cookies in the final response.",
+      "cited": [
+        1,
+        2,
+        5
+      ],
+      "supported": true,
+      "control_supported": null,
+      "reason": "The cited passages state that declaring a Response parameter (including in dependencies) lets you set cookies in a temporal response object and that FastAPI will extract those cookies (and headers and status code) from the temporal response and put them into the final response."
+    }
+  ],
+  "cost_usd": 0.0,
+  "control_cost_usd": 0.0,
+  "calls": 96,
+  "cached_calls": 96,
+  "unreadable": 0,
+  "price_per_call": 0.000348,
+  "seed": 20260906,
+  "resamples": 10000
+}

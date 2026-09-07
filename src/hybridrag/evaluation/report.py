@@ -17,7 +17,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from statistics import fmean
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, NonNegativeInt
 
 from hybridrag.evaluation.golden import GoldenSet, QuestionCategory
 from hybridrag.evaluation.harness import METRICS, ArmResult
@@ -790,8 +790,195 @@ prompt problem."""
 * **Answers are served from a response cache.** That is what makes a re-run free and
   reproducible on a model that rejects `temperature` (D27), but it means the numbers
   describe one sampled generation per question, not an average over several.
-* **Citation honesty checks resolution, not support.** A citation pointing at a real block
-  that does not actually contain the claim is counted honest here; whether the claim is
-  supported at all is what `grounded` measures."""
+* **`cited_honestly` here checks resolution, not support.** A citation pointing at a real
+  block that does not actually contain the claim is counted honest in this column. Whether
+  the cited block supports the claim attached to it is measured separately and per claim,
+  in `citation_verification.md`: on this arm 0.917 of cited claims hold, and the six that
+  do not are listed there by name."""
     )
     return "\n\n".join(parts) + "\n"
+
+
+class VerifiedClaim(BaseModel):
+    """One claim, whether its own citations held it up, and whether a random block did."""
+
+    question_id: str
+    category: str
+    claim_index: NonNegativeInt
+    claim_text: str
+    cited: tuple[int, ...]
+    supported: bool
+    control_supported: bool | None = Field(
+        default=None,
+        description="Result of pairing this claim with blocks it never cited. None when "
+        "the control was not run.",
+    )
+    reason: str = ""
+
+
+class VerificationRun(BaseModel):
+    """A claim-level citation verification pass over the golden set."""
+
+    generated_at: str
+    git_sha: str
+    git_dirty: bool
+    arm: str
+    strategy: str
+    generation_model: str
+    verifier_model: str
+    questions: NonNegativeInt
+    answered: NonNegativeInt
+    coverage: list[float] = Field(default_factory=list)
+    precision: list[float] = Field(default_factory=list)
+    claims: list[VerifiedClaim] = Field(default_factory=list)
+    cost_usd: float = 0.0
+    control_cost_usd: float = 0.0
+    calls: NonNegativeInt = 0
+    cached_calls: NonNegativeInt = Field(
+        default=0,
+        description="Calls served from the response cache. They report $0, which is true "
+        "of this run and false of the check, so both counts are kept (D40).",
+    )
+    unreadable: NonNegativeInt = Field(
+        default=0, description="Replies that could not be parsed and were skipped."
+    )
+    price_per_call: float = 0.0
+    seed: int = DEFAULT_SEED
+    resamples: int = DEFAULT_RESAMPLES
+
+    @property
+    def controlled(self) -> list[VerifiedClaim]:
+        return [claim for claim in self.claims if claim.control_supported is not None]
+
+
+def render_verification_report(run: VerificationRun) -> str:
+    """The claim-level citation verification report.
+
+    Structured around one question the supported-rate alone cannot answer: is the verifier
+    reading, or agreeing? A checker that returns "supported" unconditionally produces a
+    perfect-looking precision, so the negative control -- the same claims paired with
+    blocks they never cited -- is reported before the headline number rather than after it.
+    """
+    dirty = " **(uncommitted changes)**" if run.git_dirty else ""
+    lines = [
+        "# Citation verification — does the cited block support the claim?",
+        "",
+        "Structural citation checking asks whether `[3]` points at a block that exists.",
+        "This asks the question a reader assumes is already answered: whether block 3",
+        "actually says the thing the sentence attached to it claims. A citation can resolve",
+        "perfectly and still be attached to a passage that never makes the claim, which",
+        "renders as a working source link under a fabricated statement.",
+        "",
+        f"**Provenance** · commit `{run.git_sha}`{dirty} ·",
+        f"arm `{run.arm}` / `{run.strategy}` · generator `{run.generation_model}` ·",
+        f"verifier `{run.verifier_model}` · {run.questions} questions, {run.answered} answered ·",
+        f"bootstrap {run.resamples:,} resamples, seed {run.seed}",
+        "",
+    ]
+
+    controlled = run.controlled
+    lines += [
+        "## Is the verifier reading, or agreeing?",
+        "",
+        "Every cited claim was checked twice: once against the blocks it actually cited,",
+        "and once against blocks drawn from the corpus that it never cited. A verifier that",
+        "rubber-stamps cannot tell those apart, and its supported rate means nothing however",
+        "high it is. This is the check that licenses every number below it, and it needs no",
+        "human labelling to run.",
+        "",
+    ]
+    if controlled:
+        real = [float(claim.supported) for claim in controlled]
+        control = [float(bool(claim.control_supported)) for claim in controlled]
+        separation = paired_delta(real, control, resamples=run.resamples, seed=run.seed)
+        lines += [
+            _table(
+                [
+                    ["cited blocks (real)", f"{fmean(real):.3f}", str(len(real))],
+                    ["random blocks (control)", f"{fmean(control):.3f}", str(len(control))],
+                    ["**separation**", f"**{separation}**", str(separation.n)],
+                ],
+                ["pairing", "supported rate", "n"],
+            ),
+            "",
+            f"The interval on the separation {'excludes' if separation.low > 0 else 'includes'}"
+            " zero.",
+            "",
+        ]
+    else:
+        lines += ["The control was not run, so nothing here licenses the rates below.", ""]
+
+    lines += ["## Coverage and precision", ""]
+    if run.coverage:
+        coverage = bootstrap_ci(run.coverage, resamples=run.resamples, seed=run.seed)
+        rows = [["citation coverage", str(coverage), str(coverage.n)]]
+        if run.precision:
+            precision = bootstrap_ci(run.precision, resamples=run.resamples, seed=run.seed)
+            rows.append(["citation precision", str(precision), str(precision.n)])
+        lines += [
+            "Coverage counts every claim the answer made, so an unattributed sentence lowers",
+            "it. Precision counts only the claims that were cited. They are reported apart",
+            "because an answer that cites one sentence in six and gets it right scores badly",
+            "on the first and perfectly on the second, and both facts matter.",
+            "",
+            _table(rows, ["measure", "mean [95% CI]", "n"]),
+            "",
+        ]
+
+    unsupported = [claim for claim in run.claims if not claim.supported]
+    lines += [
+        "## Every claim whose citations did not hold",
+        "",
+        f"{len(unsupported)} of {len(run.claims)} cited claims.",
+        "",
+    ]
+    if run.unreadable:
+        lines += [
+            f"A further **{run.unreadable}** repl(ies) could not be parsed and were skipped "
+            "rather than guessed at, so they appear in no rate above.",
+            "",
+        ]
+    if unsupported:
+        lines.append(
+            _table(
+                [
+                    [
+                        claim.question_id,
+                        ", ".join(str(number) for number in claim.cited),
+                        " ".join(claim.claim_text.split())[:70],
+                        " ".join(claim.reason.split())[:70],
+                    ]
+                    for claim in unsupported
+                ],
+                ["id", "cited", "claim", "why it does not hold"],
+            )
+        )
+        lines.append("")
+
+    total = run.cost_usd + run.control_cost_usd
+    modelled = run.calls * run.price_per_call
+    lines += [
+        "## What this cost",
+        "",
+        "Two figures, because they answer different questions and D40 records what happens",
+        "when only the first is reported: a cached call truthfully bills $0, so a re-run of",
+        "a fully cached check reads as free and is not.",
+        "",
+        f"* **what this run paid**: ${total:.4f} "
+        f"(${run.cost_usd:.4f} verification + ${run.control_cost_usd:.4f} control), with "
+        f"{run.cached_calls} of {run.calls} calls served from cache",
+        f"* **what the check costs**: ${modelled:.4f} — {run.calls} calls at the measured "
+        f"${run.price_per_call:.6f} each",
+        "",
+        "## Limits of this measurement",
+        "",
+        "* **The verifier's agreement with a human is not measured.** The negative control",
+        "  shows it discriminates rather than rubber-stamps, which is a weaker claim than",
+        "  the kappa reported for the correctness judge and is not a substitute for it.",
+        "* **A claim citing several blocks is judged against them together.** When such a",
+        "  set fails, every citation in it is flagged, because nothing here can say which",
+        "  half was at fault.",
+        "* **Claim splitting is deterministic and imperfect.** Coverage is a ratio over",
+        "  units this project defines; a different splitter would move the denominator.",
+    ]
+    return "\n".join(lines) + "\n"

@@ -94,3 +94,35 @@ def test_a_citation_resolves_to_readable_provenance(results: list[RetrievedChunk
     citation = resolve_citations("See [1].", results).citations[0]
 
     assert citation.source == "tutorial/query-params.md > Tutorial > Query Parameters"
+
+
+class TestCodeIsNotCited:
+    """Bracketed numbers inside code are not citations.
+
+    Found on the real corpus rather than imagined: a cached answer quoting `fastapi dev`
+    console output carried the process id `[2248755]`, which the parser read as a citation
+    to block 2,248,755 and reported as a fabricated source. `sys.argv[1]` is the quieter
+    half of the same defect -- it resolves, so it silently attributes a sentence to
+    whichever chunk ranked first.
+    """
+
+    def test_process_id_in_a_console_fence_is_not_a_citation(self) -> None:
+        text = "Run the dev server [1].\n\n```console\n$ fastapi dev main.py\n[2248755]\n```"
+        assert parse_citation_numbers(text) == [1]
+
+    def test_array_index_in_a_fence_does_not_resolve_to_a_block(
+        self, results: list[RetrievedChunk]
+    ) -> None:
+        text = "Read the argument [2].\n\n```python\nname = sys.argv[1]\n```"
+        report = resolve_citations(text, results)
+        assert [citation.number for citation in report.citations] == [2]
+
+    def test_inline_code_span_is_not_a_citation(self) -> None:
+        assert parse_citation_numbers("Access it with `argv[1]` as shown [3].") == [3]
+
+    def test_unterminated_fence_still_protects_to_end_of_text(self) -> None:
+        assert parse_citation_numbers("See [2].\n\n```\n[999]\n") == [2]
+
+    def test_a_real_citation_after_a_fence_is_still_read(self) -> None:
+        text = "```\n[999]\n```\n\nThe setting lives on the decorator [1]."
+        assert parse_citation_numbers(text) == [1]
