@@ -3,7 +3,7 @@
 Recovery file. Current architecture, locked decisions and their rationale, progress, and
 the next step. Updated whenever a decision or milestone lands.
 
-**Last updated:** 2026-09-06 · **Status:** Phase 4 — Tier 1 measured; judge validated against human labels, Tier 2 next
+**Last updated:** 2026-09-06 · **Status:** Phase 4 **complete** — Tier 1, validated judge, Tier 2 answer quality with failure attribution
 
 ---
 
@@ -61,6 +61,9 @@ Full requirements: `docs/project-brief.md`. Operating rules: `CLAUDE.md`.
 | D36 | **MRR is the rank at which a question *becomes answerable*, not the rank of the first relevant chunk** | For a lookup these are the same number. For multi-hop they are not: a question that genuinely needs two documents is not answered at the rank of the first one, and scoring it there would report the strict all-spans rule (D29) as satisfied by half the evidence. Reciprocal rank is also zeroed beyond rank 10, since a span found at rank 34 never reaches the generator's context. |
 | D37 | **`gpt-5-mini` judges Tier 2; `gpt-5-nano` was disqualified by measurement** | The cheap judge is not merely weaker, it is **indistinguishable from chance**: kappa **0.007** [-0.040, +0.077] against 20 human labels, versus mini's **0.730** [+0.459, +1.000]. Two failure modes, both systematic: nano marked **5 of 6 correct refusals `incorrect`**, so it cannot apply the rule that declining an unanswerable question is right; and it downgraded 8 correct answers to `partial`. Measured rather than assumed, for $0.016 — and the 5x cost difference that made nano attractive buys nothing if the number it produces is noise. |
 | D38 | **A trivial baseline is printed beside every agreement figure** | The human labels ran 18 correct / 2 incorrect, and on a split that lopsided a judge answering "correct" unconditionally scores **90% raw agreement**. Raw agreement alone would therefore have made even nano look defensible at a glance. Cohen's kappa scores that judge 0.000, which is why it is the headline number and why the baseline row stays in the report. |
+| D39 | **Every failure is attributed to a stage by joining Tier 2 to Tier 1** | "34% of answers are wrong" says nothing about what to fix. Each non-correct answer is attributed against Tier 1's own record of whether *that same arm* retrieved the answer span: evidence missing = retrieval, evidence present = generation. Retrieval is checked **first**, because a refusal on a question whose evidence never arrived is the right response to bad context, and filing it under "wrong refusal" would hide a retrieval problem behind a prompt problem. |
+| D40 | **Cost per answer is priced from token counts, not from what the run paid** | A cache hit truthfully reports `cost_usd = 0.0`, which is correct for spend accounting and useless for unit economics. Two arms running the identical model differed by 40% in one draft purely because one was partly cached, and after a full re-run both read **$0.000000** — a report claiming the system is free. Pricing from stored token counts survives a free re-run: **$0.000144 per answer**, against $0.000143 measured live. |
+| D41 | **Grounding is reported but explicitly not validated** | The judge's *correctness* agreement with a human was measured (kappa 0.730). Its *grounding* judgement never was — no human labelled grounding — so the 100% grounding figure is published with that stated, not folded in under the same kappa. A metric with no variance across 70 answers is also not discriminating anything, which is itself worth saying rather than presenting as a triumph. |
 | D15 | **Chunkers own boundary placement only** | `Chunker.chunk()` turns spans into validated chunks once, in the base class, so the three strategies differ in boundary placement and nothing else -- the variable Phase 4 isolates. |
 
 ## Environment (measured)
@@ -79,7 +82,7 @@ GitHub Actions.
 
 ## Budget
 
-Ceiling **$1.00**. **Spent to date: ~$0.305.** Generation allowance raised to $0.50 by the user; almost none of it is needed while the free tier is up.
+Ceiling **$1.00**. **Spent to date: ~$0.353.** Generation allowance raised to $0.50 by the user; almost none of it is needed while the free tier is up.
 
 | item | cost |
 |---|---|
@@ -304,14 +307,67 @@ the judge returns correctness *and* grounding in one call rather than three. So 
 x 2 arms = 70 generations (~$0.010) plus 70 judge calls (~$0.047) is about **$0.057**, not
 the $0.16-0.22 estimated before the judge existed.
 
+## Tier-2 answer quality (2026-09-06, 35 questions x 2 arms)
+
+Full report: `evals/reports/answers.md`. Generator `gpt-5-nano`, judge `gpt-5-mini`
+(kappa 0.730 against human labels). Cost **$0.0477**, and $0 to re-run.
+
+| arm | correct | correct or partial | grounded | cited honestly | cost/answer |
+|---|---|---|---|---|---|
+| hybrid/fixed | 0.914 [0.800, 1.000] | 0.971 | 1.000 *(unvalidated)* | 1.000 | $0.000144 |
+| dense/fixed | **0.943** [0.857, 1.000] | 0.971 | 1.000 *(unvalidated)* | 1.000 | $0.000144 |
+
+**The headline is a negative result, and it is the most interesting number in the project.**
+Tier 1 showed hybrid retrieval beating dense-only on Recall@5 in all three chunking
+strategies. At the *answer* level that advantage disappears: dense-only is nominally ahead
+(+0.029), and the paired interval [-0.057, +0.114] cannot separate them. Better retrieval
+did not produce better answers here.
+
+The mechanism is visible in the failure table: at 91-94% correct there is very little room
+left, and the generator recovers from imperfect context more often than the retrieval
+metric implies. It is the same effect Tier 1's own caveat predicted — two of three
+questions scored as retrieval misses still produced correct answers. **A reranker (Phase 2)
+should therefore be judged on Tier-1 metrics and on the failure attribution, not on this
+number, which is too near its ceiling to move.**
+
+### Failure attribution (the table that says what to fix)
+
+| arm | failures | missing refusal | retrieval miss | wrong refusal | ignored context | fabricated citations |
+|---|---|---|---|---|---|---|
+| hybrid/fixed | 3 | 0 | 1 | 1 | 1 | 0 |
+| dense/fixed | 2 | 0 | 0 | 1 | 1 | 0 |
+
+* **Zero fabricated citations across 70 answers.** Deterministic, no judge involved: every
+  bracketed number resolved to a block that was actually in the prompt.
+* **Both arms produce exactly one false refusal** — `multi_hop-002` on hybrid, `lookup-018`
+  on dense. The confirmed instance of D24's failure mode, now reproducible.
+* **Multi-hop and ambiguous questions scored 1.000 correct**, lookup 0.889. The category the
+  retrieval metrics find hardest is the one the generator handles best, because a multi-hop
+  answer can be assembled from partial evidence in a way a specific lookup fact cannot.
+
+### A defect this measurement exposed
+
+`no_answer-007` was answered rather than refused, yet judged correct: the model declined
+*in prose* without emitting the refusal sentinel. So `answered` measures sentinel emission,
+not declining, and the reported "83% refused when unanswerable" understates real refusal
+behaviour — all six were effectively declined. Refusal detection is brittle and belongs on
+the Phase 5 list; the report states what the column actually counts rather than papering
+over it.
+
 ## Next step
 
-Phase 4, Tier 2 — answer quality on the validated judge: correctness and grounding across
-the golden set for the Tier-1 winning arm plus a contrast arm, with citation accuracy
-measured deterministically by the existing citation verifier rather than by the judge.
-Every reported number carries the kappa 0.730 agreement figure beside it (D37).
+Phase 4 is complete: golden set, Tier-1 retrieval grid, validated judge, Tier-2 answer
+quality with failure attribution. **$0.353 spent of $1.00**, and every report re-runs at $0.
 
-Estimated remaining Phase 4 spend: **~$0.057**, measured rather than guessed.
+Next, in order:
+
+1. **Phase 2's reranker**, judged against the Tier-1 baseline and the failure attribution
+   rather than against Tier-2 correctness, which is too near its ceiling to move (D39).
+2. **Near-duplicate detection**, still the one unimplemented piece of Phase 1
+   (`dedup_threshold` is wired to nothing).
+3. **Refusal detection**, which currently reads a sentinel and misses prose declines.
+4. **Phase 5** — FastAPI service, dashboard, Docker. Docker gets explained in depth.
+5. **Phase 6** — README and case study, where these numbers become the portfolio argument.
 
 **Closed by the Tier-1 results:** the open question of whether to damp semantic chunking's
 thin chunks with a neighbour buffer. Semantic is not separable from fixed and costs more to

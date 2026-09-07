@@ -41,6 +41,20 @@ DEFAULT_MODEL = "gpt-5-nano-2025-08-07"
 _REASONING_PREFIXES = ("gpt-5", "o1", "o3", "o4")
 
 
+def price_of(model_name: str, input_tokens: int, output_tokens: int) -> float:
+    """What a completion of this size costs to produce, whoever paid for it.
+
+    Needed because a cache hit truthfully reports `cost_usd = 0.0` -- nothing was spent
+    again -- which is right for spend accounting and wrong for "what does one answer
+    cost". Token counts survive a cache hit, so the price can be recomputed from them and
+    an evaluation re-run stays honest about unit economics without re-spending.
+    """
+    if model_name not in _PRICE_PER_1M_TOKENS:
+        raise ValueError(f"Unknown model {model_name!r}; add it to _PRICE_PER_1M_TOKENS.")
+    input_rate, output_rate = _PRICE_PER_1M_TOKENS[model_name]
+    return input_tokens / 1_000_000 * input_rate + output_tokens / 1_000_000 * output_rate
+
+
 class BudgetExceededError(RuntimeError):
     """Raised before a request that would take spending past its ceiling."""
 
