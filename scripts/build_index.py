@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import sys
 import time
+from collections.abc import Sequence
 from enum import StrEnum
 from pathlib import Path
 from typing import Annotated
@@ -35,11 +36,12 @@ from hybridrag.indexing import (
     SparseIndex,
     chroma_path,
     collection_name,
+    deduplicate,
     sparse_path,
     store_path,
 )
-from hybridrag.loaders import CorpusLoader, default_include_root
-from hybridrag.models import Chunk, ChunkingStrategy
+from hybridrag.loaders import CorpusLoader, DocumentStore, default_include_root
+from hybridrag.models import Chunk, ChunkingStrategy, Document
 from hybridrag.tokenization import HuggingFaceTokenCounter
 
 app = typer.Typer(add_completion=False)
@@ -97,24 +99,43 @@ def _build_chunker(strategy: ChunkingStrategy, embedder: Embedder) -> Chunker:
     )
 
 
-def _chunk_corpus(
-    corpus: Path, strategy: ChunkingStrategy, include_root: Path | None, embedder: Embedder
-) -> list[Chunk]:
-    """Load and chunk every document."""
-    chunker = _build_chunker(strategy, embedder)
+def _load_documents(
+    corpus: Path, include_root: Path | None, store: DocumentStore, *, refresh: bool
+) -> list[Document]:
+    """Parsed documents, from the processed store when it is still valid.
+
+    The store is written on every run, so the expensive path is paid once and a chunking
+    sweep -- which re-runs this for each of three strategies -- parses the corpus once
+    rather than three times.
+    """
+    if not refresh and store.exists():
+        stale = store.stale_against(corpus)
+        if not stale:
+            documents = list(store.load())
+            typer.echo(f"  {len(documents)} documents from the processed store (no parsing)")
+            return documents
+        typer.echo(f"  processed store is stale in {len(stale)} document(s); re-parsing")
+
     loader = CorpusLoader(corpus, include_root=include_root)
-
-    chunks: list[Chunk] = []
-    documents = 0
-    for document in loader.iter_documents():
-        documents += 1
-        chunks.extend(chunker.chunk(document))
-
-    typer.echo(f"  {documents} documents -> {len(chunks)} chunks ({strategy.value})")
+    documents = list(loader.iter_documents())
     if loader.missing_includes:
         # Loud: each unresolved directive is a code example missing from the corpus, and
         # code examples carry the identifiers sparse retrieval exists to match.
         typer.echo(f"  WARNING: {len(loader.missing_includes)} include(s) did not resolve")
+    store.save(documents, corpus_root=corpus, include_root=include_root)
+    typer.echo(f"  {len(documents)} documents parsed and written to {store.path}")
+    return documents
+
+
+def _chunk_corpus(
+    documents: Sequence[Document], strategy: ChunkingStrategy, embedder: Embedder
+) -> list[Chunk]:
+    """Chunk every document with one strategy."""
+    chunker = _build_chunker(strategy, embedder)
+    chunks: list[Chunk] = []
+    for document in documents:
+        chunks.extend(chunker.chunk(document))
+    typer.echo(f"  {len(documents)} documents -> {len(chunks)} chunks ({strategy.value})")
     return chunks
 
 
@@ -133,6 +154,17 @@ def build(
     include_root: Annotated[
         Path | None, typer.Option(help="Root for {* ... *} includes. Detected if omitted.")
     ] = None,
+    dedup: Annotated[bool, typer.Option(help="Drop near-duplicate chunks before indexing.")] = True,
+    dedup_threshold: Annotated[
+        float | None, typer.Option(help="Cosine at or above which a chunk is a duplicate.")
+    ] = None,
+    refresh: Annotated[
+        bool,
+        typer.Option(
+            help="Re-parse the corpus even if the processed store looks current. Needed "
+            "after editing an included example, which source hashes cannot see."
+        ),
+    ] = False,
 ) -> None:
     """Chunk a corpus and build the chunk store, dense index and sparse index."""
     if not corpus.is_dir():
@@ -154,10 +186,33 @@ def build(
 
     typer.echo(f"{elapsed()} loading and chunking {corpus}")
     typer.echo(f"  includes resolve from {resolved_include_root or corpus}")
-    chunks = _chunk_corpus(corpus, strategy, resolved_include_root, cached)
+    documents = _load_documents(
+        corpus,
+        resolved_include_root,
+        DocumentStore(settings.processed_dir),
+        refresh=refresh,
+    )
+    chunks = _chunk_corpus(documents, strategy, cached)
     if not chunks:
         typer.echo("error: the corpus produced no chunks.")
         raise typer.Exit(code=1)
+
+    if dedup:
+        # Free: it reuses the very vectors the dense index is about to need, and they come
+        # from the same cache, so deduplication costs no additional request.
+        threshold = (
+            dedup_threshold if dedup_threshold is not None else settings.dedup_threshold
+        )
+        report = deduplicate(chunks, cached, threshold=threshold)
+        typer.echo(f"{elapsed()} dedup: {report.summary()}")
+        for entry in report.removed[:5]:
+            typer.echo(
+                f"    {entry.relative_path} duplicates {entry.duplicate_of[:12]} "
+                f"at {entry.similarity:.3f}"
+            )
+        if len(report.removed) > 5:
+            typer.echo(f"    ... and {len(report.removed) - 5} more")
+        chunks = report.kept
 
     store = ChunkStore(store_path(settings.index_dir))
     # Cleared first: re-chunking with different parameters yields a different number of
