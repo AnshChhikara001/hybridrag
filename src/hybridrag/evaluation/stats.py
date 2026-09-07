@@ -142,3 +142,112 @@ def paired_delta(
         confidence=confidence,
         resamples=resamples,
     )
+
+
+class Agreement(BaseModel):
+    """How often two labellers said the same thing, raw and chance-corrected."""
+
+    n: PositiveInt
+    raw: float = Field(ge=0.0, le=1.0, description="Fraction of items labelled identically.")
+    kappa: float = Field(
+        description="Cohen's kappa: agreement after removing what chance alone would "
+        "produce. Ranges to 1.0; 0.0 is chance-level, negative is worse than chance."
+    )
+    disagreements: list[int] = Field(
+        default_factory=list, description="Positions where the two labellers differ."
+    )
+
+    def __str__(self) -> str:
+        return f"{self.raw:.0%} raw, kappa {self.kappa:.2f} (n={self.n})"
+
+
+def cohens_kappa(first: Sequence[str], second: Sequence[str]) -> float:
+    """Agreement between two labellers, corrected for chance.
+
+    Raw agreement alone is misleading exactly where an LLM judge is: if 90% of answers are
+    correct, a judge that says "correct" unconditionally scores 90% and has measured
+    nothing. Kappa subtracts the agreement two labellers would reach by guessing with the
+    same label frequencies, so that judge scores 0.
+
+    Returns 1.0 when both labellers used a single identical label throughout -- chance
+    agreement is then 1.0 and the usual formula is 0/0. That case is perfect agreement on
+    a sample too uniform to be informative, which the sample size and the label counts
+    beside it are there to reveal.
+    """
+    if len(first) != len(second):
+        raise ValueError(
+            f"kappa needs one label per item from both labellers, got "
+            f"{len(first)} and {len(second)}"
+        )
+    if not first:
+        raise ValueError("cannot compute agreement over an empty sample")
+
+    total = len(first)
+    observed = sum(1 for left, right in zip(first, second, strict=True) if left == right) / total
+    labels = set(first) | set(second)
+    expected = sum((first.count(label) / total) * (second.count(label) / total) for label in labels)
+    if expected >= 1.0:
+        return 1.0
+    return (observed - expected) / (1.0 - expected)
+
+
+def label_agreement(first: Sequence[str], second: Sequence[str]) -> Agreement:
+    """Raw agreement, kappa, and where the two labellers parted company."""
+    if len(first) != len(second):
+        raise ValueError(
+            f"agreement needs one label per item from both labellers, got "
+            f"{len(first)} and {len(second)}"
+        )
+    if not first:
+        raise ValueError("cannot compute agreement over an empty sample")
+    disagreements = [
+        index
+        for index, (left, right) in enumerate(zip(first, second, strict=True))
+        if left != right
+    ]
+    return Agreement(
+        n=len(first),
+        raw=1.0 - len(disagreements) / len(first),
+        kappa=cohens_kappa(first, second),
+        disagreements=disagreements,
+    )
+
+
+def bootstrap_kappa(
+    first: Sequence[str],
+    second: Sequence[str],
+    *,
+    resamples: int = DEFAULT_RESAMPLES,
+    confidence: float = 0.95,
+    seed: int = DEFAULT_SEED,
+) -> Interval:
+    """A percentile bootstrap interval for Cohen's kappa.
+
+    Kappa on twenty items with a lopsided label distribution is a fragile number: one item
+    changing hands moves it a long way, and a point estimate alone invites more confidence
+    than the sample supports. Resampling the labelled *pairs* keeps each judgement attached
+    to the item it was made about, which is the only resampling that means anything here.
+    """
+    if len(first) != len(second):
+        raise ValueError(
+            f"kappa needs one label per item from both labellers, got "
+            f"{len(first)} and {len(second)}"
+        )
+    if not first:
+        raise ValueError("cannot bootstrap an empty sample")
+
+    indices = _resample_indices(len(first), resamples, seed)
+    draws = [
+        cohens_kappa([first[position] for position in row], [second[position] for position in row])
+        for row in indices
+    ]
+    tail = (1.0 - confidence) / 2.0
+    low, high = np.percentile(draws, [100.0 * tail, 100.0 * (1.0 - tail)])
+    return Interval(
+        mean=cohens_kappa(first, second),
+        low=float(low),
+        high=float(high),
+        n=len(first),
+        confidence=confidence,
+        resamples=resamples,
+    )
