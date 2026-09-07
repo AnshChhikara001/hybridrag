@@ -3,7 +3,7 @@
 Recovery file. Current architecture, locked decisions and their rationale, progress, and
 the next step. Updated whenever a decision or milestone lands.
 
-**Last updated:** 2026-09-06 · **Status:** Phase 4 — Tier-1 retrieval measured; 9-arm grid, bootstrap intervals and report landed
+**Last updated:** 2026-09-07 · **Status:** Phases 1 and 4 **complete** — dedup and the processed store close Phase 1; the reranker is next and now has a baseline to beat
 
 ---
 
@@ -59,6 +59,21 @@ Full requirements: `docs/project-brief.md`. Operating rules: `CLAUDE.md`.
 | D34 | **nDCG's gains are *marginal* span coverage, and its ideal comes from the index** | Span truth is binary per span, and nDCG needs a graded gain. A chunk is therefore worth the coverage it *adds* to what outranks it, which pays a strategy nothing for re-delivering text already retrieved — the fixed-size strategy's 64-token overlap earns zero. The ideal ranking is built greedily from every chunk in that strategy's index that touches a span, never from what the arm returned: normalising against an arm's own results would score a retriever that found one of three needed chunks as perfect for ordering that one correctly. |
 | D35 | **Every comparison is a paired bootstrap; arms that cannot be separated are reported as unseparated** | At 29 answerable questions a five-point gap is roughly one question changing its mind. Resampling the arms independently would mostly measure which questions each draw contained, because question difficulty dominates the variance — so the same resampled questions are scored under both arms, cancelling that term. Reported as a difference with its interval plus P(>0), and where the interval spans zero the report says so rather than calling the larger mean a win. |
 | D36 | **MRR is the rank at which a question *becomes answerable*, not the rank of the first relevant chunk** | For a lookup these are the same number. For multi-hop they are not: a question that genuinely needs two documents is not answered at the rank of the first one, and scoring it there would report the strict all-spans rule (D29) as satisfied by half the evidence. Reciprocal rank is also zeroed beyond rank 10, since a span found at rank 34 never reaches the generator's context. |
+| D37 | **`gpt-5-mini` judges Tier 2; `gpt-5-nano` was disqualified by measurement** | The cheap judge is not merely weaker, it is **indistinguishable from chance**: kappa **0.007** [-0.040, +0.077] against 20 human labels, versus mini's **0.730** [+0.459, +1.000]. Two failure modes, both systematic: nano marked **5 of 6 correct refusals `incorrect`**, so it cannot apply the rule that declining an unanswerable question is right; and it downgraded 8 correct answers to `partial`. Measured rather than assumed, for $0.016 — and the 5x cost difference that made nano attractive buys nothing if the number it produces is noise. |
+| D38 | **A trivial baseline is printed beside every agreement figure** | The human labels ran 18 correct / 2 incorrect, and on a split that lopsided a judge answering "correct" unconditionally scores **90% raw agreement**. Raw agreement alone would therefore have made even nano look defensible at a glance. Cohen's kappa scores that judge 0.000, which is why it is the headline number and why the baseline row stays in the report. |
+| D39 | **Every failure is attributed to a stage by joining Tier 2 to Tier 1** | "34% of answers are wrong" says nothing about what to fix. Each non-correct answer is attributed against Tier 1's own record of whether *that same arm* retrieved the answer span: evidence missing = retrieval, evidence present = generation. Retrieval is checked **first**, because a refusal on a question whose evidence never arrived is the right response to bad context, and filing it under "wrong refusal" would hide a retrieval problem behind a prompt problem. |
+| D40 | **Cost per answer is priced from token counts, not from what the run paid** | A cache hit truthfully reports `cost_usd = 0.0`, which is correct for spend accounting and useless for unit economics. Two arms running the identical model differed by 40% in one draft purely because one was partly cached, and after a full re-run both read **$0.000000** — a report claiming the system is free. Pricing from stored token counts survives a free re-run: **$0.000144 per answer**, against $0.000143 measured live. |
+| D41 | **Grounding is reported but explicitly not validated** | The judge's *correctness* agreement with a human was measured (kappa 0.730). Its *grounding* judgement never was — no human labelled grounding — so the 100% grounding figure is published with that stated, not folded in under the same kappa. A metric with no variance across 70 answers is also not discriminating anything, which is itself worth saying rather than presenting as a triumph. |
+| D42 | **Deduplication is scoped to within a document, never across the corpus** | Corpus-wide removal was built first and **Tier 1 caught it before it shipped**: it deleted a chunk of `tutorial/request-forms.md` because `tutorial/request-files.md` carried a near-identical warning at cosine 0.982, leaving one golden question (`lookup-006`) with no evidence at all, and hybrid/structure Recall@5 fell 0.759 → 0.724. Inside one document a repeat really is redundant — include expansion emits the same example once per Python version — but across documents the same text is **not** redundant, because which page it sits on is part of both its meaning and its citation. 99 of 116 structure removals were within-document anyway, so almost nothing of value is given up. |
+| D43 | **Dedup is kept although it does not improve retrieval, because it was measured** | Across 18 paired comparisons (9 arms x 2 metrics) **not one difference is significant** — every interval spans zero, and each apparent ±0.034 is one question of 29. So the brief's deduplication requirement buys index size, not quality: 1.0% of the fixed index, 5.2% of structure, 5.6% of semantic, at $0 because it reuses the vectors the dense index already needs. Reported as a null result rather than dressed up. |
+| D44 | **The processed store exists for durability, not for speed** | Measured before claiming otherwise: parsing the corpus takes **0.14s** and loading the store **0.01s**, so the saving is 0.12s per build — negligible, against an assumed ~2.5s. What it actually buys is the brief's stated reason: the indexes rebuild with no raw checkout and no network, include expansion already applied, on a corpus that has been lost to a temp directory once already (D19). Round-trip verified identical to a fresh parse. Staleness is keyed on raw bytes, which cannot see an edited *included* file — stated, with `--refresh` for it, rather than left as a silent hole. |
+| D45 | **Citations are never parsed from code, fenced or inline** | The corpus documents a CLI, so answers quote console output — `fastapi dev` prints a process id as `[2248755]` — and Python such as `sys.argv[1]`. Read naively both become citations, and the two failures differ: the first is reported to the user as a **fabricated source** the model never claimed, and the second silently attributes a sentence to whichever chunk happens to rank first. Found in the response cache, not in theory — 2 bracketed numbers inside 155 stored code fences. Fenced blocks and inline spans are excluded from citation parsing. |
+| D46 | **A trailing citation block belongs to the sentence before it** | This generator ends answers with `... for operations. [1] [2] [4] [5]`, and puts a bare `[4]` on the line after a code fence. Both are non-assertions under every claim rule, so the first splitter **discarded them**: `lookup-001` carries four resolved citations and was reported as having none, coverage 0.000. Caught by running the splitter over the whole golden set for **$0** before paying for verification — the run that would have measured a fiction was stopped 46 calls in. One consequence is published rather than hidden: attaching citations to the sentence they follow means an answer that dumps every source at the end scores low coverage. That is the metric working. Per-claim attribution is exactly what it measures, and a reader who cannot tell which passage backs which sentence has not been given it. |
+| D47 | **The citation verifier is validated by a negative control, not by human labels** | A model grading a model is worth nothing unless the grader is checked (D11, D37), but a second hand-labelling round is expensive and slow. Instead every cited claim is verified **twice** — against the blocks it cited, and against blocks from the same corpus it never cited. A verifier that says "supported" out of politeness cannot separate those. Measured: **0.900 supported on real citations against 0.050 on random ones, a separation of +0.850 [+0.725, +0.950]**, interval excluding zero, for $0.013 and no human time. This is a *weaker* claim than kappa and is published as such: it shows the verifier reads, not that it agrees with a person. |
+| D48 | **A claim is judged against all the blocks it cites, together** | The brief says to send each citation-claim pair to the judge. Done literally, a claim citing `[1][3]` because half the evidence sits in each block is judged twice and marked unsupported both times. Splitting evidence across blocks is legitimate model behaviour, so the cited set is judged jointly — measuring what a reader cares about instead of manufacturing false alarms. When a set fails, every citation in it is flagged, because nothing available can say which half was at fault. |
+| D49 | **Retrieval confidence is calibrated on a measured range, and the gate cannot do what it appears to** | Raw cosine occupies a narrow band, so averaging it against two rates that genuinely span 0–1 would let it drag every composite to the middle. Measured over the golden set: answerable questions score **0.361–0.721** (median 0.566, p90 0.664), so the ramp runs from the refusal threshold 0.30 to 0.70 — almost everything lands in its upper half and exactly one question saturates it. The same measurement produced an uncomfortable finding, kept: the six **unanswerable** questions score **0.379–0.640**, *inside* the answerable range. D23's threshold was calibrated on out-of-domain questions (0.14–0.24), which are the easy case; no threshold on this number separates in-domain-but-unanswered ones. The gate is kept for what it does handle and is not asked to do more, and the model's own refusal carries that category — which the 100% refusal rate on `no_answer` confirms. |
+| D50 | **Composite weights are equal, unfitted, and renormalised over what was actually measured** | With 29 answerable questions and two failures there is nothing to fit weights on that would not simply memorise this corpus, and a tuned weighting invites a question about overfitting that the sample size cannot answer. Equal weights make no claim to defend. An unmeasured component is renormalised away rather than scored zero: scoring it zero would penalise an answer for a check nobody ran, so the free path would look worse than the verified one on an identical answer — a number measuring the caller's configuration rather than the answer. `confidence.components` records which dimensions fed each composite, so a cheap composite and a thorough one are never mistaken for each other. |
+| D51 | **A refusal returns what was found, what could not be established, and which pages to open** | "I don't know" is honest and nearly worthless — the reader learns only that this route failed. All three facts come free from the retrieval results with no extra model call, so the cheapest possible response, the one a user is most likely to receive on a bad day, is also actionable. The sentinel phrase still opens the rendered text, because the Tier-2 judge and every downstream string check key off that line: the structure is an addition, never a replacement. The two refusal paths say different things, since a gate refusal means nothing came close and a model refusal means several pages came close and none of them said it. |
 | D15 | **Chunkers own boundary placement only** | `Chunker.chunk()` turns spans into validated chunks once, in the base class, so the three strategies differ in boundary placement and nothing else -- the variable Phase 4 isolates. |
 
 ## Environment (measured)
@@ -77,7 +92,7 @@ GitHub Actions.
 
 ## Budget
 
-Ceiling **$1.00**. **Spent to date: ~$0.283.** Generation allowance raised to $0.50 by the user; almost none of it is needed while the free tier is up.
+Ceiling **$1.00**. **Spent to date: ~$0.381.** Generation allowance raised to $0.50 by the user; almost none of it is needed while the free tier is up.
 
 | item | cost |
 |---|---|
@@ -88,7 +103,10 @@ Ceiling **$1.00**. **Spent to date: ~$0.283.** Generation allowance raised to $0
 | Cache verification (3 calls) | $0.0003 |
 | Golden-set drafting, `gpt-5-mini` (44 billed calls over 5 runs) | $0.2538 |
 | Gemini generation (free tier) | $0.0000 |
-| **Total** | **~$0.263** |
+| Citation verification + negative control (96 calls, `gpt-5-mini`) | $0.0130 |
+| Tier-2 re-run after the refusal changed (structured refusal) | $0.0117 |
+| Phase 3 `--verify` demos and the free-scan cache misses | $0.0021 |
+| **Total** | **~$0.290** |
 
 The wasted run is recorded rather than quietly dropped: it embedded a prose-only corpus
 built from the wrong root, and is what led to D22. The corrected rebuild cost **$0.0000** —
@@ -120,11 +138,11 @@ query embeddings are cached: Tier 1 involves no language model at all.
 - [x] Phase 4 — 59 candidates drafted (24 lookup / 15 multi-hop / 10 ambiguous / 10 no-answer)
 - [x] Phase 4 — golden set hand-verified and cut to 35 (18/6/5/6), 40 spans, 0 failures
 - [x] Phase 4 — **Tier-1 metrics, the 9-arm grid, bootstrap CIs and the report** (43 tests)
-- [ ] Phase 4 — Tier 2: judge selection by measured human agreement, then answer quality
-- [ ] Then Phase 2's reranker, measured against the Tier-1 baseline above
-- [ ] Still open from Phase 1: **near-duplicate detection** (`dedup_threshold` is wired to nothing)
-- [ ] Phase 2 — hybrid retrieval · [ ] Phase 3 — generation & citations
-- [ ] Phase 4 — evaluation · [ ] Phase 5 — API & dashboard · [ ] Phase 6 — polish
+- [x] Phase 4 — Tier 2: judge selection by measured human agreement, then answer quality
+- [x] Phase 1 **complete** — near-duplicate detection (document-scoped) and the processed store
+- [x] Phase 3 — claim segmentation, claim-level citation verification with a negative control
+- [x] Phase 3 — composite confidence scorer, structured refusal (**complete**, 505 tests)
+- [ ] Phase 5 — API & dashboard · [ ] Phase 2 — reranker + RRF weight sweep · [ ] Phase 6 — polish
 
 ## Known risks
 
@@ -132,9 +150,12 @@ query embeddings are cached: Tier 1 involves no language model at all.
    strategies hybrid leads both single retrievers on Recall@5 (+0.069 to +0.103). Only one
    of those leads clears a 95% paired interval at n=29, and one contrast goes the other way
    (dense/structure beats hybrid/structure on Recall@budget, −0.069). Reported as such.
-6. **Dense returns near-duplicate chunks from one document.** All three top results for a
-   query often come from the same page, so the generator sees one section three times
-   instead of three sources. Diversity is a Phase 2 concern, once metrics can judge it.
+6. **Retrieved context concentrates on a few documents** — measured, and not the problem
+   first assumed. Across the 29 answerable questions the top 5 chunks come from a mean of
+   **3.28 distinct documents**, and 10 of 29 questions draw 3+ chunks from a single page.
+   But they are *not* near-duplicates: **0 of 290 retrieved pairs** reach cosine 0.95, so
+   deduplication cannot address this. It is a diversity problem, which is the reranker's
+   job in Phase 2 and now has a number to beat.
 7. **The retrieval comparison is only as good as the corpus.** A one-directional index
    check let 1,892 stale vectors survive a rebuild undetected; verification is now
    two-way, in `scripts/build_index.py`.
@@ -257,15 +278,216 @@ definition.
 figure was local embedding; hosted, it is **177 seconds**. The 28-minute number stands only
 for the keyless path.
 
+## Judge validation (2026-09-06, 20 hand-adjudicated items)
+
+Full report: `evals/reports/judge_agreement.md`. Answers came from `gpt-5-nano` on the
+Tier-1 winning arm (`hybrid/fixed`); the sample was stratified toward failures on purpose,
+so its correctness rate says nothing about the system.
+
+| judge | raw agreement | kappa [95% CI] | cost |
+|---|---|---|---|
+| `gpt-5-nano` | 30% | 0.007 [-0.040, +0.077] | $0.0029 |
+| **`gpt-5-mini`** | **95%** | **0.730** [+0.459, +1.000] | $0.0135 |
+| *always answers "correct"* | 90% | 0.000 | $0 |
+
+`gpt-5-mini` disagreed with the human on exactly one item — `lookup-017`, where the answer
+describes `openapi_tags` while the reference gives the `tags=` parameter, and the judge
+called `partial` what the human called `incorrect`. That is a genuine boundary case rather
+than a failure of comprehension.
+
+**Honest caveat carried into every Tier-2 number:** the kappa interval reaches to +0.459,
+below the conventional 0.60 bar for "substantial". At n=20 with lopsided labels the point
+estimate is the claim and the interval is the caveat. What the sample *does* settle beyond
+doubt is the negative: a judge at chance level is unmistakable.
+
+**Label provenance:** labels were proposed by a stronger model (Claude Desktop) and
+adjudicated by the author, who agreed with all 20 proposals. Proposals live in a separate
+field and never enter the statistics. The defensible wording is "judge-human agreement,
+n=20, labels model-proposed and author-adjudicated" -- not "hand-labelled from scratch".
+
+### Two findings that came out of this for free
+
+1. **Tier 1 is a lower bound on usefulness, but not for the reason first claimed.** Of the
+   three questions Tier 1 scores as retrieval failures at rank 10, **two produced answers
+   the human judged correct** (`multi_hop-005`, `multi_hop-013`). The first explanation
+   written here -- that `min_ratio=1.0` was too strict -- was **tested and is wrong**:
+   Recall@5 is flat at 0.897 for every threshold from 1.0 down to 0.6, moving only at 0.5.
+   The spans are either fully covered or barely covered, never marginally. What actually
+   happens is that the generator produces a correct answer from *partially relevant*
+   context that contains no complete answer span at all. Retrieval recall and answerability
+   are therefore genuinely different quantities, not the same one measured strictly.
+2. **A confirmed false refusal.** `multi_hop-002` retrieved successfully and the model
+   refused anyway; both the human and the mini judge call that incorrect. This is D23's
+   second refusal layer misfiring on a hard multi-hop question, and it is the first
+   reproducible instance of the failure D24 was written to prevent.
+
+**Tier 2 is cheaper than estimated.** Measured judge cost is **$0.000677 per call**, and
+the judge returns correctness *and* grounding in one call rather than three. So 35 questions
+x 2 arms = 70 generations (~$0.010) plus 70 judge calls (~$0.047) is about **$0.057**, not
+the $0.16-0.22 estimated before the judge existed.
+
+## Tier-2 answer quality (re-run 2026-09-07, 35 questions x 2 arms)
+
+Full report: `evals/reports/answers.md`. Generator `gpt-5-nano`, judge `gpt-5-mini`
+(kappa 0.730 against human labels). Cost **$0.0477** originally, **$0.0117** to re-run.
+
+| arm | correct | correct or partial | grounded | cited honestly | cost/answer |
+|---|---|---|---|---|---|
+| hybrid/fixed | 0.943 [0.857, 1.000] | **1.000** | 1.000 *(unvalidated)* | 1.000 | $0.000146 |
+| dense/fixed | 0.943 [0.857, 1.000] | 0.971 | 1.000 *(unvalidated)* | 1.000 | $0.000142 |
+
+**Re-run because the refusal text changed, and the numbers moved for a different reason.**
+Hybrid went 0.914 → 0.943 and its one wrong refusal (`multi_hop-002`) disappeared. That is
+**not** attributable to the Phase 3 work: the generator, the prompt and `k` are unchanged,
+so only the retrieved context can stop a model refusing — and the index was rebuilt with
+document-scoped deduplication (D42) after the original Tier-2 run. The gain belongs to
+Phase 1, and is recorded here rather than claimed for the phase that happened to re-measure
+it. Three answers were cache misses for the same reason.
+
+**The headline is still a negative result, and it is the most interesting number in the
+project.** Tier 1 showed hybrid retrieval beating dense-only on Recall@5 in all three
+chunking strategies. At the *answer* level the two are now **identical** on `correct`
+(+0.000, interval [-0.086, +0.086]); hybrid leads only on `correct_or_partial` by one
+question. Better retrieval did not produce better answers here.
+
+The mechanism is visible in the failure table: at 91-94% correct there is very little room
+left, and the generator recovers from imperfect context more often than the retrieval
+metric implies. It is the same effect Tier 1's own caveat predicted — two of three
+questions scored as retrieval misses still produced correct answers. **A reranker (Phase 2)
+should therefore be judged on Tier-1 metrics and on the failure attribution, not on this
+number, which is too near its ceiling to move.**
+
+### Failure attribution (the table that says what to fix)
+
+| arm | failures | missing refusal | retrieval miss | wrong refusal | ignored context | fabricated citations |
+|---|---|---|---|---|---|---|
+| hybrid/fixed | 3 | 0 | 1 | 1 | 1 | 0 |
+| dense/fixed | 2 | 0 | 0 | 1 | 1 | 0 |
+
+* **Zero fabricated citations across 70 answers.** Deterministic, no judge involved: every
+  bracketed number resolved to a block that was actually in the prompt.
+* **Both arms produce exactly one false refusal** — `multi_hop-002` on hybrid, `lookup-018`
+  on dense. The confirmed instance of D24's failure mode, now reproducible.
+* **Multi-hop and ambiguous questions scored 1.000 correct**, lookup 0.889. The category the
+  retrieval metrics find hardest is the one the generator handles best, because a multi-hop
+  answer can be assembled from partial evidence in a way a specific lookup fact cannot.
+
+### What the refusal column actually counts
+
+`no_answer-007` is answered rather than refused on the **dense-only** arm (hybrid refuses
+it), and the judge still called it correct. Reading the answer explains why, and corrects an
+earlier note here that called this a brittle-detection bug: the reply states what the corpus
+*does* contain -- two specific CVE references -- and then says explicitly that no block
+describes a broader disclosure process or audit history. That is a more useful response than
+a bare refusal, and the judge was right to accept it.
+
+So this is not a detection defect to fix. It is a real behaviour the binary `answered` flag
+cannot represent: partial information plus an explicit statement of what is missing is
+neither an answer nor a refusal. The report therefore says what the column counts -- explicit
+refusals, meaning the confidence gate firing or the sentinel being emitted -- rather than
+claiming to measure declining.
+
+## Defect audit before the reranker (2026-09-07)
+
+The instruction was to fix what makes retrieval or evaluation misleading before building
+anything new. Each suspected defect was measured first, and **two of the four turned out not
+to be defects at all** — both were claims written into this file the day before.
+
+| suspected defect | measured verdict |
+|---|---|
+| Near-duplicate detection unwired | **Real.** Fixed 1 exact duplicate; structure 83; semantic 114. Now implemented (D42, D43). |
+| Retrieved context is full of near-duplicates | **Wrong shape.** 0 of 290 retrieved pairs reach cosine 0.95. The redundancy is document concentration, 3.28 distinct documents per 5 chunks. |
+| Tier 1's `min_ratio=1.0` understates answerability | **Wrong.** Recall@5 is flat at 0.897 for every threshold from 1.0 to 0.6, moving only at 0.5. Corrected above. |
+| Refusal detection misses prose declines | **Mischaracterised.** A legitimate answer the binary `answered` flag cannot represent, not a bug. Corrected above. |
+| Processed-document storage unimplemented | **Real**, and required by the brief. Now implemented (D44). |
+
+**The most valuable thing that happened here was the evaluation catching a bug in a feature
+before it shipped.** Corpus-wide dedup looked correct, passed its unit tests, and removed
+exactly the duplicates it was supposed to — and Tier 1 reported a golden question losing all
+its evidence and Recall@5 dropping. That is the harness paying for itself, and it is the
+strongest single argument in the project that the evaluation is worth its weight.
+
+### Guidance for the reranker, now that there is a baseline
+
+* **Judge it on Tier 1 and on failure attribution, not on Tier-2 correctness**, which sits at
+  0.914-0.943 and is too near its ceiling to move (D39).
+* **Its measurable job is diversity and distractor suppression**: 3.28 distinct documents per
+  5 chunks, and `release-notes.md` still taking 4% of the top-5 slots under fixed chunking.
+* **The bar to beat**: hybrid/fixed at Recall@5 0.897, Recall@budget 0.862, nDCG@10 0.794.
+* Multi-hop is the weak retrieval category (0.667 at rank 5) while being the strongest
+  generation category (1.000 correct) — a reranker that helps multi-hop retrieval has the
+  clearest room to show it.
+
+## Phase 3 completed (2026-09-07) — the three requirements that were stubs
+
+The vertical slice shipped a grounded prompt, structural citation resolution and two
+refusal paths, and `docs/PROJECT_STATE.md` recorded Phase 3 as done. Reading the brief
+against the code showed three of its four requirements were not built: claim-level citation
+verification, the composite confidence scorer, and the structured "I don't know". All three
+are now built and measured.
+
+### Citation verification — does `[3]` support the claim attached to it?
+
+Full report: `evals/reports/citation_verification.md`. Verifier `gpt-5-mini`, 29 answerable
+questions, 56 cited claims out of 108 total.
+
+| measure | value |
+|---|---|
+| citation coverage (share of **all** claims with a citation that holds) | 0.525 [0.425, 0.630] |
+| citation precision (share of **cited** claims that hold) | 0.917 [0.822, 0.991] |
+| unsupported citations found | **6 of 56** |
+| verifier on real citations vs random blocks | **0.900 vs 0.050**, separation +0.850 [+0.725, +0.950] |
+
+The two rates are reported apart because they answer different questions: an answer citing
+one sentence in six and getting it right scores 0.17 coverage and 1.00 precision, and both
+facts matter. Six real mis-attributions were found — citations that resolve perfectly to a
+block that does not make the claim, the failure structural checking cannot see. This is the
+layer the brief calls "the quality layer most RAG systems skip entirely", and it is the
+one place in the project where a citation is checked for what a reader assumes it means.
+
+### Answer confidence — three dimensions, never one opaque number
+
+`retrieval` (calibrated, D49), `citation_coverage` (verified when a verifier is attached,
+structural otherwise) and `completeness` (LLM-scored). Verification is **opt-in**: right for
+an evaluation run, wrong for a dashboard that must answer in under a second. Without it an
+answer still carries a composite built from what is free, and `confidence.components`
+records which dimensions fed it, so the two are never confused. On the demo question the
+free path reports 0.532 from two components and the verified path 0.521 from three.
+
+### Graceful "I don't know"
+
+A refusal now returns what the search found (with similarity scores), what it could not
+establish, and up to three distinct pages worth opening by hand — all derived from the
+retrieval results already computed, at no extra model call.
+
+### Three defects this phase surfaced in earlier work
+
+1. **Process ids parsed as citations** (D45). Present in the response cache before this
+   phase started; it would have reported a fabricated source to a user.
+2. **Trailing citation blocks discarded** (D46). Caught for $0 by measuring the splitter
+   over the golden set before paying for a verification run, which was killed 46 calls in.
+3. **One unreadable reply killed a paid 125-call run.** The verifier sometimes drops the
+   `SUPPORT:` label and writes the verdict bare. The parser now accepts that exact form —
+   which is reading a real judgement, not defaulting — and the script counts unparseable
+   replies and continues, the way the judge already counted its own.
+
 ## Next step
 
-Phase 4, Tier 2 — answer quality. Judge selection first, by measurement rather than by
-taste: run both candidate judges over ~20 hand-labelled decisions (~$0.05) and adopt the
-cheapest that agrees with the human, reporting the agreement percentage (D11). Then answer
-correctness, faithfulness and citation accuracy on the Tier-1 winning arm plus contrasts.
+Phases 1, 3 and 4 are complete. **~$0.381 spent of $1.00**, and every report re-runs at $0.
 
-Estimated remaining Phase 4 spend: ~$0.09 with a `gpt-5-nano` judge, ~$0.22 with
-`gpt-5-mini`. The judge-agreement experiment decides which.
+Next, in order:
+
+1. **Phase 5** — FastAPI service, dashboard, Docker, seed script. Taken before the reranker
+   deliberately: the evaluation work is the strongest thing here and none of it is visible
+   without something to open. Docker gets explained in depth.
+2. **Phase 2's reranker** — the remaining substantive gap, with a measured baseline to beat
+   and a defined job (diversity, distractor suppression, multi-hop). Judged on Tier 1 and
+   the failure attribution, never on Tier 2, which is at its ceiling.
+3. **Phase 2's RRF weights** — implemented and configurable but never swept. Free on Tier 1.
+4. **Phase 6** — README and case study, where these numbers become the portfolio argument.
+
+Phase 1 is now complete: loaders, three chunking strategies, synchronised dense and sparse
+indexes, deduplication, and processed-document storage.
 
 **Closed by the Tier-1 results:** the open question of whether to damp semantic chunking's
 thin chunks with a neighbour buffer. Semantic is not separable from fixed and costs more to

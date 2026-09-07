@@ -4,7 +4,7 @@ Deterministic retrieval metrics over the hand-verified golden set. No language m
 involved anywhere in this report, so it costs nothing to reproduce and cannot drift with a
 model release.
 
-**Provenance** · generated 2026-09-06T04:47:15+00:00 · commit `9cbccbb` **(uncommitted changes)** ·
+**Provenance** · generated 2026-09-07T01:22:16+00:00 · commit `552fc03` **(uncommitted changes)** ·
 corpus `0.115.6` · embedder `text-embedding-3-small` ·
 chunks 512 tokens / 64 overlap ·
 semantic percentile 95.0 · RRF rank constant 60 ·
@@ -23,9 +23,9 @@ The same 141 documents, cut three ways. These numbers explain most of the gap be
 
 | chunking | chunks | mean tokens | median | p95 | total tokens |
 |---|---|---|---|---|---|
-| fixed | 1,097 | 479 | 512 | 512 | 525,417 |
-| structure | 1,892 | 248 | 213 | 509 | 468,661 |
-| semantic | 2,210 | 210 | 167 | 500 | 464,184 |
+| fixed | 1,086 | 479 | 512 | 512 | 519,785 |
+| structure | 1,793 | 238 | 204 | 502 | 426,955 |
+| semantic | 2,087 | 204 | 162 | 490 | 424,912 |
 
 ## Headline
 
@@ -33,15 +33,15 @@ Mean over questions, with a 95% percentile bootstrap interval.
 
 | arm | recall@5 | recall@10 | ndcg@10 | recall@budget |
 |---|---|---|---|---|
-| hybrid/fixed | 0.897 [0.793, 1.000] | 0.897 [0.793, 1.000] | 0.792 [0.685, 0.887] | 0.897 [0.793, 1.000] |
+| hybrid/fixed | 0.897 [0.793, 1.000] | 0.897 [0.793, 1.000] | 0.794 [0.688, 0.889] | 0.862 [0.724, 0.966] |
 | dense/fixed | 0.828 [0.690, 0.966] | 0.897 [0.793, 1.000] | 0.742 [0.631, 0.845] | 0.793 [0.655, 0.931] |
 | sparse/fixed | 0.793 [0.621, 0.931] | 0.897 [0.759, 1.000] | 0.779 [0.651, 0.893] | 0.724 [0.552, 0.862] |
-| hybrid/structure | 0.759 [0.586, 0.897] | 0.793 [0.655, 0.931] | 0.738 [0.626, 0.845] | 0.759 [0.586, 0.897] |
+| hybrid/structure | 0.759 [0.586, 0.897] | 0.759 [0.586, 0.897] | 0.728 [0.609, 0.840] | 0.759 [0.586, 0.897] |
 | dense/structure | 0.655 [0.483, 0.828] | 0.828 [0.690, 0.966] | 0.678 [0.556, 0.796] | 0.828 [0.690, 0.966] |
-| sparse/structure | 0.655 [0.483, 0.828] | 0.793 [0.655, 0.931] | 0.616 [0.510, 0.722] | 0.724 [0.552, 0.862] |
-| hybrid/semantic | 0.828 [0.690, 0.966] | 0.897 [0.793, 1.000] | 0.788 [0.697, 0.874] | 0.862 [0.724, 0.966] |
+| sparse/structure | 0.655 [0.483, 0.828] | 0.793 [0.655, 0.931] | 0.631 [0.527, 0.734] | 0.759 [0.586, 0.897] |
+| hybrid/semantic | 0.828 [0.690, 0.966] | 0.897 [0.793, 1.000] | 0.757 [0.667, 0.842] | 0.897 [0.793, 1.000] |
 | dense/semantic | 0.724 [0.552, 0.862] | 0.897 [0.793, 1.000] | 0.718 [0.604, 0.825] | 0.862 [0.724, 0.966] |
-| sparse/semantic | 0.724 [0.552, 0.862] | 0.793 [0.655, 0.931] | 0.663 [0.544, 0.778] | 0.759 [0.586, 0.897] |
+| sparse/semantic | 0.690 [0.517, 0.862] | 0.724 [0.552, 0.862] | 0.643 [0.512, 0.767] | 0.724 [0.552, 0.862] |
 
 ## Every metric, point estimates
 
@@ -49,15 +49,15 @@ Mean over questions, with a 95% percentile bootstrap interval.
 
 | arm | recall@1 | recall@3 | recall@5 | recall@10 | mrr@10 | ndcg@10 | recall@budget | latency |
 |---|---|---|---|---|---|---|---|---|
-| hybrid/fixed | 0.552 | 0.793 | 0.897 | 0.897 | 0.670 | 0.792 | 0.897 | 6.3 ms |
-| dense/fixed | 0.448 | 0.724 | 0.828 | 0.897 | 0.591 | 0.742 | 0.793 | 2.4 ms |
-| sparse/fixed | 0.586 | 0.690 | 0.793 | 0.897 | 0.662 | 0.779 | 0.724 | 2.8 ms |
-| hybrid/structure | 0.483 | 0.655 | 0.759 | 0.793 | 0.597 | 0.738 | 0.759 | 7.5 ms |
-| dense/structure | 0.379 | 0.621 | 0.655 | 0.828 | 0.520 | 0.678 | 0.828 | 2.8 ms |
-| sparse/structure | 0.276 | 0.621 | 0.655 | 0.793 | 0.452 | 0.616 | 0.724 | 4.5 ms |
-| hybrid/semantic | 0.483 | 0.724 | 0.828 | 0.897 | 0.615 | 0.788 | 0.862 | 8.3 ms |
-| dense/semantic | 0.379 | 0.517 | 0.724 | 0.897 | 0.515 | 0.718 | 0.862 | 2.8 ms |
-| sparse/semantic | 0.414 | 0.552 | 0.724 | 0.793 | 0.526 | 0.663 | 0.759 | 4.8 ms |
+| hybrid/fixed | 0.552 | 0.793 | 0.897 | 0.897 | 0.674 | 0.794 | 0.862 | 8.1 ms |
+| dense/fixed | 0.448 | 0.724 | 0.828 | 0.897 | 0.591 | 0.742 | 0.793 | 4.3 ms |
+| sparse/fixed | 0.586 | 0.690 | 0.793 | 0.897 | 0.662 | 0.779 | 0.724 | 2.9 ms |
+| hybrid/structure | 0.483 | 0.655 | 0.759 | 0.759 | 0.593 | 0.728 | 0.759 | 11.2 ms |
+| dense/structure | 0.379 | 0.621 | 0.655 | 0.828 | 0.520 | 0.678 | 0.828 | 6.4 ms |
+| sparse/structure | 0.276 | 0.655 | 0.655 | 0.793 | 0.468 | 0.631 | 0.759 | 4.4 ms |
+| hybrid/semantic | 0.414 | 0.690 | 0.828 | 0.897 | 0.575 | 0.757 | 0.897 | 14.4 ms |
+| dense/semantic | 0.379 | 0.517 | 0.724 | 0.897 | 0.515 | 0.718 | 0.862 | 8.7 ms |
+| sparse/semantic | 0.414 | 0.586 | 0.690 | 0.724 | 0.517 | 0.643 | 0.724 | 4.7 ms |
 
 ## Does hybrid actually beat its parts?
 
@@ -66,17 +66,17 @@ Paired bootstrap: the same resampled questions scored under both arms, which can
 | contrast | chunking | metric | difference [95% CI] | P(>0) |
 |---|---|---|---|---|
 | hybrid - dense | fixed | recall@5 | +0.069 [+0.000, +0.172] | 88% |
-| hybrid - dense | fixed | recall@budget | +0.103 [+0.000, +0.241] | 96% |
+| hybrid - dense | fixed | recall@budget | +0.069 [-0.069, +0.207] | 78% |
 | hybrid - sparse | fixed | recall@5 | +0.103 [+0.000, +0.241] | 96% |
-| hybrid - sparse | fixed | recall@budget | +0.172 [+0.034, +0.310]* | 100% |
+| hybrid - sparse | fixed | recall@budget | +0.138 [+0.034, +0.276]* | 99% |
 | hybrid - dense | structure | recall@5 | +0.103 [-0.034, +0.241] | 88% |
 | hybrid - dense | structure | recall@budget | -0.069 [-0.207, +0.069] | 9% |
 | hybrid - sparse | structure | recall@5 | +0.103 [-0.034, +0.241] | 88% |
-| hybrid - sparse | structure | recall@budget | +0.034 [-0.069, +0.138] | 61% |
+| hybrid - sparse | structure | recall@budget | +0.000 [-0.103, +0.103] | 35% |
 | hybrid - dense | semantic | recall@5 | +0.103 [+0.000, +0.241] | 96% |
-| hybrid - dense | semantic | recall@budget | +0.000 [-0.103, +0.103] | 35% |
-| hybrid - sparse | semantic | recall@5 | +0.103 [-0.034, +0.241] | 88% |
-| hybrid - sparse | semantic | recall@budget | +0.103 [+0.000, +0.241] | 96% |
+| hybrid - dense | semantic | recall@budget | +0.034 [+0.000, +0.103] | 64% |
+| hybrid - sparse | semantic | recall@5 | +0.138 [+0.000, +0.310] | 94% |
+| hybrid - sparse | semantic | recall@budget | +0.172 [+0.034, +0.310]* | 100% |
 
 ## Does the chunking strategy matter?
 
@@ -85,11 +85,11 @@ The same paired comparison across chunking strategies, holding the retriever fix
 | contrast | metric | difference [95% CI] | P(>0) |
 |---|---|---|---|
 | fixed - structure | recall@5 | +0.138 [+0.034, +0.276]* | 99% |
-| fixed - structure | recall@budget | +0.138 [+0.034, +0.276]* | 99% |
+| fixed - structure | recall@budget | +0.103 [+0.000, +0.207] | 96% |
 | fixed - semantic | recall@5 | +0.069 [-0.103, +0.241] | 73% |
-| fixed - semantic | recall@budget | +0.034 [-0.069, +0.138] | 61% |
+| fixed - semantic | recall@budget | -0.034 [-0.172, +0.103] | 24% |
 | structure - semantic | recall@5 | -0.069 [-0.241, +0.103] | 14% |
-| structure - semantic | recall@budget | -0.103 [-0.241, +0.034] | 4% |
+| structure - semantic | recall@budget | -0.138 [-0.310, +0.000] | 2% |
 
 ## By question category — hybrid/fixed
 
@@ -97,8 +97,8 @@ Each category is scored by its own rule (D29): a lookup needs its one span, mult
 
 | category | n | recall@5 | recall@10 | nDCG@10 |
 |---|---|---|---|---|
-| lookup | 18 | 0.944 | 0.944 | 0.794 |
-| multi_hop | 6 | 0.667 | 0.667 | 0.612 |
+| lookup | 18 | 0.944 | 0.944 | 0.799 |
+| multi_hop | 6 | 0.667 | 0.667 | 0.608 |
 | ambiguous | 5 | 1.000 | 1.000 | 1.000 |
 
 ## What hybrid/fixed still misses at rank 10

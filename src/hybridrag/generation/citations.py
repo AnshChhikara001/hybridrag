@@ -1,14 +1,22 @@
 """Parsing `[n]` citations and checking them against the context that was supplied.
 
-This is *structural* verification: does every cited number correspond to a block the model
-was actually given? It is free, deterministic, and catches the failure that matters most at
-this stage -- a citation pointing at nothing, which renders as a plausible source link that
-goes nowhere. Whether block 3 genuinely supports the sentence attached to it is a semantic
-question, and it belongs with the LLM-as-judge and the golden set in Phase 4, where there
-is something to measure the judge against.
+Two layers of verification exist, and keeping them apart is the point:
+
+* **Structural** -- does every cited number correspond to a block the model was actually
+  given? Free, deterministic, and it catches the failure that renders as a plausible
+  source link going nowhere. That is this module.
+* **Semantic** -- does block 3 genuinely support the sentence attached to it? That needs a
+  model, and it lives in `verification.py`.
 
 Unresolvable citations are reported, never rewritten. Silently stripping them would hide
 exactly the hallucination the citation layer exists to expose.
+
+**Code is not prose, and brackets inside it are not citations.** This corpus documents a
+CLI, so answers quote console output such as `[2248755]` -- a process id -- and Python
+like `sys.argv[1]`. Read naively, those become citations to blocks 2,248,755 and 1: the
+first is reported as a fabricated source the model never claimed, and the second silently
+attributes a sentence to whichever chunk happens to rank first. Both were reachable on
+this corpus, so fenced blocks and inline code spans are excluded from citation parsing.
 """
 
 from __future__ import annotations
@@ -16,18 +24,38 @@ from __future__ import annotations
 import re
 from collections.abc import Sequence
 
+from hybridrag.chunking.segmentation import find_code_fences
 from hybridrag.generation.models import Citation, CitationReport
 from hybridrag.retrieval import RetrievedChunk
 
 # Matches [2] and grouped forms the model reaches for unprompted: [1, 3] and [1,3].
 # Adjacent citations ([1][3]) are separate matches, which is the documented style.
-_CITATION = re.compile(r"\[(\d+(?:\s*,\s*\d+)*)\]")
+CITATION_PATTERN = re.compile(r"\[(\d+(?:\s*,\s*\d+)*)\]")
+
+# A single-backtick span, which markdown does not allow to cross a line break.
+_INLINE_CODE = re.compile(r"`[^`\n]+`")
+
+
+def protected_spans(text: str) -> list[tuple[int, int]]:
+    """Character spans where a bracketed number means something other than a citation.
+
+    Fenced blocks first, then inline spans that do not already fall inside one, so a
+    stray backtick inside a fence cannot open a phantom region.
+    """
+    spans = find_code_fences(text)
+    for match in _INLINE_CODE.finditer(text):
+        if not any(start <= match.start() < end for start, end in spans):
+            spans.append((match.start(), match.end()))
+    return spans
 
 
 def parse_citation_numbers(text: str) -> list[int]:
     """Every cited number, in order of first appearance and without duplicates."""
+    protected = protected_spans(text)
     numbers: list[int] = []
-    for match in _CITATION.finditer(text):
+    for match in CITATION_PATTERN.finditer(text):
+        if any(start <= match.start() < end for start, end in protected):
+            continue
         for part in match.group(1).split(","):
             number = int(part.strip())
             if number not in numbers:

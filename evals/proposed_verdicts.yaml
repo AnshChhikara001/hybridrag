@@ -1,0 +1,60 @@
+lookup-017:
+  verdict: incorrect
+  reason: Describes only the app-level openapi_tags metadata parameter and never mentions passing tags=[...] to the path operation decorator, so it does not answer the question asked (torn with partial; chose stricter).
+multi_hop-005:
+  verdict: correct
+  reason: Covers PATCH, exclude_unset to build update_data, copy/update on the stored model, and returning via response_model.
+multi_hop-013:
+  verdict: correct
+  reason: Gives Field(gt=0) for validation and a documented Body-level mechanism for multiple examples in the OpenAPI docs, matching one of the reference's accepted alternatives.
+no_answer-001:
+  verdict: correct
+  reason: Declines, and the documentation does not cover enterprise support SLAs.
+no_answer-003:
+  verdict: correct
+  reason: Declines, and the documentation contains no roadmap or release timeline.
+no_answer-006:
+  verdict: correct
+  reason: Declines, and the documentation publishes no exact-version compatibility matrix.
+no_answer-007:
+  verdict: correct
+  reason: Declines, and the documentation has no audit history or disclosure policy.
+no_answer-008:
+  verdict: correct
+  reason: Declines, and the documentation gives no multi-region or geo-failover patterns.
+no_answer-009:
+  verdict: correct
+  reason: Declines, and the documentation has no cloud-provider tuning guides.
+lookup-001:
+  verdict: correct
+  reason: States scopes are space-separated strings representing permissions with each scope containing no spaces; the extra examples do not detract.
+multi_hop-002:
+  verdict: incorrect
+  reason: Declines although the documentation answers the question via ASGI root_path handling for mounted sub-apps behind a proxy.
+ambiguous-001:
+  verdict: correct
+  reason: Gives both the syntaxHighlight boolean and the syntaxHighlight.theme key via swagger_ui_parameters.
+lookup-002:
+  verdict: correct
+  reason: States they are imported from fastapi and are functions returning instances of same-named special classes.
+multi_hop-006:
+  verdict: correct
+  reason: Concludes the main app's /docs includes neither the mounted sub-application's operations nor the static files mount, on the grounds that mounts are independent.
+ambiguous-002:
+  verdict: correct
+  reason: Presents both as usable, PUT for full replacement (defaults overwriting stored values) and PATCH for partial updates.
+lookup-003:
+  verdict: correct
+  reason: Confirms extra metadata declared in Field is included in the generated JSON Schema, as the reference conveys.
+multi_hop-008:
+  verdict: correct
+  reason: Combines a Response parameter for setting cookies with response_class in the decorator to document the media type.
+ambiguous-006:
+  verdict: correct
+  reason: Conveys that extra headers produce an error response when model_config is set to forbid extra fields.
+lookup-004:
+  verdict: correct
+  reason: Names python-multipart as the package to install.
+multi_hop-014:
+  verdict: correct
+  reason: Shows Annotated File and Form parameters together and explains that multipart/form-data encoding rules out JSON Body fields in the same operation.
