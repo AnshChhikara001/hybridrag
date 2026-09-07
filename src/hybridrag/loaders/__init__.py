@@ -20,21 +20,25 @@ from hybridrag.loaders.base import (
 from hybridrag.loaders.html import HtmlLoader
 from hybridrag.loaders.markdown import MarkdownLoader
 from hybridrag.loaders.pdf import PdfLoader
+from hybridrag.loaders.store import DocumentStore, ProcessedManifest, source_digest
 from hybridrag.loaders.text import TextLoader
 from hybridrag.models import Document
 
 __all__ = [
     "CorpusLoader",
     "DocumentLoader",
+    "DocumentStore",
     "HtmlLoader",
     "LoaderError",
     "MarkdownLoader",
     "PdfLoader",
+    "ProcessedManifest",
     "TextLoader",
     "UnsupportedFormatError",
     "content_hash",
     "default_include_root",
     "normalise_text",
+    "source_digest",
 ]
 
 
