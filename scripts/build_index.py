@@ -200,9 +200,7 @@ def build(
     if dedup:
         # Free: it reuses the very vectors the dense index is about to need, and they come
         # from the same cache, so deduplication costs no additional request.
-        threshold = (
-            dedup_threshold if dedup_threshold is not None else settings.dedup_threshold
-        )
+        threshold = dedup_threshold if dedup_threshold is not None else settings.dedup_threshold
         report = deduplicate(chunks, cached, threshold=threshold)
         typer.echo(f"{elapsed()} dedup: {report.summary()}")
         for entry in report.removed[:5]:
