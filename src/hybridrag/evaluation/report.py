@@ -15,12 +15,14 @@ from __future__ import annotations
 import subprocess
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from statistics import fmean
 
 from pydantic import BaseModel, Field
 
 from hybridrag.evaluation.golden import GoldenSet, QuestionCategory
 from hybridrag.evaluation.harness import METRICS, ArmResult
 from hybridrag.evaluation.judge import LabelSheet, Verdict
+from hybridrag.evaluation.quality import QUALITY_METRICS, FailureKind, QualityArm
 from hybridrag.evaluation.stats import (
     DEFAULT_RESAMPLES,
     DEFAULT_SEED,
@@ -567,4 +569,229 @@ Twenty items is a small sample and the labels are lopsided, which is why the int
 wide rather than why it should be ignored: a judge indistinguishable from chance is still
 conclusively identified as such, and that is the decision this experiment existed to make."""
         )
+    return "\n\n".join(parts) + "\n"
+
+
+# Read beside every Tier-2 number, never without it (D37).
+_JUDGE_CAVEAT = (
+    "**Correctness** is judged by `{judge}`, whose agreement with a human was measured "
+    "before it was trusted: **kappa {kappa:.3f}** [{low:+.3f}, {high:+.3f}] on {n} "
+    "hand-adjudicated items (D37). Every correctness figure below inherits that uncertainty "
+    "on top of its own sampling error.\n\n"
+    "**Grounding is not validated.** The same judge produces it, but no human labelled "
+    "grounding, so its kappa is unknown and the number below is reported for completeness "
+    "rather than as a claim. **Citation honesty is deterministic** -- a bracketed number "
+    "either resolves to a block that was in the prompt or it does not -- and involves no "
+    "judge at all."
+)
+
+
+def render_quality_report(
+    arms: Sequence[QualityArm],
+    golden: GoldenSet,
+    *,
+    judge_kappa: float,
+    judge_kappa_low: float,
+    judge_kappa_high: float,
+    judge_labels: int,
+    resamples: int = DEFAULT_RESAMPLES,
+    seed: int = DEFAULT_SEED,
+) -> str:
+    """The Tier-2 report: answer quality, and which stage caused each failure."""
+    if not arms:
+        raise ValueError("a quality report needs at least one arm")
+    sha, dirty = git_provenance()
+    leader = max(arms, key=lambda arm: fmean(arm.series("correct")) if arm.records else 0.0)
+    answerable_ids = {
+        question.question_id
+        for question in golden.verified()
+        if question.category is not QuestionCategory.NO_ANSWER
+    }
+    parts: list[str] = [
+        f"""# Answer evaluation — Tier 2
+
+What the system answers, whether the answer is grounded in what it retrieved, and where a
+wrong answer went wrong.
+
+**Provenance** · commit `{sha}`{" **(uncommitted changes)**" if dirty else ""} ·
+generator `{arms[0].generation_model}` · judge `{arms[0].judge_model}` ·
+{len(arms[0].records)} questions · bootstrap {resamples:,} resamples, seed {seed}
+
+"""
+        + _JUDGE_CAVEAT.format(
+            judge=arms[0].judge_model,
+            kappa=judge_kappa,
+            low=judge_kappa_low,
+            high=judge_kappa_high,
+            n=judge_labels,
+        ),
+        """## Answer quality
+
+`correct` and `correct or partial` are reported side by side deliberately: partial credit
+flatters a system, and one blended score would hide which of the two moved. Cost per
+answer is priced from token counts rather than from what this run paid, so it stays
+meaningful when the answers come from cache; latency can only be measured on answers
+actually generated, so the live count is shown beside it.""",
+    ]
+
+    rows: list[list[str]] = []
+    for arm in arms:
+        cells = [arm.name]
+        for metric in QUALITY_METRICS:
+            interval = bootstrap_ci(
+                arm.series(metric), resamples=resamples, seed=seed, confidence=0.95
+            )
+            cells.append(f"{interval.mean:.3f} [{interval.low:.3f}, {interval.high:.3f}]")
+        cells.append(f"${arm.modelled_cost_per_answer:.6f}")
+        latency = (
+            f"{arm.median_latency_s:.2f}s ({arm.live_answers}/{len(arm.records)} live)"
+            if arm.live_answers
+            else f"— (0/{len(arm.records)} live)"
+        )
+        cells.append(latency)
+        rows.append(cells)
+    parts.append(_table(rows, ["arm", *QUALITY_METRICS, "cost/answer", "median latency"]))
+
+    if len(arms) > 1:
+        parts.append(
+            """## Does hybrid retrieval produce better *answers*?
+
+Tier 1 showed hybrid retrieves better. This is the question that matters to a user, and it
+is not the same question: better context only helps if the generator uses it. Paired
+bootstrap over the same resampled questions; `*` marks an interval excluding zero."""
+        )
+        rows = []
+        baseline = min(arms, key=lambda arm: fmean(arm.series("correct")))
+        for arm in arms:
+            if arm.name == baseline.name:
+                continue
+            for metric in ("correct", "correct_or_partial", "grounded"):
+                difference = paired_delta(
+                    arm.series(metric),
+                    baseline.series(metric),
+                    resamples=resamples,
+                    seed=seed,
+                )
+                rows.append(
+                    [
+                        f"{arm.name} - {baseline.name}",
+                        metric,
+                        str(difference),
+                        f"{difference.prob_positive:.0%}",
+                    ]
+                )
+        parts.append(_table(rows, ["contrast", "metric", "difference [95% CI]", "P(>0)"]))
+
+    parts.append(f"## By question category — {leader.name}")
+    rows = []
+    for category in QuestionCategory:
+        records = leader.subset(category=category)
+        if not records:
+            continue
+        rows.append(
+            [
+                category.value,
+                str(len(records)),
+                f"{fmean(leader.series('correct', records)):.3f}",
+                f"{fmean(leader.series('correct_or_partial', records)):.3f}",
+                f"{fmean(leader.series('grounded', records)):.3f}",
+                f"{leader.refusal_rate(category):.3f}",
+            ]
+        )
+    parts.append(
+        _table(rows, ["category", "n", "correct", "correct or partial", "grounded", "refused"])
+    )
+
+    parts.append(
+        """## Where the failures come from
+
+The join between the two tiers, and the only table here that says what to fix. A wrong
+answer is attributed to retrieval whenever Tier 1 records that this same arm failed to
+retrieve the answer span -- refusing or fumbling a question whose evidence never arrived is
+not a generation fault, and counting it as one would hide a retrieval problem behind a
+prompt problem."""
+    )
+    rows = []
+    for arm in arms:
+        counts = arm.failures()
+        rows.append(
+            [
+                arm.name,
+                str(sum(counts.values())),
+                *(str(counts.get(kind.value, 0)) for kind in FailureKind),
+                str(sum(1 for record in arm.records if not record.cited_honestly)),
+            ]
+        )
+    parts.append(
+        _table(
+            rows,
+            [
+                "arm",
+                "failures",
+                *(kind.value for kind in FailureKind),
+                "fabricated citations",
+            ],
+        )
+    )
+
+    parts.append(f"## Every answer {leader.name} got wrong")
+    wrong = [record for record in leader.records if record.verdict is not Verdict.CORRECT]
+    if not wrong:
+        parts.append("None: every answer was judged correct.")
+    else:
+        questions = {q.question_id: q for q in golden.verified()}
+        rows = [
+            [
+                record.question_id,
+                record.category.value,
+                record.verdict.value,
+                record.failure.value if record.failure else "-",
+                (record.judge_reason or questions[record.question_id].question)[:90],
+            ]
+            for record in wrong
+        ]
+        parts.append(_table(rows, ["id", "category", "verdict", "attributed to", "judge's reason"]))
+
+    parts.append(
+        "## Refusal behaviour\n\n"
+        "The two errors are not symmetric and are counted apart. These columns count "
+        "**explicit** refusals -- the confidence gate firing, or the model emitting its "
+        "sentinel. A model can also decline in prose without the sentinel, which is counted "
+        "here as an answer and by the judge as a correct decline; that is why an arm can "
+        "show fewer refusals than it has correct no-answer verdicts."
+    )
+    rows = []
+    for arm in arms:
+        unanswerable = arm.subset(category=QuestionCategory.NO_ANSWER)
+        answerable = arm.answerable()
+        false_refusals = [r for r in answerable if not r.answered]
+        rows.append(
+            [
+                arm.name,
+                f"{arm.refusal_rate(QuestionCategory.NO_ANSWER):.0%} ({len(unanswerable)} asked)",
+                f"{len(false_refusals)}/{len(answerable)}",
+                ", ".join(r.question_id for r in false_refusals) or "-",
+            ]
+        )
+    parts.append(
+        _table(
+            rows,
+            ["arm", "refused when unanswerable", "refused when answerable", "which ones"],
+        )
+    )
+
+    parts.append(
+        f"""## Limits of this measurement
+
+* **{len(answerable_ids)} answerable questions and {len(arms[0].records) - len(answerable_ids)}
+  unanswerable ones.** Intervals are wide at this size and are reported rather than hidden.
+* **The judge is imperfect and its imperfection is measured**, not assumed away: kappa
+  {judge_kappa:.3f} against a human on {judge_labels} adjudicated items.
+* **Answers are served from a response cache.** That is what makes a re-run free and
+  reproducible on a model that rejects `temperature` (D27), but it means the numbers
+  describe one sampled generation per question, not an average over several.
+* **Citation honesty checks resolution, not support.** A citation pointing at a real block
+  that does not actually contain the claim is counted honest here; whether the claim is
+  supported at all is what `grounded` measures."""
+    )
     return "\n\n".join(parts) + "\n"
