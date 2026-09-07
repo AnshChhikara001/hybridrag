@@ -428,6 +428,124 @@ refusal-calibration section."""
     return "\n\n".join(parts) + "\n"
 
 
+# The three dimensions the reranker is judged on (D8's guidance): recall and ranking
+# quality at the depth it actually keeps, never Tier-2 correctness, which is at its
+# ceiling and cannot separate a reranked answer from a plain-hybrid one.
+RERANKER_METRICS: tuple[str, ...] = ("recall@5", "ndcg@5", "mrr@5")
+
+
+class RerankerRun(BaseModel):
+    """A reranked arm and its plain-hybrid baseline, per chunking strategy.
+
+    Both lists are scored at `ndcg_at=5` -- not the main grid's 10 -- because 5 is what the
+    reranker actually returns (D8: top-20 in, top-5 out) and what the generator actually
+    reads. `baselines` and `reranked` must be the same length, in the same strategy order,
+    which `render_reranker_report` checks rather than assumes.
+    """
+
+    provenance: Provenance
+    baselines: list[ArmResult] = Field(description="`hybrid/<strategy>`, rescored at depth 5.")
+    reranked: list[ArmResult] = Field(description="`reranked/<strategy>`.")
+    distractor_filename: str = "release-notes.md"
+    distractor_rates: dict[str, float] = Field(
+        default_factory=dict, description="Keyed by arm name, e.g. `hybrid/fixed`."
+    )
+
+
+def render_reranker_report(run: RerankerRun) -> str:
+    """Does the cross-encoder reranker (D8) earn its place over plain hybrid RRF?
+
+    Judged on Tier 1 alone. Tier 2 answer correctness sits at its ceiling -- 0.943,
+    [-0.086, +0.086] hybrid vs. dense-only -- and a five-point gap there is one question
+    changing its mind, so it cannot separate a reranked answer from a plain-hybrid one
+    (see `docs/PROJECT_STATE.md`). The reranker's measurable job is diversity and
+    distractor suppression: `release-notes.md` -- the corpus's changelog, kept in
+    specifically to give a reranker this to do (D28) -- still filling top-5 slots under
+    plain hybrid.
+    """
+    if len(run.baselines) != len(run.reranked):
+        raise ValueError(
+            f"{len(run.baselines)} baseline arm(s) but {len(run.reranked)} reranked "
+            "arm(s) -- they must pair one-to-one by chunking strategy."
+        )
+    prov = run.provenance
+    dirty = " **(uncommitted changes)**" if prov.git_dirty else ""
+    parts: list[str] = [
+        f"""# Reranker evaluation — Tier 1
+
+Does adding a cross-encoder rerank pass on top of hybrid RRF improve retrieval? Every
+number below is scored at a 5-wide horizon, because that is what the reranker keeps and
+what the generator reads -- scoring at 10 would credit the baseline for chunks the
+reranked pipeline never returns to a caller.
+
+**Provenance** · generated {prov.generated_at} · commit `{prov.git_sha}`{dirty} ·
+corpus `{prov.corpus_ref}` · bootstrap {prov.resamples:,} resamples, seed {prov.seed}"""
+    ]
+
+    parts.append(
+        "## Headline: paired bootstrap, reranked vs plain hybrid\n\n"
+        "Same resampled questions scored under both arms, which cancels question "
+        "difficulty. `*` marks an interval that excludes zero -- the only circumstance "
+        "under which a difference here is a claim rather than a hint."
+    )
+    rows = []
+    for baseline, reranked in zip(run.baselines, run.reranked, strict=True):
+        if baseline.strategy is not reranked.strategy:
+            raise ValueError(
+                f"baseline arm {baseline.name} paired against reranked arm "
+                f"{reranked.name} -- strategies must match position for position."
+            )
+        for metric in RERANKER_METRICS:
+            difference = delta(reranked, baseline, metric, prov)
+            rows.append(
+                [
+                    baseline.strategy.value,
+                    metric,
+                    str(interval(baseline, metric, prov)),
+                    str(interval(reranked, metric, prov)),
+                    str(difference),
+                    f"{difference.prob_positive:.0%}",
+                ]
+            )
+    parts.append(
+        _table(
+            rows,
+            ["chunking", "metric", "hybrid", "hybrid + rerank", "difference [95% CI]", "P(>0)"],
+        )
+    )
+
+    parts.append(
+        f"## Distractor rate: share of top-5 slots from `{run.distractor_filename}`\n\n"
+        "The corpus's changelog is kept in deliberately (D28) so the reranker has real "
+        "distractor content to suppress. A lower rate here is that job being done."
+    )
+    rows = [
+        [
+            baseline.strategy.value,
+            f"{run.distractor_rates.get(baseline.name, float('nan')):.1%}",
+            f"{run.distractor_rates.get(reranked.name, float('nan')):.1%}",
+        ]
+        for baseline, reranked in zip(run.baselines, run.reranked, strict=True)
+    ]
+    parts.append(_table(rows, ["chunking", "hybrid", "hybrid + rerank"]))
+
+    verdict_lines = []
+    for baseline, reranked in zip(run.baselines, run.reranked, strict=True):
+        recall_delta = delta(reranked, baseline, "recall@5", prov)
+        verdict = "separated" if recall_delta.significant else "**not separated from zero**"
+        verdict_lines.append(
+            f"- **{baseline.strategy.value}**: recall@5 {recall_delta} -- {verdict}"
+        )
+    parts.append(
+        "## Verdict, per chunking strategy\n\n"
+        "The reranker ships as the default only where this separates in its favour; "
+        "otherwise this is reported as a negative result rather than decorated.\n\n"
+        + "\n".join(verdict_lines)
+    )
+
+    return "\n\n".join(parts) + "\n"
+
+
 class JudgeRun(BaseModel):
     """What one candidate judge said about every labelled item, and what it cost."""
 

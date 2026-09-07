@@ -4,7 +4,7 @@ Deterministic retrieval metrics over the hand-verified golden set. No language m
 involved anywhere in this report, so it costs nothing to reproduce and cannot drift with a
 model release.
 
-**Provenance** · generated 2026-09-07T01:22:16+00:00 · commit `552fc03` **(uncommitted changes)** ·
+**Provenance** · generated 2026-09-07T14:57:48+00:00 · commit `e4beff8` **(uncommitted changes)** ·
 corpus `0.115.6` · embedder `text-embedding-3-small` ·
 chunks 512 tokens / 64 overlap ·
 semantic percentile 95.0 · RRF rank constant 60 ·
@@ -49,15 +49,15 @@ Mean over questions, with a 95% percentile bootstrap interval.
 
 | arm | recall@1 | recall@3 | recall@5 | recall@10 | mrr@10 | ndcg@10 | recall@budget | latency |
 |---|---|---|---|---|---|---|---|---|
-| hybrid/fixed | 0.552 | 0.793 | 0.897 | 0.897 | 0.674 | 0.794 | 0.862 | 8.1 ms |
+| hybrid/fixed | 0.552 | 0.793 | 0.897 | 0.897 | 0.674 | 0.794 | 0.862 | 8.2 ms |
 | dense/fixed | 0.448 | 0.724 | 0.828 | 0.897 | 0.591 | 0.742 | 0.793 | 4.3 ms |
-| sparse/fixed | 0.586 | 0.690 | 0.793 | 0.897 | 0.662 | 0.779 | 0.724 | 2.9 ms |
-| hybrid/structure | 0.483 | 0.655 | 0.759 | 0.759 | 0.593 | 0.728 | 0.759 | 11.2 ms |
-| dense/structure | 0.379 | 0.621 | 0.655 | 0.828 | 0.520 | 0.678 | 0.828 | 6.4 ms |
-| sparse/structure | 0.276 | 0.655 | 0.655 | 0.793 | 0.468 | 0.631 | 0.759 | 4.4 ms |
-| hybrid/semantic | 0.414 | 0.690 | 0.828 | 0.897 | 0.575 | 0.757 | 0.897 | 14.4 ms |
-| dense/semantic | 0.379 | 0.517 | 0.724 | 0.897 | 0.515 | 0.718 | 0.862 | 8.7 ms |
-| sparse/semantic | 0.414 | 0.586 | 0.690 | 0.724 | 0.517 | 0.643 | 0.724 | 4.7 ms |
+| sparse/fixed | 0.586 | 0.690 | 0.793 | 0.897 | 0.662 | 0.779 | 0.724 | 3.0 ms |
+| hybrid/structure | 0.483 | 0.655 | 0.759 | 0.759 | 0.593 | 0.728 | 0.759 | 11.5 ms |
+| dense/structure | 0.379 | 0.621 | 0.655 | 0.828 | 0.520 | 0.678 | 0.828 | 6.5 ms |
+| sparse/structure | 0.276 | 0.655 | 0.655 | 0.793 | 0.468 | 0.631 | 0.759 | 4.2 ms |
+| hybrid/semantic | 0.414 | 0.690 | 0.828 | 0.897 | 0.575 | 0.757 | 0.897 | 14.8 ms |
+| dense/semantic | 0.379 | 0.517 | 0.724 | 0.897 | 0.515 | 0.718 | 0.862 | 8.4 ms |
+| sparse/semantic | 0.414 | 0.586 | 0.690 | 0.724 | 0.517 | 0.643 | 0.724 | 4.6 ms |
 
 ## Does hybrid actually beat its parts?
 
