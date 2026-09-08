@@ -3,7 +3,7 @@
 Recovery file. Current architecture, locked decisions and their rationale, progress, and
 the next step. Updated whenever a decision or milestone lands.
 
-**Last updated:** 2026-09-07 · **Status:** Phases 1 and 4 **complete**; Phase 2 **closed** — the reranker was built, measured on Tier 1, and does not ship as the default (a negative result); RRF weights are now swept and configurable. Phase 5 (API & dashboard) is next.
+**Last updated:** 2026-09-08 · **Status:** Phases 1 and 4 **complete**; Phase 2 **closed** — the reranker was built, measured on Tier 1, and does not ship as the default (a negative result); RRF weights are now swept and configurable. Phase 5.1 (API) and 5.2 (dashboard) are **built**; default generation provider switched from Gemini to `gpt-5-mini` (D55) after the dashboard's doubled request load exposed the free tier's 5 req/min pace gate. Phase 5.3 (Docker) is next.
 
 ---
 
@@ -78,6 +78,7 @@ Full requirements: `docs/project-brief.md`. Operating rules: `CLAUDE.md`.
 | D52 | **Reranker built on fastembed's ONNX cross-encoder, not `sentence-transformers`** | D8 named the model (`ms-marco-MiniLM-L-6-v2`), not the runtime. fastembed -- already this project's embedding dependency -- ships `Xenova/ms-marco-MiniLM-L-6-v2`, an ONNX build of the identical weights `sentence-transformers` would load through PyTorch. Adding `sentence-transformers` would mean a second inference runtime and a `torch` install running to hundreds of MB to a few GB on the 8 GB dev machine (see Environment, below); fastembed serves the same weights in ~80 MB over onnxruntime, already installed. Same model, same $0, one fewer heavy dependency. |
 | D53 | **The reranker does not separate from plain hybrid on Tier 1, and does not ship as the default** | Measured, paired bootstrap, 5-wide horizon (top-20 in, top-5 out, matching what the reranker actually returns): Recall@5 moves **-0.069 [-0.172, +0.000]** on fixed, **+0.000 [-0.103, +0.103]** on structure, **-0.034 [-0.172, +0.103]** on semantic -- no interval separates from zero, and fixed's own point estimate is a net loss. The distractor rate (top-5 slots from `release-notes.md`, D28) does not consistently improve either: fixed **4.1% → 6.9%** (worse), structure **9.7% → 10.3%** (worse), semantic **10.3% → 8.3%** (better). Full report: `evals/reports/reranker.md`. Leading candidate explanation, not proven: RRF fusion already combines two complementary signals -- BM25's exact-match on this corpus's 797 code identifiers (D1) and dense semantic similarity -- and a general-purpose MS MARCO cross-encoder, trained on web-passage QA rather than API documentation, is a *third*, weaker opinion on exactly the queries where lexical match already wins. Reported as a negative result, the way D43 reported dedup's, rather than shipped for the portfolio's sake. |
 | D54 | **RRF weights are configurable and swept; the equal 1:1 default is kept** | The brief requires fusion to be "configurable so you can tune it" (D20 built the knob; this exercises it). Dense:sparse swept 0.25:1 to 4:1 on the winning arm (hybrid/fixed), $0, no language model. Recall@5 is flat at 0.897 from 0.5:1 through 4:1 and drops only when sparse dominates outright (0.25:1 → 0.828). nDCG@10 is highest at 0.5:1 (favouring sparse 2x) at 0.819 against 1:1's 0.794, but only Recall@5 was paired-bootstrapped here, and every non-baseline interval on it includes zero -- so the apparent nDCG edge is not established as more than noise, and the unweighted default stays. Full table: `evals/reports/rrf_weights.md`. |
+| D55 | **Supersedes D31's "$0 interactive-demo path": default generation switched from Gemini free tier to `gpt-5-mini-2025-08-07`**, via `HYBRIDRAG_GENERATION_PROVIDER`/`_MODEL` in `.env` (code default in `config.py` untouched, so D4/D31 still describe what a clean checkout does) | D31 assumed 20 req/day was ample for interactive use; the Phase 5.2 dashboard breaks that assumption by design (every question fires hybrid *and* dense-only concurrently, 2 generation calls each, to show the comparison the brief asks for on every question rather than behind a toggle). Measured directly: `GeminiModel`'s client-side pacer (`gemini.py:137`) hard-caps the *process* to 5 req/min regardless of concurrency, so two concurrent dashboard calls already serialise behind a 12s gate — and a single **unpaced, unthrottled** call still measured **28.5s** (free-tier backend load, not just quota). The same question pair on `gpt-5-mini`: **3.8s and 3.9s, running genuinely concurrently**, both answers correct and cited, at **$0.0012 + $0.0011 = ~$0.0023/question-pair** — the $0.50 generation allowance (already raised for this) covers ~200 such pairs. Gemini stays available and free (`HYBRIDRAG_GENERATION_PROVIDER=gemini`) for anyone running this without spending money; it is no longer what the dashboard uses by default. |
 
 ## Environment (measured)
 
@@ -96,7 +97,7 @@ pytest · ruff · mypy · GitHub Actions.
 
 ## Budget
 
-Ceiling **$1.00**. **Spent to date: ~$0.381 — unchanged by Phase 2.** Generation allowance raised to $0.50 by the user; almost none of it is needed while the free tier is up.
+Ceiling **$1.00**. **Spent to date: ~$0.383.** Generation allowance raised to $0.50 by the user; Phase 5.2 (D55) is now the first thing actually spending from it, at ~$0.0023/question-pair on `gpt-5-mini`.
 
 | item | cost |
 |---|---|
@@ -111,7 +112,8 @@ Ceiling **$1.00**. **Spent to date: ~$0.381 — unchanged by Phase 2.** Generati
 | Tier-2 re-run after the refusal changed (structured refusal) | $0.0117 |
 | Phase 3 `--verify` demos and the free-scan cache misses | $0.0021 |
 | Phase 2: reranker build, 9-arm Tier-1 rerank comparison, RRF weight sweep (local cross-encoder + BM25/dense, no LLM, ~168s wall-clock) | $0.0000 |
-| **Total** | **~$0.290** |
+| Phase 5.2 debugging: raw `gpt-5-mini` smoke test + one live hybrid/dense-only pair through the dashboard's own code path (D55) | $0.0024 |
+| **Total** | **~$0.292** |
 
 The wasted run is recorded rather than quietly dropped: it embedded a prose-only corpus
 built from the wrong root, and is what led to D22. The corrected rebuild cost **$0.0000** —
@@ -150,7 +152,13 @@ query embeddings are cached: Tier 1 involves no language model at all.
 - [x] Phase 2 **complete** — cross-encoder reranker built and measured on Tier 1 (D52, D53);
       does not separate from plain hybrid and does not ship as the default -- a reported
       negative result, not a gap. RRF weights swept and configurable (D54). 532 tests.
-- [ ] Phase 5 — API & dashboard · [ ] Phase 6 — polish
+- [x] Phase 5.1 — FastAPI service (`/health`, `/v1/documents`, `/v1/ask` with hybrid/dense-only
+      ablation, `/v1/ingest` with document-scoped re-ingest and a full BM25 rebuild); 14 offline
+      tests, `Resources` built once at startup, per-store locks for thread safety
+- [x] Phase 5.2 — Streamlit dashboard (`dashboard/`): every question runs hybrid and
+      dense-only concurrently and shows both, with citations, retrieved chunks (dense/sparse/
+      both provenance), the confidence breakdown, and cost/latency telemetry; 32 tests
+- [ ] Phase 5.3 — Docker + seed script · [ ] Phase 6 — polish
 
 ## Known risks
 
@@ -482,18 +490,46 @@ retrieval results already computed, at no extra model call.
 
 ## Next step
 
-Phases 1, 2, 3 and 4 are complete. **~$0.381 spent of $1.00**, and every report re-runs at $0.
+Phases 1, 2, 3 and 4 are complete. Phase 5.1 (FastAPI service) and 5.2 (Streamlit dashboard)
+are built and tested. **~$0.383 spent of $1.00**; every retrieval report still re-runs at $0,
+and the dashboard's real per-question spend is ~$0.0023 on the current default (D55).
 
 Next, in order:
 
-1. **Phase 5** — FastAPI service, dashboard, Docker, seed script. The evaluation work is
-   the strongest thing here and none of it is visible without something to open. The
-   dashboard's "hybrid vs dense-only" comparison should sit beside a plain note that a
-   reranker was tried and measured out (D53) -- the brief asks for the comparison, not a
-   guarantee the fancy path wins. Docker gets explained in depth.
+1. **Phase 5.3** — Docker + seed script, containerising the API (the dashboard is a second,
+   optional container: it only ever talks to the API over HTTP, never the library directly).
+   Docker gets explained in depth per `CLAUDE.md`.
 2. **Phase 6** — README and case study, where these numbers become the portfolio argument.
    The reranker negative result (D53) is exactly the kind of finding the brief rewards:
-   "prefer measured numbers... report negative results honestly."
+   "prefer measured numbers... report negative results honestly." The dashboard's
+   hybrid-vs-dense-only comparison, sitting beside D53's note that the reranker was tried and
+   measured out, is the same discipline applied twice.
+
+### Phase 5.1 + 5.2 — built (2026-09-08)
+
+The FastAPI service (`src/hybridrag/api/`) wraps the existing retrieval/generation pipeline
+in three routes: `/v1/ask` (with a `mode` field for hybrid vs. dense-only ablation, settled
+as a cross-cutting exception ahead of 5.2 needing it), `/v1/documents`, and `/v1/ingest`
+(chunk, dedupe, embed into the dense index, then a full BM25 rebuild -- D33's IDF-is-
+corpus-relative constraint applies to a single new document exactly as it does to the whole
+corpus). `Resources` is built once at process startup rather than per request; the chunk
+store, embedding cache and completion cache each gained a `threading.Lock` scoped to just
+their SQLite calls, so concurrent requests still hit the model provider in parallel. 14
+offline tests, `TestClient` with `build_resources()` bypassed via `dependency_overrides`.
+
+The dashboard (`dashboard/`, not part of the installed package -- a separate `uv` dependency
+group so the API never needs Streamlit) is a design deliberately built around the system's
+own mechanism: dense (teal) and sparse (amber) are the two literal RRF inputs, fused
+(violet) is what hybrid mode is coloured, and each retrieved chunk shows which index(es)
+actually surfaced it, straight from `RetrievedChunk.hits`. Every question fires hybrid and
+dense-only concurrently (`ThreadPoolExecutor`) against the running API and shows both.
+
+Debugging this in real use (D55) is what surfaced Gemini's free-tier pace gate as a genuine
+UX problem, not just an eval-time one: `GeminiModel`'s pacer holds the whole process to one
+call every 12 seconds regardless of concurrency, and the dashboard's own design (both modes,
+every question) doubles the calls per question. Switched the default provider to
+`gpt-5-mini` via `.env`, not the code default, so a clean checkout with no `.env` still runs
+$0 on Gemini -- D55 has the measured before/after.
 
 ### Phase 2 — closed (2026-09-07)
 
