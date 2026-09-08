@@ -1,0 +1,14 @@
+# Streamlit's own theme for its native widgets (buttons, inputs, expanders). The
+# hand-drawn HTML (confidence meters, citation tags, chunk cards) is styled separately in
+# dashboard/theme.py -- the two must stay in sync, which is why both use the same six hex
+# values documented there.
+[theme]
+base = "dark"
+primaryColor = "#B98CFF"
+backgroundColor = "#0B0E14"
+secondaryBackgroundColor = "#131826"
+textColor = "#E7ECF5"
+font = "sans serif"
+
+[browser]
+gatherUsageStats = false

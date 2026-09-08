@@ -4,6 +4,10 @@ __pycache__/
 *.pyc
 .DS_Store
 
+# Streamlit's own secrets file (unused today -- config.toml holds no secrets and is
+# committed -- but ignored preemptively so one never lands here by accident).
+.streamlit/secrets.toml
+
 # data artifacts (regenerable; keep the tree, drop the contents)
 data/raw/*
 data/processed/*
