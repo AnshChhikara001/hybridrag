@@ -3,7 +3,7 @@
 Recovery file. Current architecture, locked decisions and their rationale, progress, and
 the next step. Updated whenever a decision or milestone lands.
 
-**Last updated:** 2026-09-08 · **Status:** Phases 1 and 4 **complete**; Phase 2 **closed** — the reranker was built, measured on Tier 1, and does not ship as the default (a negative result); RRF weights are now swept and configurable. Phase 5.1 (API) and 5.2 (dashboard) are **built**; default generation provider switched from Gemini to `gpt-5-mini` (D55) after the dashboard's doubled request load exposed the free tier's 5 req/min pace gate. Phase 5.3 (Docker) is next.
+**Last updated:** 2026-09-08 · **Status:** Phases 1 and 4 **complete**; Phase 2 **closed** — the reranker was built, measured on Tier 1, and does not ship as the default (a negative result); RRF weights are now swept and configurable. Phase 5.1 (API) and 5.2 (dashboard) are **built**; default generation provider switched from Gemini to `gpt-5-mini` (D55) after the dashboard's doubled request load exposed the free tier's 5 req/min pace gate. Phase 6 (README, architecture diagram, numbers-first case study) is **built**. Phase 5.3 (Docker) is the one piece of the original six-phase brief not shipped — this is a local-only portfolio deliverable by choice, recorded as a known gap rather than a silent omission.
 
 ---
 
@@ -158,7 +158,9 @@ query embeddings are cached: Tier 1 involves no language model at all.
 - [x] Phase 5.2 — Streamlit dashboard (`dashboard/`): every question runs hybrid and
       dense-only concurrently and shows both, with citations, retrieved chunks (dense/sparse/
       both provenance), the confidence breakdown, and cost/latency telemetry; 32 tests
-- [ ] Phase 5.3 — Docker + seed script · [ ] Phase 6 — polish
+- [ ] Phase 5.3 — Docker + seed script (not built; see "Known risks" and Next step)
+- [x] Phase 6 — README, Mermaid architecture diagram, LICENSE, numbers-first case study
+      pulling every headline figure straight from `evals/reports/`
 
 ## Known risks
 
@@ -490,20 +492,26 @@ retrieval results already computed, at no extra model call.
 
 ## Next step
 
-Phases 1, 2, 3 and 4 are complete. Phase 5.1 (FastAPI service) and 5.2 (Streamlit dashboard)
-are built and tested. **~$0.383 spent of $1.00**; every retrieval report still re-runs at $0,
-and the dashboard's real per-question spend is ~$0.0023 on the current default (D55).
+Phases 1, 2, 3, 4 and 6 are complete. Phase 5.1 (FastAPI service) and 5.2 (Streamlit
+dashboard) are built and tested. **~$0.383 spent of $1.00**; every retrieval report still
+re-runs at $0, and the dashboard's real per-question spend is ~$0.0023 on the current
+default (D55).
 
-Next, in order:
+The user decided this ships as a local-only portfolio piece — no deployment. Phase 5.3
+(Docker + seed script) is therefore **not planned**, not merely deferred: `README.md`
+states plainly that this wasn't built, rather than implying a container that doesn't
+exist. If that decision changes, Docker gets explained in depth per `CLAUDE.md` when it's
+picked back up.
 
-1. **Phase 5.3** — Docker + seed script, containerising the API (the dashboard is a second,
-   optional container: it only ever talks to the API over HTTP, never the library directly).
-   Docker gets explained in depth per `CLAUDE.md`.
-2. **Phase 6** — README and case study, where these numbers become the portfolio argument.
-   The reranker negative result (D53) is exactly the kind of finding the brief rewards:
-   "prefer measured numbers... report negative results honestly." The dashboard's
-   hybrid-vs-dense-only comparison, sitting beside D53's note that the reranker was tried and
-   measured out, is the same discipline applied twice.
+### Phase 6 — README and case study (2026-09-08)
+
+`README.md` pulls every headline figure directly from `evals/reports/` — Tier 1 retrieval
+(hybrid vs. dense vs. sparse), Tier 2 answer quality, the citation-verification negative
+control, and the reranker's negative result (D53) reported beside the wins rather than
+omitted, exactly the discipline `CLAUDE.md` asks for: "prefer measured numbers... report
+negative results honestly." A Mermaid architecture diagram renders natively on GitHub.
+Added a root `LICENSE` (MIT, matching the FastAPI corpus it indexes) and hardened
+`.gitignore` against `.streamlit/secrets.toml` before anything used it.
 
 ### Phase 5.1 + 5.2 — built (2026-09-08)
 
