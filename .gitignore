@@ -23,3 +23,6 @@ htmlcov/
 .coverage
 *.egg-info/
 dist/
+
+# Local operating instructions for Claude Code -- not for the public repo
+CLAUDE.md

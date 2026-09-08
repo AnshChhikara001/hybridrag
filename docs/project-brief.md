@@ -1,8 +1,6 @@
 # Project Brief — RAG Pipeline with Hybrid Search Over Internal Docs
 
-Transcribed verbatim-in-substance from the three source screenshots
-(AIEngineerAccelerator, "Project 6"). This file is the requirements source of truth;
-the screenshots are the original artefact.
+This file is the requirements source of truth for the project.
 
 ## What You're Building
 
@@ -11,13 +9,10 @@ internal documentation, indexes it with both dense vector and sparse keyword sea
 retrieves the most relevant context for any question, and generates grounded answers with
 inline source citations.
 
-## Why This Project Lands Interviews
-
-> RAG is the single most requested skill in AI engineering job descriptions. But most
-> candidates build a toy demo with a single PDF. You're building a system with hybrid
-> retrieval, chunking strategy decisions, and citation verification — the production
-> concerns that separate a real RAG engineer from someone who followed a LangChain
-> quickstart.
+RAG is one of the most commonly requested capabilities in AI engineering work today, and
+most reference implementations stop at a toy demo over a single PDF. This spec instead
+asks for hybrid retrieval, chunking-strategy decisions, and citation verification — the
+production concerns that separate a real RAG system from a quickstart tutorial.
 
 ## Tech Stack (as proposed by the brief)
 
@@ -61,8 +56,8 @@ inline source citations.
    (e.g. 0.7 dense / 0.3 sparse) so it can be tuned per use case.
 4. **Reranker** — send the top 20 fused candidates through a cross-encoder reranker (a
    small model or LLM-as-judge) that scores each chunk's relevance to the actual question.
-   Keep the top 5. This second pass dramatically improves precision and is a strong
-   interview talking point.
+   Keep the top 5. This second pass is intended to improve precision — measure it rather
+   than assume it.
 
 ## Phase 3: Generation and Citation Layer (Day 6–9)
 
@@ -96,7 +91,7 @@ inline source citations.
    pipeline change.
 3. **Chunking strategy comparison** — run the same eval suite across all three chunking
    strategies. Generate a comparison report showing which strategy wins on which metrics.
-   This data drives architecture decisions and gives concrete numbers for interviews.
+   This data drives architecture decisions.
 
 ## Phase 5: API and Dashboard (Day 11–13)
 
@@ -111,12 +106,11 @@ inline source citations.
    the frontend. Include a seed script that indexes a sample documentation corpus so
    reviewers can spin it up and test immediately.
 
-## Phase 6: Portfolio Polish (Day 13–14)
+## Phase 6: Documentation and Case Study (Day 13–14)
 
 1. **Demo walkthrough** — under 4 minutes. Show ingesting documents, asking questions of
    varying difficulty, citation verification catching a hallucination, and the hybrid vs
    dense-only comparison.
-2. **Case study** — framed as "I built a RAG system with hybrid search that achieves X%
-   faithfulness and Y% citation accuracy on a 50-question eval suite." Lead with the
-   numbers. Explain why hybrid beats dense-only for technical documentation. Show the
-   chunking strategy comparison data.
+2. **Case study** — lead with the numbers: measured faithfulness and citation accuracy on
+   the eval suite. Explain why hybrid beats dense-only for technical documentation. Show
+   the chunking strategy comparison data.
