@@ -31,6 +31,12 @@ dev = [
     "ruff>=0.8",
     "mypy>=1.13",
 ]
+# Separate from `dev`: the API (Phase 5.1) never imports Streamlit, so a plain
+# `uv sync` for the service stays free of a UI toolkit it does not use.
+dashboard = [
+    "streamlit>=1.40",
+    "requests>=2.32",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -57,7 +63,7 @@ extend-immutable-calls = ["fastapi.Depends"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["src", "tests", "scripts"]
+files = ["src", "tests", "scripts", "dashboard"]
 # tests/fixtures holds corpus data, not source: those .py files are inputs to the
 # loader, deliberately written as documentation examples rather than typed code.
 exclude = "^tests/fixtures/"
@@ -70,6 +76,9 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Lets tests import dashboard/*.py the same bare way app.py does (Streamlit puts the
+# script's own directory on sys.path at runtime; this mirrors that for pytest).
+pythonpath = ["dashboard"]
 addopts = "-q --strict-markers"
 markers = [
     # Touches the real embedding model, so it downloads ~67 MB on a cold cache.
