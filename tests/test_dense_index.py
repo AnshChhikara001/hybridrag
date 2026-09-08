@@ -133,3 +133,23 @@ def test_deleting_a_strategy_removes_only_its_vectors(topic_embedder: Embedder) 
 def test_deleting_a_strategy_that_is_absent_is_a_no_op(index: DenseIndex) -> None:
     assert index.delete_strategy(ChunkingStrategy.SEMANTIC) == 0
     assert len(index) == 3
+
+
+def test_deleting_a_document_removes_only_its_own_vectors(topic_embedder: Embedder) -> None:
+    """Guards re-ingestion: a shorter revision must not leave the old version's tail behind."""
+    dense = DenseIndex.in_memory(topic_embedder)
+    dense.add(
+        [
+            make_chunk("a1", "alpha content", relative_path="a.md"),
+            make_chunk("a2", "alpha more content", relative_path="a.md"),
+            make_chunk("b1", "beta content", relative_path="b.md"),
+        ]
+    )
+
+    assert dense.delete_document("a.md", ChunkingStrategy.STRUCTURE) == 2
+    assert dense.chunk_ids() == {"b1"}
+
+
+def test_deleting_a_document_absent_from_this_strategy_is_a_no_op(index: DenseIndex) -> None:
+    assert index.delete_document("guide.md", ChunkingStrategy.FIXED) == 0
+    assert len(index) == 3

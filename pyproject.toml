@@ -19,6 +19,9 @@ dependencies = [
     "google-genai>=2.22.0",
     "pyyaml>=6.0.3",
     "types-pyyaml>=6.0.12.20260815",
+    "fastapi>=0.118",
+    "uvicorn>=0.34",
+    "python-multipart>=0.0.20",
 ]
 
 [dependency-groups]
@@ -44,6 +47,12 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF"]
+
+# FastAPI's `Depends(...)` in a parameter default is the framework's own dependency-
+# injection idiom, not the mutable-default-argument bug B008 exists to catch: the call is
+# only ever evaluated once per request, by Starlette, never shared as mutable state.
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends"]
 
 [tool.mypy]
 python_version = "3.12"
