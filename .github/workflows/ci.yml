@@ -43,7 +43,10 @@ jobs:
       - name: Install dependencies
         # --locked fails the build if uv.lock disagrees with pyproject.toml, so CI can
         # never silently resolve a different dependency set than the one committed.
-        run: uv sync --locked
+        # --group dashboard on top of the implicit default "dev" group: mypy's `files`
+        # list (pyproject.toml) type-checks dashboard/, so its dependencies (Streamlit)
+        # need to be on disk here too, not just for a contributor running it locally.
+        run: uv sync --locked --group dashboard
 
       - name: Lint
         run: uv run ruff check .
