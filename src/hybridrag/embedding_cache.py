@@ -18,6 +18,7 @@ loaded into memory; and a single file that is trivial to delete or ship.
 from __future__ import annotations
 
 import sqlite3
+import threading
 from collections.abc import Sequence
 from hashlib import sha256
 from pathlib import Path
@@ -45,6 +46,10 @@ class CachedEmbedder:
         self._db.execute("PRAGMA synchronous=NORMAL")
         self._db.execute("CREATE TABLE IF NOT EXISTS vectors (key TEXT PRIMARY KEY, vec BLOB)")
         self._db.commit()
+        # Guards only the sqlite calls in `_fetch`/`_store`, not `_compute`: the API runs
+        # concurrent requests in a threadpool, and holding this across an embedding call
+        # would serialise every request on the model itself instead of just the cache.
+        self._lock = threading.Lock()
 
     @property
     def dimension(self) -> int:
@@ -65,22 +70,24 @@ class CachedEmbedder:
 
     def _fetch(self, keys: Sequence[str]) -> dict[str, Vector]:
         found: dict[str, Vector] = {}
-        for start in range(0, len(keys), _LOOKUP_BATCH):
-            batch = keys[start : start + _LOOKUP_BATCH]
-            placeholders = ",".join("?" * len(batch))
-            rows = self._db.execute(
-                f"SELECT key, vec FROM vectors WHERE key IN ({placeholders})", batch
-            ).fetchall()
-            for key, blob in rows:
-                found[key] = np.frombuffer(blob, dtype=np.float32)
+        with self._lock:
+            for start in range(0, len(keys), _LOOKUP_BATCH):
+                batch = keys[start : start + _LOOKUP_BATCH]
+                placeholders = ",".join("?" * len(batch))
+                rows = self._db.execute(
+                    f"SELECT key, vec FROM vectors WHERE key IN ({placeholders})", batch
+                ).fetchall()
+                for key, blob in rows:
+                    found[key] = np.frombuffer(blob, dtype=np.float32)
         return found
 
     def _store(self, pairs: list[tuple[str, Vector]]) -> None:
-        self._db.executemany(
-            "INSERT OR REPLACE INTO vectors (key, vec) VALUES (?, ?)",
-            [(key, vector.astype(np.float32, copy=False).tobytes()) for key, vector in pairs],
-        )
-        self._db.commit()
+        with self._lock:
+            self._db.executemany(
+                "INSERT OR REPLACE INTO vectors (key, vec) VALUES (?, ?)",
+                [(key, vector.astype(np.float32, copy=False).tobytes()) for key, vector in pairs],
+            )
+            self._db.commit()
 
     def _embed(self, texts: Sequence[str], kind: str) -> Vector:
         if not texts:

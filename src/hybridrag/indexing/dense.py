@@ -106,6 +106,21 @@ class DenseIndex:
             self.collection.delete(ids=doomed)
         return len(doomed)
 
+    def delete_document(self, relative_path: str, strategy: ChunkingStrategy) -> int:
+        """Drop one document's vectors under one strategy, returning how many went.
+
+        Mirrors `delete_strategy` at document scope: re-ingesting a document that now
+        chunks to fewer pieces than its previous version would otherwise leave the old
+        version's surplus vectors behind, answering queries with ids no chunk store holds.
+        """
+        doomed = self.collection.get(
+            where={"$and": [{"relative_path": relative_path}, {"strategy": strategy.value}]},
+            include=[],
+        )["ids"]
+        if doomed:
+            self.collection.delete(ids=doomed)
+        return len(doomed)
+
     def add(self, chunks: Iterable[Chunk]) -> None:
         """Embed and index chunks, in batches Chroma will accept."""
         materialised = list(chunks)
