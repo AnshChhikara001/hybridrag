@@ -19,6 +19,7 @@ are what queries actually index on.
 from __future__ import annotations
 
 import sqlite3
+import threading
 from collections.abc import Iterable, Iterator, Sequence
 from pathlib import Path
 
@@ -51,6 +52,12 @@ class ChunkStore:
         self._db = sqlite3.connect(path, check_same_thread=False)
         self._db.execute("PRAGMA journal_mode=WAL")
         self._db.execute("PRAGMA synchronous=NORMAL")
+        # check_same_thread=False only lifts sqlite3's same-thread assertion; it does not
+        # make the connection safe under genuine concurrent use. The API runs sync handlers
+        # in a threadpool, so one lock per store serialises access -- reentrant because
+        # `iter_chunks` holds it across a generator's yields, and a caller consuming it from
+        # inside another locked call (same thread) must not deadlock on itself.
+        self._lock = threading.RLock()
         self._create_schema()
 
     @classmethod
@@ -89,14 +96,16 @@ class ChunkStore:
         self._db.close()
 
     def __len__(self) -> int:
-        count: int = self._db.execute("SELECT COUNT(*) FROM chunks").fetchone()[0]
-        return count
+        with self._lock:
+            count: int = self._db.execute("SELECT COUNT(*) FROM chunks").fetchone()[0]
+            return count
 
     def __contains__(self, chunk_id: str) -> bool:
-        return (
-            self._db.execute("SELECT 1 FROM chunks WHERE chunk_id = ?", (chunk_id,)).fetchone()
-            is not None
-        )
+        with self._lock:
+            return (
+                self._db.execute("SELECT 1 FROM chunks WHERE chunk_id = ?", (chunk_id,)).fetchone()
+                is not None
+            )
 
     def add(self, chunks: Iterable[Chunk]) -> None:
         """Insert or replace chunks.
@@ -106,28 +115,30 @@ class ChunkStore:
         (document, strategy, position), so a rebuild overwrites its own previous rows and
         leaves everything else alone.
         """
-        self._db.executemany(
-            "INSERT OR REPLACE INTO chunks "
-            "(chunk_id, doc_id, relative_path, strategy, payload) VALUES (?, ?, ?, ?, ?)",
-            (
+        with self._lock:
+            self._db.executemany(
+                "INSERT OR REPLACE INTO chunks "
+                "(chunk_id, doc_id, relative_path, strategy, payload) VALUES (?, ?, ?, ?, ?)",
                 (
-                    chunk.chunk_id,
-                    chunk.doc_id,
-                    chunk.relative_path,
-                    chunk.strategy.value,
-                    chunk.model_dump_json(),
-                )
-                for chunk in chunks
-            ),
-        )
-        self._db.commit()
+                    (
+                        chunk.chunk_id,
+                        chunk.doc_id,
+                        chunk.relative_path,
+                        chunk.strategy.value,
+                        chunk.model_dump_json(),
+                    )
+                    for chunk in chunks
+                ),
+            )
+            self._db.commit()
 
     def get(self, chunk_id: str) -> Chunk | None:
         """One chunk, or None when the id is unknown."""
-        row = self._db.execute(
-            "SELECT payload FROM chunks WHERE chunk_id = ?", (chunk_id,)
-        ).fetchone()
-        return None if row is None else Chunk.model_validate_json(row[0])
+        with self._lock:
+            row = self._db.execute(
+                "SELECT payload FROM chunks WHERE chunk_id = ?", (chunk_id,)
+            ).fetchone()
+            return None if row is None else Chunk.model_validate_json(row[0])
 
     def get_many(self, chunk_ids: Sequence[str]) -> list[Chunk]:
         """Chunks for `chunk_ids`, **in the order requested**.
@@ -142,15 +153,16 @@ class ChunkStore:
 
         found: dict[str, Chunk] = {}
         unique = list(dict.fromkeys(chunk_ids))
-        for start in range(0, len(unique), _LOOKUP_BATCH):
-            batch = unique[start : start + _LOOKUP_BATCH]
-            placeholders = ",".join("?" * len(batch))
-            rows = self._db.execute(
-                f"SELECT chunk_id, payload FROM chunks WHERE chunk_id IN ({placeholders})",
-                batch,
-            ).fetchall()
-            for chunk_id, payload in rows:
-                found[chunk_id] = Chunk.model_validate_json(payload)
+        with self._lock:
+            for start in range(0, len(unique), _LOOKUP_BATCH):
+                batch = unique[start : start + _LOOKUP_BATCH]
+                placeholders = ",".join("?" * len(batch))
+                rows = self._db.execute(
+                    f"SELECT chunk_id, payload FROM chunks WHERE chunk_id IN ({placeholders})",
+                    batch,
+                ).fetchall()
+                for chunk_id, payload in rows:
+                    found[chunk_id] = Chunk.model_validate_json(payload)
 
         missing = [chunk_id for chunk_id in unique if chunk_id not in found]
         if missing:
@@ -162,30 +174,35 @@ class ChunkStore:
 
     def chunk_ids(self, strategy: ChunkingStrategy | None = None) -> set[str]:
         """Every id held, so the indexes can be checked against the store and each other."""
-        if strategy is None:
-            rows = self._db.execute("SELECT chunk_id FROM chunks").fetchall()
-        else:
-            rows = self._db.execute(
-                "SELECT chunk_id FROM chunks WHERE strategy = ?", (strategy.value,)
-            ).fetchall()
-        return {row[0] for row in rows}
+        with self._lock:
+            if strategy is None:
+                rows = self._db.execute("SELECT chunk_id FROM chunks").fetchall()
+            else:
+                rows = self._db.execute(
+                    "SELECT chunk_id FROM chunks WHERE strategy = ?", (strategy.value,)
+                ).fetchall()
+            return {row[0] for row in rows}
 
     def iter_chunks(self, strategy: ChunkingStrategy | None = None) -> Iterator[Chunk]:
         """Stream chunks, optionally for one strategy.
 
         Streamed rather than returned as a list because Phase 4 holds three strategies in
         one store, and rebuilding an index should not require the whole corpus in memory.
-        Ordered by id so a rebuild is reproducible.
+        Ordered by id so a rebuild is reproducible. The lock is held for the whole
+        generator's life, not just each fetch: releasing it between rows would let another
+        thread mutate the table mid-stream, so a caller that starts this and never
+        exhausts it will stall other threads on this store until the generator is closed.
         """
-        if strategy is None:
-            cursor = self._db.execute("SELECT payload FROM chunks ORDER BY chunk_id")
-        else:
-            cursor = self._db.execute(
-                "SELECT payload FROM chunks WHERE strategy = ? ORDER BY chunk_id",
-                (strategy.value,),
-            )
-        for (payload,) in cursor:
-            yield Chunk.model_validate_json(payload)
+        with self._lock:
+            if strategy is None:
+                cursor = self._db.execute("SELECT payload FROM chunks ORDER BY chunk_id")
+            else:
+                cursor = self._db.execute(
+                    "SELECT payload FROM chunks WHERE strategy = ? ORDER BY chunk_id",
+                    (strategy.value,),
+                )
+            for (payload,) in cursor:
+                yield Chunk.model_validate_json(payload)
 
     def delete_strategy(self, strategy: ChunkingStrategy) -> int:
         """Drop every chunk of one strategy, returning how many rows went.
@@ -194,6 +211,22 @@ class ChunkStore:
         chunks than last time: upsert alone would leave the tail of the previous run
         behind as chunks no index points at.
         """
-        cursor = self._db.execute("DELETE FROM chunks WHERE strategy = ?", (strategy.value,))
-        self._db.commit()
-        return cursor.rowcount
+        with self._lock:
+            cursor = self._db.execute("DELETE FROM chunks WHERE strategy = ?", (strategy.value,))
+            self._db.commit()
+            return cursor.rowcount
+
+    def delete_document(self, relative_path: str, strategy: ChunkingStrategy) -> int:
+        """Drop one document's chunks under one strategy, returning how many rows went.
+
+        Mirrors `delete_strategy` at document scope: re-ingesting a document that now
+        chunks to fewer pieces than its previous version would otherwise leave the tail of
+        the old version behind as chunks no index points at.
+        """
+        with self._lock:
+            cursor = self._db.execute(
+                "DELETE FROM chunks WHERE relative_path = ? AND strategy = ?",
+                (relative_path, strategy.value),
+            )
+            self._db.commit()
+            return cursor.rowcount

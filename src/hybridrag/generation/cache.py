@@ -22,6 +22,7 @@ takes the opposite side, because a chunk that fails to load is data loss.
 from __future__ import annotations
 
 import sqlite3
+import threading
 import time
 from hashlib import sha256
 from pathlib import Path
@@ -60,6 +61,11 @@ class CachedLanguageModel:
             ")"
         )
         self._db.commit()
+        # Guards only `_load`/`_store`, not the call to `self.inner.generate` in
+        # `generate()` below: the API serves concurrent requests from a threadpool, and
+        # holding this across a network call would serialise every in-flight answer on
+        # whichever one is talking to the provider.
+        self._lock = threading.Lock()
 
     @property
     def fingerprint(self) -> str:
@@ -70,8 +76,9 @@ class CachedLanguageModel:
         self._db.close()
 
     def __len__(self) -> int:
-        count: int = self._db.execute("SELECT COUNT(*) FROM completions").fetchone()[0]
-        return count
+        with self._lock:
+            count: int = self._db.execute("SELECT COUNT(*) FROM completions").fetchone()[0]
+            return count
 
     def _key(self, prompt: str, system: str | None, max_output_tokens: int | None) -> str:
         """Content address for one call.
@@ -92,7 +99,10 @@ class CachedLanguageModel:
         return sha256(payload.encode("utf-8")).hexdigest()
 
     def _load(self, key: str) -> Completion | None:
-        row = self._db.execute("SELECT payload FROM completions WHERE key = ?", (key,)).fetchone()
+        with self._lock:
+            row = self._db.execute(
+                "SELECT payload FROM completions WHERE key = ?", (key,)
+            ).fetchone()
         if row is None:
             return None
         try:
@@ -103,12 +113,13 @@ class CachedLanguageModel:
             return None
 
     def _store(self, key: str, completion: Completion) -> None:
-        self._db.execute(
-            "INSERT OR REPLACE INTO completions (key, fingerprint, payload, created_at) "
-            "VALUES (?, ?, ?, ?)",
-            (key, self.inner.fingerprint, completion.model_dump_json(), time.time()),
-        )
-        self._db.commit()
+        with self._lock:
+            self._db.execute(
+                "INSERT OR REPLACE INTO completions (key, fingerprint, payload, created_at) "
+                "VALUES (?, ?, ?, ?)",
+                (key, self.inner.fingerprint, completion.model_dump_json(), time.time()),
+            )
+            self._db.commit()
 
     def generate(
         self,

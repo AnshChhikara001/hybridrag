@@ -153,6 +153,30 @@ def test_deleting_a_strategy_leaves_the_others_alone(
     assert len(store) == 2
 
 
+def test_deleting_a_document_leaves_other_documents_and_strategies_alone(
+    store: ChunkStore, make_chunk: MakeChunk
+) -> None:
+    a_fixed = [
+        make_chunk(i, strategy=ChunkingStrategy.FIXED, relative_path="a.md") for i in range(2)
+    ]
+    b_fixed = make_chunk(9, strategy=ChunkingStrategy.FIXED, relative_path="b.md")
+    a_structure = make_chunk(0, strategy=ChunkingStrategy.STRUCTURE, relative_path="a.md")
+    store.add([*a_fixed, b_fixed, a_structure])
+
+    assert store.delete_document("a.md", ChunkingStrategy.FIXED) == 2
+    assert store.chunk_ids(ChunkingStrategy.FIXED) == {b_fixed.chunk_id}
+    assert store.chunk_ids(ChunkingStrategy.STRUCTURE) == {a_structure.chunk_id}
+    assert len(store) == 2
+
+
+def test_deleting_a_document_absent_from_this_strategy_is_a_no_op(
+    store: ChunkStore, make_chunk: MakeChunk
+) -> None:
+    store.add([make_chunk(0, strategy=ChunkingStrategy.FIXED, relative_path="a.md")])
+    assert store.delete_document("a.md", ChunkingStrategy.STRUCTURE) == 0
+    assert len(store) == 1
+
+
 def test_chunks_survive_closing_and_reopening_the_file(
     tmp_path: Path, make_chunk: MakeChunk
 ) -> None:
