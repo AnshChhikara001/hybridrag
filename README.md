@@ -75,7 +75,7 @@ started:
 | 3 · Generation & citation | Grounded prompt, `[n]` inline citations, claim-level citation verification, composite confidence, structured "I don't know" | ✅ complete |
 | 4 · Evaluation | Hand-verified 35-question golden set; Tier 1 (retrieval, deterministic) + Tier 2 (LLM-judged answer quality, judge validated against human labels) | ✅ complete |
 | 5 · API & dashboard | FastAPI service with OpenAPI docs; Streamlit dashboard showing hybrid-vs-dense-only side by side | ✅ complete |
-| 6 · Portfolio polish | This README, architecture diagram, numbers-first case study | ✅ this document |
+| 6 · Documentation & case study | This README, architecture diagram, numbers-first case study | ✅ this document |
 
 ## Key technical decisions
 
@@ -234,9 +234,9 @@ run `uv run pytest` for the full suite).
   advantage, and that's a testable claim this project doesn't itself test.
 - **The reranker's negative result is one cross-encoder, one corpus.** It doesn't
   generalize to "reranking never helps" — it generalizes to "measure before you ship it."
-- **No deployment.** This is a portfolio project run locally; it is not hosted, and the
-  Docker phase named in the original brief was not built (see
-  [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) for what's built vs. what's next).
+- **No deployment.** This runs locally by design; it is not hosted, and containerized
+  deployment was not built (see [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md) for
+  what's built vs. what's next).
 
 ## Project structure
 
