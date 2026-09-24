@@ -13,6 +13,15 @@ reranker, the RRF weight sweep — that's reported too, not hidden.
 ![Tests](https://img.shields.io/badge/tests-580%2B%20passing-brightgreen)
 ![Cost](https://img.shields.io/badge/spent-%240.29%20of%20%241.00-informational)
 
+**At a glance** (full numbers and 95% bootstrap intervals in [Evaluation](#evaluation)):
+
+| | |
+|---|---|
+| Retrieval, Recall@5 | **0.897** hybrid · 0.828 dense-only · 0.793 BM25-only |
+| Citation support | **0.900** for cited passages vs 0.050 for random ones (negative control) |
+| Cross-encoder reranker | built and measured; didn't beat plain hybrid, so it's off by default |
+| Cost | $0.29 total API spend; retrieval evals re-run at $0 |
+
 ---
 
 ## The problem
@@ -47,7 +56,7 @@ flowchart LR
     subgraph Retrieval["2 · Hybrid retrieval"]
         D --> G[Reciprocal Rank Fusion<br/>configurable dense:sparse weight]
         E --> G
-        G --> H[Cross-encoder rerank<br/>measured, off by default — D53]
+        G --> H[Cross-encoder rerank<br/>measured, off by default]
     end
 
     subgraph Generation["3 · Generation & citation"]
@@ -71,7 +80,7 @@ started:
 | Phase | What it does | Status |
 |---|---|---|
 | 1 · Ingestion & chunking | Multi-format loaders; three switchable chunkers (fixed / structure-aware / semantic); dense + sparse indexes built from the same chunks; document-scoped near-duplicate detection | ✅ complete |
-| 2 · Reranking | Cross-encoder reranker built and measured on the golden set | ✅ closed — measured out, doesn't ship (D53) |
+| 2 · Reranking | Cross-encoder reranker built and measured on the golden set | ✅ closed — measured, doesn't ship |
 | 3 · Generation & citation | Grounded prompt, `[n]` inline citations, claim-level citation verification, composite confidence, structured "I don't know" | ✅ complete |
 | 4 · Evaluation | Hand-verified 35-question golden set; Tier 1 (retrieval, deterministic) + Tier 2 (LLM-judged answer quality, judge validated against human labels) | ✅ complete |
 | 5 · API & dashboard | FastAPI service with OpenAPI docs; Streamlit dashboard showing hybrid-vs-dense-only side by side | ✅ complete |
@@ -84,13 +93,13 @@ in [`docs/PROJECT_STATE.md`](docs/PROJECT_STATE.md). The ones that shape the sys
 
 | Decision | Why |
 |---|---|
-| **Corpus: FastAPI's own docs** (D1) | 797 unique inline-code identifiers give BM25 a genuine, measured chance to beat dense retrieval — the project's core thesis, not an assumption. |
-| **Fusion reads ranks, never scores** (D20) | BM25's scores are unbounded and corpus-dependent; cosine sits in [-1, 1]. Min-max normalizing per query would make the fused rank depend on each list's spread, not its relevance. RRF sidesteps that entirely. |
-| **The reranker was built, measured, and did not ship** (D52, D53) | Paired bootstrap on the golden set: no interval separates reranked-hybrid from plain hybrid, and the point estimate on the default chunking arm is a net *loss* (Recall@5 −0.069). Reported as a negative result rather than shipped for the demo's sake. |
-| **RRF weights are configurable and swept; the 1:1 default stays** (D54) | The brief requires the fusion weight to be tunable. Swept 0.25:1 to 4:1 — Recall@5 is flat from 0.5:1 to 4:1, so the simplest default is also the justified one. |
-| **Citation verification uses a negative control** (D47) | A judge model grading citations is worthless unless it's shown to discriminate. Cited (real) blocks score 0.900 supported; random blocks from the same corpus score 0.050 — a 0.85 separation with a confidence interval that excludes zero. That's what licenses trusting the 0.900 number at all. |
-| **The correctness judge is validated against human labels before being trusted** (D37) | `gpt-5-mini` reaches κ = 0.730 against 20 hand-adjudicated verdicts. A cheaper judge (`gpt-5-nano`) was tried first and measured **indistinguishable from chance** (κ = 0.007) — disqualified by measurement, not by assumption. |
-| **Generation provider is a `.env` override, not a code default** (D55) | Gemini's free tier is genuinely free but paces the whole process to 5 requests/minute; the dashboard doubles the request load per question (hybrid + dense-only, concurrently). Switching the *default* would silently cost a clean checkout money. `HYBRIDRAG_GENERATION_PROVIDER=openai` opts in explicitly; an unconfigured checkout still runs on Gemini at $0. |
+| **Corpus: FastAPI's own docs** | 797 unique inline-code identifiers give BM25 a genuine, measured chance to beat dense retrieval — the project's core thesis, not an assumption. |
+| **Fusion reads ranks, never scores** | BM25's scores are unbounded and corpus-dependent; cosine sits in [-1, 1]. Min-max normalizing per query would make the fused rank depend on each list's spread, not its relevance. RRF sidesteps that entirely. |
+| **The reranker was built, measured, and did not ship** | Paired bootstrap on the golden set: no interval separates reranked-hybrid from plain hybrid, and the point estimate on the default chunking arm is a net *loss* (Recall@5 −0.069). Reported as a negative result rather than shipped for the demo's sake. |
+| **RRF weights are configurable and swept; the 1:1 default stays** | The fusion weight has to be tunable. Swept 0.25:1 to 4:1 — Recall@5 is flat from 0.5:1 to 4:1, so the simplest default is also the justified one. |
+| **Citation verification uses a negative control** | A judge model grading citations is worthless unless it's shown to discriminate. Cited (real) blocks score 0.900 supported; random blocks from the same corpus score 0.050 — a 0.85 separation with a confidence interval that excludes zero. That's what licenses trusting the 0.900 number at all. |
+| **The correctness judge is validated against human labels before being trusted** | `gpt-5-mini` reaches κ = 0.730 against 20 hand-adjudicated verdicts. A cheaper judge (`gpt-5-nano`) was tried first and measured **indistinguishable from chance** (κ = 0.007) — disqualified by measurement, not by assumption. |
+| **Generation provider is a `.env` override, not a code default** | Gemini's free tier is genuinely free but paces the whole process to 5 requests/minute; the dashboard doubles the request load per question (hybrid + dense-only, concurrently). Switching the *default* would silently cost a clean checkout money. `HYBRIDRAG_GENERATION_PROVIDER=openai` opts in explicitly; an unconfigured checkout still runs on Gemini at $0. |
 | **Dashboard talks to the API over HTTP, never imports the library directly** | Keeps the dashboard a true client of the service being demonstrated — the same contract any real consumer would use — and keeps Streamlit out of the API's own dependency tree. |
 
 ## Evaluation
@@ -217,7 +226,7 @@ run `uv run pytest` for the full suite).
   correctness; the cheaper one was measured statistically indistinguishable from chance
   (κ = 0.007) and disqualified before it could quietly inflate every downstream number.
 - **Config over code for a cost-sensitive default.** Switching the generation provider
-  live during the dashboard build (D55) via an environment variable, not a code change,
+  live during the dashboard build via an environment variable, not a code change,
   meant the fix was reversible and a clean checkout's behavior never silently changed.
 
 ## Limitations
