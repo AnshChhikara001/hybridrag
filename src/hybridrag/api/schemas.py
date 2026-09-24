@@ -18,7 +18,7 @@ from hybridrag.models import ChunkingStrategy, SourceFormat
 class RetrievalMode(StrEnum):
     """What `/v1/ask` searches with. Settled now even though only the Phase 5.2 dashboard
     needs the ablation -- adding the field later would mean a second pass over an API
-    contract already in use, per CLAUDE.md's cross-cutting-constraint rule.
+    contract already in use.
     """
 
     HYBRID = "hybrid"

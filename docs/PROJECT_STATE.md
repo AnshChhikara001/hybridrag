@@ -15,7 +15,7 @@ cross-encoder reranker was built and measured but does not currently sit in the 
 path (D53). Answers are grounded, carry inline citations, and every citation is verified.
 Architecture decisions are made from a measured evaluation suite rather than asserted.
 
-Full requirements: `docs/project-brief.md`. Operating rules: `CLAUDE.md`.
+Full requirements: `docs/project-brief.md`.
 
 ---
 
@@ -319,7 +319,7 @@ below the conventional 0.60 bar for "substantial". At n=20 with lopsided labels 
 estimate is the claim and the interval is the caveat. What the sample *does* settle beyond
 doubt is the negative: a judge at chance level is unmistakable.
 
-**Label provenance:** labels were proposed by a stronger model (Claude Desktop) and
+**Label provenance:** labels were proposed by a stronger model and
 adjudicated by the author, who agreed with all 20 proposals. Proposals live in a separate
 field and never enter the statistics. The defensible wording is "judge-human agreement,
 n=20, labels model-proposed and author-adjudicated" -- not "hand-labelled from scratch".
@@ -497,19 +497,17 @@ dashboard) are built and tested. **~$0.383 spent of $1.00**; every retrieval rep
 re-runs at $0, and the dashboard's real per-question spend is ~$0.0023 on the current
 default (D55).
 
-The user decided this ships local-only, with no deployment. Phase 5.3
+Decided: this ships local-only, with no deployment. Phase 5.3
 (Docker + seed script) is therefore **not planned**, not merely deferred: `README.md`
 states plainly that this wasn't built, rather than implying a container that doesn't
-exist. If that decision changes, Docker gets explained in depth per `CLAUDE.md` when it's
-picked back up.
+exist. If that decision changes, Phase 5.3 is picked back up as its own phase.
 
 ### Phase 6 — README and case study (2026-09-08)
 
 `README.md` pulls every headline figure directly from `evals/reports/` — Tier 1 retrieval
 (hybrid vs. dense vs. sparse), Tier 2 answer quality, the citation-verification negative
 control, and the reranker's negative result (D53) reported beside the wins rather than
-omitted, exactly the discipline `CLAUDE.md` asks for: "prefer measured numbers... report
-negative results honestly." A Mermaid architecture diagram renders natively on GitHub.
+omitted: measured numbers first, negative results reported honestly. A Mermaid architecture diagram renders natively on GitHub.
 Added a root `LICENSE` (MIT, matching the FastAPI corpus it indexes) and hardened
 `.gitignore` against `.streamlit/secrets.toml` before anything used it.
 
