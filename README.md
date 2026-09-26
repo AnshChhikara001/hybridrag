@@ -261,7 +261,7 @@ src/hybridrag/
 dashboard/          Streamlit UI — a client of the API, not a library import
 scripts/            CLI entry points (build_index, ask, evaluate_*, sweep_rrf_weights)
 evals/              golden set, judge labels, generated reports
-docs/               PROJECT_STATE.md (full decision log), project-brief.md
+docs/               PROJECT_STATE.md (full decision log)
 tests/              580+ tests, mirroring src/ layout
 ```
 

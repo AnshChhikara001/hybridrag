@@ -15,8 +15,6 @@ cross-encoder reranker was built and measured but does not currently sit in the 
 path (D53). Answers are grounded, carry inline citations, and every citation is verified.
 Architecture decisions are made from a measured evaluation suite rather than asserted.
 
-Full requirements: `docs/project-brief.md`.
-
 ---
 
 ## Locked decisions
@@ -130,7 +128,7 @@ query embeddings are cached: Tier 1 involves no language model at all.
 
 ## Progress
 
-- [x] Requirements captured, brief transcribed, corpus verified
+- [x] Requirements captured, corpus verified
 - [x] Architecture decisions D1–D12 locked
 - [x] Phase 1.1 — scaffolding, config, domain models
 - [x] Phase 1.2 — multi-format loaders (155 docs, 1872 sections, 0 ID collisions)
