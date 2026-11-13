@@ -37,7 +37,6 @@ from hybridrag.evaluation import (
     DEFAULT_TOKEN_BUDGET,
     ArmResult,
     ChunkStats,
-    GoldenSet,
     GridResult,
     RerankerRun,
     Split,
@@ -50,7 +49,7 @@ from hybridrag.evaluation import (
     render_reranker_report,
     run_arm,
 )
-from hybridrag.evaluation.report import DirtyTreeError, require_clean_tree
+from hybridrag.evaluation.cli import SplitOption, exit_if_dirty, load_split
 from hybridrag.indexing import (
     DenseIndex,
     SparseIndex,
@@ -135,9 +134,7 @@ def evaluate(
     out_dir: Annotated[Path, typer.Option(help="Where the report is written.")] = Path(
         "evals/reports"
     ),
-    split: Annotated[
-        Split, typer.Option(help="Golden set Split. Only held_out gives published numbers.")
-    ] = Split.HELD_OUT,
+    split: SplitOption = Split.HELD_OUT,
     depth: Annotated[int, typer.Option(help="How deep each arm retrieves.")] = DEFAULT_DEPTH,
     budget: Annotated[
         int, typer.Option(help="Context budget for Recall@budget, in tokens.")
@@ -176,13 +173,9 @@ def evaluate(
     if not corpus.is_dir():
         typer.echo(f"error: {corpus} is not a directory. Run scripts/fetch_corpus.sh first.")
         raise typer.Exit(code=1)
-    try:
-        require_clean_tree()
-    except DirtyTreeError as error:
-        typer.echo(f"error: {error}")
-        raise typer.Exit(code=1) from error
+    exit_if_dirty()
 
-    golden = GoldenSet.load(golden_path).for_split(split)
+    golden = load_split(golden_path, split)
     typer.echo(f"{elapsed()} golden set: {len(golden.verified())} verified questions")
 
     typer.echo(f"{elapsed()} loading corpus {corpus}")
