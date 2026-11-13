@@ -224,7 +224,7 @@ def run_arm(
             category=question.category,
             top_dense_score=top_dense,
         )
-        if question.category is QuestionCategory.NO_ANSWER:
+        if not question.category.answerable:
             refusals.append(probe)
             continue
         answerable.append(probe)
@@ -271,4 +271,4 @@ def distractor_rate(arms: Iterable[ArmResult], *, filename: str) -> float:
 
 def answerable(golden: GoldenSet) -> list[GoldenQuestion]:
     """Verified questions that have retrieval ground truth."""
-    return [q for q in golden.verified() if q.category is not QuestionCategory.NO_ANSWER]
+    return [q for q in golden.verified() if q.category.answerable]

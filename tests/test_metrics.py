@@ -11,7 +11,13 @@ from __future__ import annotations
 
 import pytest
 
-from hybridrag.evaluation.golden import AnswerSpan, GoldenQuestion, QuestionCategory, is_hit
+from hybridrag.evaluation.golden import (
+    AnswerSpan,
+    GoldenQuestion,
+    QuestionCategory,
+    Split,
+    is_hit,
+)
 from hybridrag.evaluation.metrics import (
     budget_prefix,
     coverage,
@@ -61,6 +67,7 @@ def question(
 ) -> GoldenQuestion:
     return GoldenQuestion(
         question_id="q001",
+        split=Split.TUNING,
         category=category,
         question="What declares the model?",
         answer="Alpha does.",
@@ -251,6 +258,7 @@ class TestRefusals:
     def test_a_no_answer_question_has_no_retrieval_score(self) -> None:
         golden = GoldenQuestion(
             question_id="n001",
+            split=Split.TUNING,
             category=QuestionCategory.NO_ANSWER,
             question="What is FastAPI's enterprise SLA?",
             answer="",

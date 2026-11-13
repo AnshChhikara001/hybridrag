@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import pytest
 
-from hybridrag.evaluation.golden import QuestionCategory
+from hybridrag.evaluation.golden import QuestionCategory, Split
 from hybridrag.evaluation.judge import Verdict
 from hybridrag.evaluation.quality import (
     AnswerRecord,
@@ -162,6 +162,7 @@ class TestReference:
 
         question = GoldenQuestion(
             question_id="n1",
+            split=Split.TUNING,
             category=QuestionCategory.NO_ANSWER,
             question="What is the SLA?",
             answer="",

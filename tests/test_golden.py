@@ -18,6 +18,7 @@ from hybridrag.evaluation.golden import (
     GoldenSet,
     QuestionCategory,
     SpanNotFoundError,
+    Split,
     covered_ratio,
     is_hit,
 )
@@ -62,6 +63,7 @@ def question(
         "category": category,
         "question": "What declares the model?",
         "answer": "Alpha does.",
+        "split": Split.TUNING,
         "spans": spans
         if spans is not None
         else [AnswerSpan(relative_path="guide.md", quote="Alpha declares the model.")],
@@ -301,3 +303,88 @@ class TestWhitespaceTolerantMatching:
 
         with pytest.raises(SpanNotFoundError, match="even ignoring whitespace"):
             q.locate({"guide.md": document()})
+
+
+class TestFormatVersion2:
+    """Every question names its Split, so no script can mix tuning and published numbers."""
+
+    def test_a_question_without_a_split_is_rejected(self) -> None:
+        with pytest.raises(ValueError, match="split"):
+            GoldenQuestion.model_validate(
+                {
+                    "question_id": "q001",
+                    "category": "no_answer",
+                    "question": "What is the support SLA?",
+                    "answer": "",
+                }
+            )
+
+    def test_a_held_out_question_needs_a_source_url(self) -> None:
+        with pytest.raises(ValueError, match="held_out-q001 needs a source_url"):
+            question(question_id="held_out-q001", split=Split.HELD_OUT)
+
+    def test_a_held_out_question_with_a_source_url_is_valid(self) -> None:
+        q = question(
+            split=Split.HELD_OUT,
+            source_url="https://stackoverflow.com/questions/1",
+        )
+
+        assert q.source_url == "https://stackoverflow.com/questions/1"
+
+    def test_an_off_topic_question_must_have_no_spans(self) -> None:
+        with pytest.raises(ValueError, match="no spans"):
+            question(category=QuestionCategory.OFF_TOPIC)
+
+    def test_an_off_topic_question_is_valid_when_empty(self) -> None:
+        q = question(category=QuestionCategory.OFF_TOPIC, spans=[], answer="")
+
+        assert not q.category.answerable
+
+    def test_only_the_three_span_categories_are_answerable(self) -> None:
+        assert [c.value for c in QuestionCategory if c.answerable] == [
+            "lookup",
+            "multi_hop",
+            "ambiguous",
+        ]
+
+    def test_an_off_topic_question_has_no_retrieval_ground_truth(self) -> None:
+        q = question(category=QuestionCategory.OFF_TOPIC, spans=[], answer="")
+
+        with pytest.raises(ValueError, match="refusal rate"):
+            is_hit(q, [], [chunk(0, 10)])
+
+    def test_a_version_1_file_refuses_to_load_and_names_the_version(self, tmp_path: Path) -> None:
+        path = tmp_path / "golden_set.yaml"
+        path.write_text("format_version: 1\ncorpus_ref: '0.115.6'\nquestions: []\n")
+
+        with pytest.raises(ValueError, match=r"format version 1\b.*reads version 2"):
+            GoldenSet.load(path)
+
+
+class TestSplitSelection:
+    GOLDEN = GoldenSet(
+        corpus_ref="0.115.6",
+        questions=[
+            question(question_id="t1", verified=True),
+            question(
+                question_id="h1",
+                split=Split.HELD_OUT,
+                source_url="https://stackoverflow.com/questions/1",
+                verified=True,
+            ),
+            question(question_id="t2", verified=True),
+        ],
+    )
+
+    def test_a_split_keeps_only_its_own_questions_in_order(self) -> None:
+        assert [q.question_id for q in self.GOLDEN.for_split(Split.TUNING).verified()] == [
+            "t1",
+            "t2",
+        ]
+        assert [q.question_id for q in self.GOLDEN.for_split(Split.HELD_OUT).verified()] == ["h1"]
+
+    def test_a_split_with_no_verified_questions_stops_the_run(self) -> None:
+        tuning_only = GoldenSet(corpus_ref="0.115.6", questions=[question(verified=True)])
+
+        with pytest.raises(ValueError, match="no verified held_out questions"):
+            tuning_only.for_split(Split.HELD_OUT)

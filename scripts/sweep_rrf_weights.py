@@ -31,10 +31,12 @@ from hybridrag.evaluation import (
     DEFAULT_DEPTH,
     DEFAULT_TOKEN_BUDGET,
     GoldenSet,
+    Split,
     build_pools,
     locate_all,
     run_arm,
 )
+from hybridrag.evaluation.report import DirtyTreeError, git_provenance, require_clean_tree
 from hybridrag.evaluation.stats import DEFAULT_RESAMPLES, DEFAULT_SEED, bootstrap_ci, paired_delta
 from hybridrag.indexing import (
     DenseIndex,
@@ -85,6 +87,9 @@ def sweep(
     golden_path: Annotated[Path, typer.Option(help="The golden set.")] = Path(
         "evals/golden_set.yaml"
     ),
+    split: Annotated[
+        Split, typer.Option(help="Golden set Split. Only held_out gives published numbers.")
+    ] = Split.HELD_OUT,
     out_dir: Annotated[Path, typer.Option(help="Where the report is written.")] = Path(
         "evals/reports"
     ),
@@ -103,8 +108,14 @@ def sweep(
     if not corpus.is_dir():
         typer.echo(f"error: {corpus} is not a directory. Run scripts/fetch_corpus.sh first.")
         raise typer.Exit(code=1)
+    try:
+        require_clean_tree()
+    except DirtyTreeError as error:
+        typer.echo(f"error: {error}")
+        raise typer.Exit(code=1) from error
+    sha, _ = git_provenance()
 
-    golden = GoldenSet.load(golden_path)
+    golden = GoldenSet.load(golden_path).for_split(split)
     documents = _load_corpus(corpus)
     located = locate_all(golden, documents)
     typer.echo(f"{elapsed()} golden set: {len(golden.verified())} verified questions")
@@ -186,8 +197,8 @@ def sweep(
 project's unweighted 1:1 default. Only the ratio matters (D20): RRF's score is a sum of
 `weight / (rank_constant + rank)`, so scaling both weights together changes nothing.
 
-**Provenance** · corpus `{golden.corpus_ref}` · depth {depth} · bootstrap {DEFAULT_RESAMPLES:,}
-resamples, seed {DEFAULT_SEED}
+**Provenance** · commit `{sha}` · split `{split.value}` · corpus `{golden.corpus_ref}` ·
+depth {depth} · bootstrap {DEFAULT_RESAMPLES:,} resamples, seed {DEFAULT_SEED}
 
 {table}
 

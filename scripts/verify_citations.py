@@ -35,12 +35,14 @@ from hybridrag.config import get_settings
 from hybridrag.embedding import Embedder, FastEmbedEmbedder
 from hybridrag.embedding_cache import CachedEmbedder
 from hybridrag.embedding_openai import OpenAIEmbedder
-from hybridrag.evaluation import GoldenSet, QuestionCategory
+from hybridrag.evaluation import GoldenSet, Split
 from hybridrag.evaluation.report import (
+    DirtyTreeError,
     VerificationRun,
     VerifiedClaim,
     git_provenance,
     render_verification_report,
+    require_clean_tree,
 )
 from hybridrag.evaluation.stats import DEFAULT_SEED
 from hybridrag.generation import (
@@ -152,20 +154,19 @@ def verify(
     ),
     golden_path: Annotated[Path, typer.Option()] = Path("evals/golden_set.yaml"),
     out_dir: Annotated[Path, typer.Option()] = Path("evals/reports"),
+    split: Annotated[
+        Split, typer.Option(help="Golden set Split. Only held_out gives published numbers.")
+    ] = Split.HELD_OUT,
     dry_run: Annotated[bool, typer.Option(help="Price the run, spend nothing.")] = False,
     index_dir: Annotated[Path | None, typer.Option()] = None,
 ) -> None:
     """Verify every citation on the golden set, with a negative control."""
     settings = get_settings()
-    golden = GoldenSet.load(golden_path)
-    # no_answer questions should be refused, so they carry no citations to verify.
+    golden = GoldenSet.load(golden_path).for_split(split)
+    # Unanswerable questions should be refused, so they carry no citations to verify.
     # Filtered on the category rather than on an empty reference: these do carry
     # reference text, explaining *why* the corpus cannot answer them.
-    answerable = [
-        question
-        for question in golden.questions
-        if question.category is not QuestionCategory.NO_ANSWER
-    ]
+    answerable = [question for question in golden.verified() if question.category.answerable]
 
     if dry_run:
         expected = len(answerable) * CLAIMS_PER_ANSWER
@@ -183,6 +184,11 @@ def verify(
             f"${calls * COST_PER_CALL:.4f}   (budget ${budget:.2f})"
         )
         raise typer.Exit()
+    try:
+        require_clean_tree()
+    except DirtyTreeError as error:
+        typer.echo(f"error: {error}")
+        raise typer.Exit(code=1) from error
 
     if settings.openai_api_key is None:
         typer.echo("error: OPENAI_API_KEY is not set. Put it in .env.")
@@ -246,6 +252,7 @@ def verify(
         generated_at=datetime.now(UTC).isoformat(timespec="seconds"),
         git_sha=sha,
         git_dirty=dirty,
+        split=split,
         arm="hybrid",
         strategy=strategy.value,
         generation_model=GENERATION_MODEL,

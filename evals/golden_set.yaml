@@ -3,11 +3,12 @@
 # Every entry below was manually checked for question realism, evidence support,
 # category correctness and duplication. Spans trimmed to the smallest verbatim
 # passage that supports the answer.
-format_version: 1
+format_version: 2
 corpus_ref: 0.115.6
 questions:
 - question_id: lookup-001
   category: lookup
+  split: tuning
   question: How does the OAuth2 scopes mechanism describe the format and purpose of scopes?
   answer: Scopes are described as a list of strings separated by spaces that represent permissions, and
     each scope is just a string without spaces.
@@ -22,6 +23,7 @@ questions:
   verified: true
 - question_id: lookup-002
   category: lookup
+  split: tuning
   question: Where do Query, Path and Body come from and what do they return?
   answer: Remember that when you import `Query`, `Path`, and others from `fastapi`, those are actually
     functions that return special classes.
@@ -36,6 +38,7 @@ questions:
   verified: true
 - question_id: lookup-003
   category: lookup
+  split: tuning
   question: Can I include extra JSON Schema metadata or non-OpenAPI keys using Field?
   answer: You can use Pydantic's `Field` to declare extra validations and metadata for model attributes.
   spans:
@@ -47,6 +50,7 @@ questions:
   verified: true
 - question_id: lookup-004
   category: lookup
+  split: tuning
   question: How do I install the dependency required to receive form fields with FastAPI?
   answer: pip install python-multipart
   spans:
@@ -62,6 +66,7 @@ questions:
   verified: true
 - question_id: lookup-005
   category: lookup
+  split: tuning
   question: Why do I need to use Form when declaring form bodies instead of relying on default parameter
     behavior?
   answer: Because without it the parameters would be interpreted as query parameters or body (JSON) parameters.
@@ -74,6 +79,7 @@ questions:
   verified: true
 - question_id: lookup-006
   category: lookup
+  split: tuning
   question: Can I declare both Form parameters and JSON Body fields in the same path operation?
   answer: No, you can't also declare `Body` fields that you expect to receive as JSON, as the request
     will have the body encoded using `application/x-www-form-urlencoded` instead of `application/json`.
@@ -86,6 +92,7 @@ questions:
   verified: true
 - question_id: lookup-009
   category: lookup
+  split: tuning
   question: How can I include custom headers when raising an HTTPException?
   answer: 'Pass a headers dict to HTTPException, e.g. raise HTTPException(status_code=404, detail="Item
     not found", headers={"X-Error": "There goes my error"})'
@@ -104,6 +111,7 @@ questions:
   verified: true
 - question_id: lookup-010
   category: lookup
+  split: tuning
   question: How do I create a global custom exception handler that returns a JSONResponse with status
     418?
   answer: 'Define a handler with @app.exception_handler(UnicornException) that returns JSONResponse(status_code=418,
@@ -120,6 +128,7 @@ questions:
   verified: true
 - question_id: lookup-011
   category: lookup
+  split: tuning
   question: What do I specify in the decorator argument for identifying the webhook event?
   answer: Pass an identifier string like "new-subscription" to the decorator, which serves as the webhook
     name (event identifier).
@@ -131,6 +140,7 @@ questions:
   verified: true
 - question_id: lookup-012
   category: lookup
+  split: tuning
   question: Which OpenAPI and FastAPI versions add webhook support?
   answer: Webhooks are available in OpenAPI 3.1.0 and above, supported by FastAPI 0.99.0 and above.
   spans:
@@ -139,6 +149,7 @@ questions:
   verified: true
 - question_id: lookup-013
   category: lookup
+  split: tuning
   question: How do I import the custom FastAPI response classes like FileResponse and HTMLResponse?
   answer: from fastapi.responses import ( FileResponse, HTMLResponse, JSONResponse, ORJSONResponse, PlainTextResponse,
     RedirectResponse, Response, StreamingResponse, UJSONResponse, )
@@ -163,6 +174,7 @@ questions:
   verified: true
 - question_id: lookup-016
   category: lookup
+  split: tuning
   question: How can I set the HTTP status code used in the response and included in the OpenAPI schema?
   answer: Use the status_code parameter on the path operation decorator, e.g. status_code=status.HTTP_201_CREATED
   spans:
@@ -176,6 +188,7 @@ questions:
   verified: true
 - question_id: lookup-017
   category: lookup
+  split: tuning
   question: How do I add tags to group related path operations and have them appear in the OpenAPI docs?
   answer: Pass the tags parameter with a list of strings (or Enum members) to the path operation decorator,
     e.g. tags=["items"]
@@ -186,6 +199,7 @@ questions:
   verified: true
 - question_id: lookup-018
   category: lookup
+  split: tuning
   question: How can I mark a path operation as deprecated without removing it?
   answer: Pass deprecated=True to the path operation decorator
   spans:
@@ -195,6 +209,7 @@ questions:
   verified: true
 - question_id: lookup-019
   category: lookup
+  split: tuning
   question: How do you define logic to run before the application starts and after it shuts down?
   answer: Use the `lifespan` parameter of the `FastAPI` app with an async context manager (function decorated
     with `@asynccontextmanager`) that yields.
@@ -207,6 +222,7 @@ questions:
   verified: true
 - question_id: lookup-021
   category: lookup
+  split: tuning
   question: What happens to code placed after the `yield` in the lifespan async context manager?
   answer: It is executed after the application has finished handling requests, during shutdown, for cleaning
     up resources.
@@ -218,6 +234,7 @@ questions:
   verified: true
 - question_id: lookup-022
   category: lookup
+  split: tuning
   question: How do I convert a Pydantic model and its datetime fields into JSON-compatible Python data
     structures before storing in a database?
   answer: Use FastAPI's jsonable_encoder() to convert the model to JSON-compatible types, e.g., dict and
@@ -233,6 +250,7 @@ questions:
   verified: true
 - question_id: lookup-023
   category: lookup
+  split: tuning
   question: What does jsonable_encoder return when given a Pydantic model with datetime fields?
   answer: It returns a Python data structure (like a dict) with values converted to JSON-compatible types,
     such as datetime converted to ISO-format strings.
@@ -247,6 +265,7 @@ questions:
   verified: true
 - question_id: multi_hop-002
   category: multi_hop
+  split: tuning
   question: If I mount a sub-application at /subapi and also run behind a proxy that serves the app under
     /api/v1, how will the sub-application know to use the combined prefix so its docs UI is fetched from
     /api/v1/subapi/docs?
@@ -269,6 +288,7 @@ questions:
   verified: true
 - question_id: multi_hop-005
   category: multi_hop
+  split: tuning
   question: If I want to accept partial updates without accidentally overwriting stored fields with model
     defaults and also ensure the response is validated and filtered by a Pydantic model when returning
     the updated item, what combination of techniques from both endpoints should I apply?
@@ -286,6 +306,7 @@ questions:
   verified: true
 - question_id: multi_hop-006
   category: multi_hop
+  split: tuning
   question: If I mount a StaticFiles instance at "/static" on my main FastAPI app and also mount a separate
     FastAPI sub-application at "/subapi", will the OpenAPI docs at "/docs" include the static files mount
     or the sub-application's path operations?
@@ -303,6 +324,7 @@ questions:
   verified: true
 - question_id: multi_hop-008
   category: multi_hop
+  split: tuning
   question: If I want to both set cookies in a response and have the response documented in OpenAPI with
     a specific media type, how can I both set cookies and ensure the response_class media type is included
     in the automatic docs?
@@ -322,6 +344,7 @@ questions:
   verified: true
 - question_id: multi_hop-013
   category: multi_hop
+  split: tuning
   question: How can I both set Field-level validation like gt=0 for a price attribute and also include
     multiple example bodies for that same model in the OpenAPI docs returned by FastAPI?
   answer: 'You use Pydantic''s Field on the model attribute for validations (e.g., price: float = Field(gt=0,
@@ -347,6 +370,7 @@ questions:
   verified: true
 - question_id: multi_hop-014
   category: multi_hop
+  split: tuning
   question: How should I annotate a function parameter to accept both form fields and uploaded files in
     the same POST endpoint and why can't I also expect JSON Body fields in that endpoint?
   answer: Use File and Form (e.g., Annotated[bytes, File()] and Annotated[str, Form()]) together because
@@ -363,6 +387,7 @@ questions:
   verified: true
 - question_id: ambiguous-001
   category: ambiguous
+  split: tuning
   question: How do I disable syntax highlighting or change its theme in Swagger UI?
   answer: Either by setting the syntaxHighlight boolean or the syntaxHighlight.theme key in swagger_ui_parameters
     when creating the app or calling get_swagger_ui_html.
@@ -376,6 +401,7 @@ questions:
   verified: true
 - question_id: ambiguous-002
   category: ambiguous
+  split: tuning
   question: When should I use PUT versus PATCH to update an item in my API?
   answer: They can both be used; use PUT to replace and PATCH to partially update, depending on whether
     you want full replacement or partial updates.
@@ -396,6 +422,7 @@ questions:
   verified: true
 - question_id: ambiguous-006
   category: ambiguous
+  split: tuning
   question: What will happen if a client sends headers that aren't defined in my Pydantic header model?
   answer: You can forbid extra fields via model_config so the client will get an error response if they
     send extra headers.
@@ -411,6 +438,7 @@ questions:
   verified: true
 - question_id: ambiguous-008
   category: ambiguous
+  split: tuning
   question: Should I declare a Response parameter in my path operation function or create and return a
     Response object directly when I want to set cookies?
   answer: Either approach can be used - declaring a Response parameter, or creating and returning a Response
@@ -427,6 +455,7 @@ questions:
   verified: true
 - question_id: ambiguous-009
   category: ambiguous
+  split: tuning
   question: If I set cookies on a Response parameter in a dependency, will FastAPI include those cookies
     in the final response?
   answer: Yes - dependencies can set cookies on the temporal response, and FastAPI extracts them into
@@ -442,6 +471,7 @@ questions:
   verified: true
 - question_id: no_answer-001
   category: no_answer
+  split: tuning
   question: What is FastAPI's official enterprise support SLA (response times, severity levels, and escalation
     path) for production incidents?
   answer: The documentation does not provide any information about enterprise support contracts, SLAs,
@@ -450,6 +480,7 @@ questions:
   verified: true
 - question_id: no_answer-003
   category: no_answer
+  split: tuning
   question: What long-term project roadmap or planned major features/releases does the FastAPI core team
     have for the next 12-24 months?
   answer: The docs do not contain an internal roadmap, release timeline, or planned feature list from
@@ -460,6 +491,7 @@ questions:
     future outlook, but publish no roadmap, release timeline or planned feature list.'
 - question_id: no_answer-006
   category: no_answer
+  split: tuning
   question: What is the project's tested and supported compatibility matrix for specific Python versions,
     OS releases, and ASGI servers (exact tested minor versions)?
   answer: The documentation provides general compatibility guidance but does not publish an exhaustive,
@@ -468,6 +500,7 @@ questions:
   verified: true
 - question_id: no_answer-007
   category: no_answer
+  split: tuning
   question: What security audit history exists for FastAPI (third-party audits, CVEs closure timeline,
     or a public security disclosure process)?
   answer: The docs do not include a record of formal third-party security audits, a CVE timeline, or a
@@ -478,6 +511,7 @@ questions:
     JWT, HTTP Basic) but contain no audit history, CVE timeline or disclosure policy.'
 - question_id: no_answer-008
   category: no_answer
+  split: tuning
   question: What are the recommended scaling and operational patterns for running FastAPI across multiple
     regions with multi-cluster orchestration and geo-failover?
   answer: The documentation covers deployment basics but does not provide detailed, prescriptive multi-region
@@ -486,6 +520,7 @@ questions:
   verified: true
 - question_id: no_answer-009
   category: no_answer
+  split: tuning
   question: Are there official performance tuning guides or recommended configurations for specific cloud
     providers (AWS, GCP, Azure) including instance types and autoscaling rules?
   answer: The documentation does not include cloud-provider-specific tuning guides, recommended instance

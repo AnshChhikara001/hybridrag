@@ -9,6 +9,9 @@ therefore compared question-against-different-question.
 
 from __future__ import annotations
 
+import subprocess
+from pathlib import Path
+
 import pytest
 
 from hybridrag.chunk_store import ChunkStore
@@ -18,12 +21,20 @@ from hybridrag.evaluation import (
     GoldenSet,
     LocatedSpan,
     QuestionCategory,
+    Split,
+    answerable,
     build_pools,
     distractor_rate,
     locate_all,
     run_arm,
 )
-from hybridrag.evaluation.report import GridResult, provenance, render
+from hybridrag.evaluation.report import (
+    DirtyTreeError,
+    GridResult,
+    provenance,
+    render,
+    require_clean_tree,
+)
 from hybridrag.models import Chunk, ChunkingStrategy, Document, SourceFormat
 from hybridrag.retrieval import HybridRetriever
 
@@ -72,6 +83,7 @@ GOLDEN = GoldenSet(
     questions=[
         GoldenQuestion(
             question_id="lookup-001",
+            split=Split.TUNING,
             category=QuestionCategory.LOOKUP,
             question="What declares the model?",
             answer="Alpha.",
@@ -80,6 +92,7 @@ GOLDEN = GoldenSet(
         ),
         GoldenQuestion(
             question_id="lookup-002",
+            split=Split.TUNING,
             category=QuestionCategory.LOOKUP,
             question="What filters the output?",
             answer="Gamma.",
@@ -88,6 +101,7 @@ GOLDEN = GoldenSet(
         ),
         GoldenQuestion(
             question_id="none-001",
+            split=Split.TUNING,
             category=QuestionCategory.NO_ANSWER,
             question="What is the support SLA?",
             answer="",
@@ -173,6 +187,35 @@ class TestArmRun:
         assert result.question_ids() == ["lookup-001", "lookup-002"]
         assert [probe.question_id for probe in result.refusals] == ["none-001"]
         assert result.refusals[0].top_dense_score == pytest.approx(0.19)
+
+    def test_off_topic_questions_are_probed_not_scored(
+        self, retriever: HybridRetriever, located: dict[str, list[LocatedSpan]]
+    ) -> None:
+        off_topic = GoldenQuestion(
+            question_id="off-001",
+            split=Split.TUNING,
+            category=QuestionCategory.OFF_TOPIC,
+            question="How do I sort a list in Python?",
+            answer="",
+            verified=True,
+        )
+        golden = GoldenSet(corpus_ref="test", questions=[*GOLDEN.questions, off_topic])
+
+        result = run_arm(
+            "hybrid",
+            ChunkingStrategy.STRUCTURE,
+            retriever,
+            golden,
+            located,
+            build_pools(CHUNKS, located),
+        )
+
+        assert result.question_ids() == ["lookup-001", "lookup-002"]
+        assert [probe.category for probe in result.refusals] == [
+            QuestionCategory.NO_ANSWER,
+            QuestionCategory.OFF_TOPIC,
+        ]
+        assert [q.question_id for q in answerable(golden)] == ["lookup-001", "lookup-002"]
 
     def test_scores_stay_in_golden_set_order(
         self, retriever: HybridRetriever, located: dict[str, list[LocatedSpan]]
@@ -314,6 +357,7 @@ class TestDistractorRate:
                 questions=[
                     GoldenQuestion(
                         question_id="none-001",
+                        split=Split.TUNING,
                         category=QuestionCategory.NO_ANSWER,
                         question="What is the support SLA?",
                         answer="",
@@ -350,6 +394,7 @@ class TestReport:
         grid = GridResult(
             provenance=provenance(
                 GOLDEN,
+                split=Split.TUNING,
                 documents=2,
                 embedding_model="stub",
                 chunk_tokens=512,
@@ -370,5 +415,38 @@ class TestReport:
         assert "Refusal calibration" in markdown
         # The provenance header must carry what produced the numbers.
         assert "corpus `test`" in markdown
+        assert "split `tuning`" in markdown
         assert "2 verified, of which **2 are scored here**" not in markdown  # 3 verified, 2 scored
         assert "3 verified, of which **2 are scored here**" in markdown
+
+
+class TestCleanTree:
+    """A report's commit must be the code that ran, so a dirty tree writes no report."""
+
+    @staticmethod
+    def _repo(path: Path) -> Path:
+        def git(*args: str) -> None:
+            subprocess.run(["git", *args], cwd=path, check=True, capture_output=True)
+
+        git("init", "-q")
+        (path / "a.txt").write_text("one\n")
+        git("add", "a.txt")
+        git("-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-qm", "init")
+        return path
+
+    def test_a_clean_tree_passes(self, tmp_path: Path) -> None:
+        require_clean_tree(cwd=self._repo(tmp_path))
+
+    def test_an_edited_file_stops_the_report(self, tmp_path: Path) -> None:
+        repo = self._repo(tmp_path)
+        (repo / "a.txt").write_text("two\n")
+
+        with pytest.raises(DirtyTreeError, match=r"a\.txt"):
+            require_clean_tree(cwd=repo)
+
+    def test_an_untracked_file_stops_the_report(self, tmp_path: Path) -> None:
+        repo = self._repo(tmp_path)
+        (repo / "new.py").write_text("x = 1\n")
+
+        with pytest.raises(DirtyTreeError, match=r"new\.py"):
+            require_clean_tree(cwd=repo)

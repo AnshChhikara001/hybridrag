@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from hybridrag.evaluation.golden import QuestionCategory
+from hybridrag.evaluation.golden import QuestionCategory, Split
 from hybridrag.evaluation.judge import (
     Judge,
     JudgeDecision,
@@ -162,6 +162,7 @@ class TestLabelSheet:
             generated_at="2026-09-06T00:00:00+00:00",
             generation_model="gpt-5-nano-2025-08-07",
             arm="hybrid/fixed",
+            split=Split.TUNING,
             items=[item()],
         )
         path = tmp_path / "labels.yaml"
@@ -174,6 +175,7 @@ class TestLabelSheet:
             generated_at="2026-09-06T00:00:00+00:00",
             generation_model="m",
             arm="hybrid/fixed",
+            split=Split.TUNING,
             items=[
                 item(question_id="a", human_verdict=Verdict.CORRECT),
                 item(question_id="b"),
@@ -202,6 +204,7 @@ class TestJudgeReport:
             generated_at="2026-09-06T00:00:00+00:00",
             generation_model="gpt-5-nano-2025-08-07",
             arm="hybrid/fixed",
+            split=Split.TUNING,
             items=[
                 item(question_id=f"q{index:03d}", human_verdict=verdict)
                 for index, verdict in enumerate(labels)
@@ -245,3 +248,10 @@ class TestJudgeReport:
 
         assert "How these labels were made" in markdown
         assert "**10**" in markdown
+
+    def test_the_provenance_line_names_the_split(self) -> None:
+        from hybridrag.evaluation.report import JudgeRun, render_judge_report
+
+        run = JudgeRun(model="candidate", verdicts=["correct"] * 10)
+
+        assert "split `tuning`" in render_judge_report(self._sheet(), [run], resamples=500)

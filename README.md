@@ -4,7 +4,7 @@
 BM25 keyword search, fused with Reciprocal Rank Fusion, generating grounded answers with
 inline citations that are independently verified against the source text.
 
-Every claim in this README is a number from `evals/reports/`, reproducible by running the
+Every claim in this README is a number from `evals/reports/v0/`, reproducible by running the
 scripts that produced it. Where a "smarter" technique was tried and didn't help — the
 reranker, the RRF weight sweep — that's reported too, not hidden.
 
@@ -124,7 +124,7 @@ Hybrid beats sparse alone with a confidence interval that excludes zero on
 Recall@token-budget (+0.138 [+0.034, +0.276]); hybrid vs. dense is a real trend (88–96%
 probability of improvement across metrics) but at 29 questions doesn't yet clear 95%
 significance on every metric — reported as a trend, not oversold as proven.
-Full report: [`evals/reports/retrieval.md`](evals/reports/retrieval.md).
+Full report: [`evals/reports/v0/retrieval.md`](evals/reports/v0/retrieval.md).
 
 ### Answer quality (Tier 2 — LLM-judged, judge validated against 20 human labels)
 
@@ -133,7 +133,7 @@ Full report: [`evals/reports/retrieval.md`](evals/reports/retrieval.md).
 | hybrid | 0.943 [0.857, 1.000] | 1.000 | 1.000 | 1.000 |
 | dense only | 0.943 [0.857, 1.000] | 0.971 | 1.000 | 1.000 |
 
-Full report: [`evals/reports/answers.md`](evals/reports/answers.md).
+Full report: [`evals/reports/v0/answers.md`](evals/reports/v0/answers.md).
 
 ### Citation verification — does the cited block actually support the claim?
 
@@ -149,7 +149,7 @@ negative control:
 | **separation** | **+0.850** [+0.725, +0.950] |
 
 6 of 56 cited claims across the golden set were caught not holding up — each one listed by
-question ID in [`evals/reports/citation_verification.md`](evals/reports/citation_verification.md),
+question ID in [`evals/reports/v0/citation_verification.md`](evals/reports/v0/citation_verification.md),
 not averaged away.
 
 ### The negative result: reranking
@@ -161,7 +161,7 @@ the default chunking arm the point estimate is a **net loss** (Recall@5 −0.069
 explanation: RRF already fuses two complementary signals (BM25 exact-match on 797 code
 identifiers + dense semantic similarity), and a general-purpose MS MARCO cross-encoder is a
 third, weaker opinion precisely on the queries where lexical match already wins. It is not
-in the default path. Full report: [`evals/reports/reranker.md`](evals/reports/reranker.md).
+in the default path. Full report: [`evals/reports/v0/reranker.md`](evals/reports/v0/reranker.md).
 
 ## Cost
 

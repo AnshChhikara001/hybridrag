@@ -24,7 +24,7 @@ from typing import Any
 import yaml
 from pydantic import BaseModel, Field
 
-from hybridrag.evaluation.golden import QuestionCategory
+from hybridrag.evaluation.golden import QuestionCategory, Split
 from hybridrag.generation.base import Completion, LanguageModel
 
 _FORMAT_VERSION = 1
@@ -226,6 +226,7 @@ class LabelSheet(BaseModel):
     generated_at: str
     generation_model: str
     arm: str = Field(description="Which retrieval arm produced these answers.")
+    split: Split = Field(description="The Golden set Split the questions came from.")
     items: list[LabelItem] = Field(default_factory=list)
 
     def labelled(self) -> list[LabelItem]:

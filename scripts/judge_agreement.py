@@ -33,9 +33,14 @@ from hybridrag.config import get_settings
 from hybridrag.embedding import Embedder, FastEmbedEmbedder
 from hybridrag.embedding_cache import CachedEmbedder
 from hybridrag.embedding_openai import OpenAIEmbedder
-from hybridrag.evaluation import GoldenSet, QuestionCategory
+from hybridrag.evaluation import GoldenSet, QuestionCategory, Split
 from hybridrag.evaluation.judge import Judge, JudgeError, LabelItem, LabelSheet, Verdict
-from hybridrag.evaluation.report import JudgeRun, render_judge_report
+from hybridrag.evaluation.report import (
+    DirtyTreeError,
+    JudgeRun,
+    render_judge_report,
+    require_clean_tree,
+)
 from hybridrag.evaluation.stats import bootstrap_kappa, label_agreement
 from hybridrag.generation import Answerer, CachedLanguageModel, OpenAIModel
 from hybridrag.generation.prompt import render_context
@@ -123,7 +128,7 @@ def _select(golden: GoldenSet, misses: list[str], size: int) -> list[tuple[str, 
             taken.add(question.question_id)
 
     for question in golden.verified():
-        if question.category is QuestionCategory.NO_ANSWER and question.question_id not in taken:
+        if not question.category.answerable and question.question_id not in taken:
             chosen.append((question.question_id, "unanswerable: a refusal is the correct answer"))
             taken.add(question.question_id)
 
@@ -134,7 +139,7 @@ def _select(golden: GoldenSet, misses: list[str], size: int) -> list[tuple[str, 
             if question.verified and question.question_id not in taken
         )
         for category in QuestionCategory
-        if category is not QuestionCategory.NO_ANSWER
+        if category.answerable
     }
     while len(chosen) < size and any(remaining.values()):
         for ids in remaining.values():
@@ -153,6 +158,9 @@ def prepare(
     retriever_name: Annotated[str, typer.Option(help="hybrid, dense or sparse.")] = "hybrid",
     k: Annotated[int, typer.Option(help="Context blocks per answer.")] = 5,
     golden_path: Annotated[Path, typer.Option()] = Path("evals/golden_set.yaml"),
+    split: Annotated[
+        Split, typer.Option(help="Golden set Split. Only held_out gives published numbers.")
+    ] = Split.HELD_OUT,
     results_path: Annotated[Path, typer.Option()] = Path("evals/reports/retrieval_results.json"),
     out: Annotated[Path, typer.Option(help="The labelling sheet to write.")] = Path(
         "evals/judge_labels.yaml"
@@ -168,7 +176,7 @@ def prepare(
     """Generate the answers a human will hand-label."""
     settings = get_settings()
     root = index_dir or settings.index_dir
-    golden = GoldenSet.load(golden_path)
+    golden = GoldenSet.load(golden_path).for_split(split)
     arm = f"{retriever_name}/{strategy.value}"
 
     misses = _retrieval_misses(results_path, arm)
@@ -256,6 +264,7 @@ def prepare(
         generated_at=datetime.now(UTC).isoformat(timespec="seconds"),
         generation_model=GENERATION_MODEL,
         arm=arm,
+        split=split,
         items=items,
     ).save(out)
 
@@ -442,6 +451,11 @@ def score(
     out_dir: Annotated[Path, typer.Option()] = Path("evals/reports"),
 ) -> None:
     """Run each candidate judge over the labelled items and report agreement."""
+    try:
+        require_clean_tree()
+    except DirtyTreeError as error:
+        typer.echo(f"error: {error}")
+        raise typer.Exit(code=1) from error
     sheet = LabelSheet.load(labels)
     items = sheet.labelled()
     if not items:
