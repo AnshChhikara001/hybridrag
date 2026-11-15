@@ -36,7 +36,13 @@ from hybridrag.embedding import Embedder, FastEmbedEmbedder
 from hybridrag.embedding_cache import CachedEmbedder
 from hybridrag.embedding_openai import OpenAIEmbedder
 from hybridrag.evaluation import Split
-from hybridrag.evaluation.cli import SplitOption, exit_if_dirty, load_split
+from hybridrag.evaluation.cli import (
+    OutDirOption,
+    SplitOption,
+    exit_if_dirty,
+    load_split,
+    reports_dir,
+)
 from hybridrag.evaluation.report import (
     VerificationRun,
     VerifiedClaim,
@@ -152,7 +158,7 @@ def verify(
         DEFAULT_SEED
     ),
     golden_path: Annotated[Path, typer.Option()] = Path("evals/golden_set.yaml"),
-    out_dir: Annotated[Path, typer.Option()] = Path("evals/reports"),
+    out_dir: OutDirOption = None,
     split: SplitOption = Split.HELD_OUT,
     dry_run: Annotated[bool, typer.Option(help="Price the run, spend nothing.")] = False,
     index_dir: Annotated[Path | None, typer.Option()] = None,
@@ -160,6 +166,7 @@ def verify(
     """Verify every citation on the golden set, with a negative control."""
     settings = get_settings()
     golden = load_split(golden_path, split)
+    out_dir = reports_dir(split, out_dir)
     # Only verified questions count, as in every other eval script.
     # Unanswerable questions should be refused, so they carry no citations to verify.
     # Filtered on the category rather than on an empty reference: these do carry

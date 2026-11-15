@@ -35,7 +35,13 @@ from hybridrag.evaluation import (
     locate_all,
     run_arm,
 )
-from hybridrag.evaluation.cli import SplitOption, exit_if_dirty, load_split
+from hybridrag.evaluation.cli import (
+    OutDirOption,
+    SplitOption,
+    exit_if_dirty,
+    load_split,
+    reports_dir,
+)
 from hybridrag.evaluation.report import git_provenance
 from hybridrag.evaluation.stats import DEFAULT_RESAMPLES, DEFAULT_SEED, bootstrap_ci, paired_delta
 from hybridrag.indexing import (
@@ -88,9 +94,7 @@ def sweep(
         "evals/golden_set.yaml"
     ),
     split: SplitOption = Split.HELD_OUT,
-    out_dir: Annotated[Path, typer.Option(help="Where the report is written.")] = Path(
-        "evals/reports"
-    ),
+    out_dir: OutDirOption = None,
     depth: Annotated[int, typer.Option(help="How deep the retriever searches.")] = DEFAULT_DEPTH,
     budget: Annotated[int, typer.Option()] = DEFAULT_TOKEN_BUDGET,
     index_dir: Annotated[Path | None, typer.Option(help="Overrides the configured path.")] = None,
@@ -110,6 +114,7 @@ def sweep(
     sha, _ = git_provenance()
 
     golden = load_split(golden_path, split)
+    out_dir = reports_dir(split, out_dir)
     documents = _load_corpus(corpus)
     located = locate_all(golden, documents)
     typer.echo(f"{elapsed()} golden set: {len(golden.verified())} verified questions")

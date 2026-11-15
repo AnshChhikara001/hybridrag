@@ -35,9 +35,11 @@ from hybridrag.embedding_cache import CachedEmbedder
 from hybridrag.embedding_openai import OpenAIEmbedder
 from hybridrag.evaluation import GoldenSet, QuestionCategory, Split
 from hybridrag.evaluation.cli import (
+    OutDirOption,
     SplitOption,
     exit_if_dirty,
     load_split,
+    reports_dir,
     require_results_split,
 )
 from hybridrag.evaluation.judge import Judge, JudgeError, LabelItem, LabelSheet, Verdict
@@ -163,7 +165,10 @@ def prepare(
     k: Annotated[int, typer.Option(help="Context blocks per answer.")] = 5,
     golden_path: Annotated[Path, typer.Option()] = Path("evals/golden_set.yaml"),
     split: SplitOption = Split.HELD_OUT,
-    results_path: Annotated[Path, typer.Option()] = Path("evals/reports/retrieval_results.json"),
+    results_path: Annotated[
+        Path | None,
+        typer.Option(help="Tier 1 results. Default: evals/reports/<split>/retrieval_results.json."),
+    ] = None,
     out: Annotated[Path, typer.Option(help="The labelling sheet to write.")] = Path(
         "evals/judge_labels.yaml"
     ),
@@ -179,6 +184,7 @@ def prepare(
     settings = get_settings()
     root = index_dir or settings.index_dir
     golden = load_split(golden_path, split)
+    results_path = results_path or reports_dir(split) / "retrieval_results.json"
     require_results_split(results_path, split)
     arm = f"{retriever_name}/{strategy.value}"
 
@@ -451,11 +457,13 @@ def score(
     judge_model: Annotated[
         list[str] | None, typer.Option(help="Candidate judge. Repeatable.")
     ] = None,
-    out_dir: Annotated[Path, typer.Option()] = Path("evals/reports"),
+    out_dir: OutDirOption = None,
 ) -> None:
     """Run each candidate judge over the labelled items and report agreement."""
     exit_if_dirty()
     sheet = LabelSheet.load(labels)
+    # The sheet records the Split its answers came from, so it picks the folder.
+    out_dir = reports_dir(sheet.split, out_dir)
     items = sheet.labelled()
     if not items:
         typer.echo(

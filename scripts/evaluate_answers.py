@@ -29,9 +29,11 @@ from hybridrag.embedding_cache import CachedEmbedder
 from hybridrag.embedding_openai import OpenAIEmbedder
 from hybridrag.evaluation import LabelSheet, Split
 from hybridrag.evaluation.cli import (
+    OutDirOption,
     SplitOption,
     exit_if_dirty,
     load_split,
+    reports_dir,
     require_results_split,
 )
 from hybridrag.evaluation.judge import Judge, JudgeError, LabelItem, Verdict
@@ -129,7 +131,7 @@ def evaluate(
     ] = 0.15,
     golden_path: Annotated[Path, typer.Option()] = Path("evals/golden_set.yaml"),
     labels_path: Annotated[Path, typer.Option()] = Path("evals/judge_labels.yaml"),
-    out_dir: Annotated[Path, typer.Option()] = Path("evals/reports"),
+    out_dir: OutDirOption = None,
     split: SplitOption = Split.HELD_OUT,
     dry_run: Annotated[bool, typer.Option(help="Price the run, spend nothing.")] = False,
     index_dir: Annotated[Path | None, typer.Option()] = None,
@@ -139,6 +141,7 @@ def evaluate(
     root = index_dir or settings.index_dir
     names = arm or ["hybrid", "dense"]
     golden = load_split(golden_path, split)
+    out_dir = reports_dir(split, out_dir)
     require_results_split(out_dir / "retrieval_results.json", split)
     questions = golden.verified()
 

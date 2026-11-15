@@ -18,6 +18,20 @@ from hybridrag.evaluation.report import DirtyTreeError, require_clean_tree
 SplitOption = Annotated[
     Split, typer.Option(help="Golden set Split. Only held_out gives published numbers.")
 ]
+OutDirOption = Annotated[
+    Path | None, typer.Option(help="Where reports go. Default: evals/reports/<split>/.")
+]
+
+REPORTS_ROOT = Path("evals/reports")
+
+
+def reports_dir(split: Split, out_dir: Path | None = None) -> Path:
+    """Where a run's reports go: one folder per Split, unless the caller names one.
+
+    A shared folder would let a Tuning run overwrite the Held-out reports that the README
+    and the demo page read.
+    """
+    return out_dir if out_dir is not None else REPORTS_ROOT / split.value
 
 
 def _stop(message: str) -> NoReturn:

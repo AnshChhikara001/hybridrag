@@ -13,7 +13,7 @@ import pytest
 import typer
 
 from hybridrag.evaluation import GoldenQuestion, GoldenSet, QuestionCategory, Split
-from hybridrag.evaluation.cli import load_split, require_results_split
+from hybridrag.evaluation.cli import load_split, reports_dir, require_results_split
 
 
 def _golden(path: Path) -> Path:
@@ -81,3 +81,14 @@ class TestResultsSplit:
             require_results_split(tmp_path / "absent.json", Split.HELD_OUT)
 
         assert "--split held_out" in capsys.readouterr().out
+
+
+class TestReportsDir:
+    """Each Split writes to its own folder, so a Tuning run never replaces Held-out reports."""
+
+    def test_each_split_defaults_to_its_own_folder(self) -> None:
+        assert reports_dir(Split.HELD_OUT) == Path("evals/reports/held_out")
+        assert reports_dir(Split.TUNING) == Path("evals/reports/tuning")
+
+    def test_an_explicit_folder_wins(self, tmp_path: Path) -> None:
+        assert reports_dir(Split.TUNING, tmp_path) == tmp_path

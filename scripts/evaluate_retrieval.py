@@ -49,7 +49,13 @@ from hybridrag.evaluation import (
     render_reranker_report,
     run_arm,
 )
-from hybridrag.evaluation.cli import SplitOption, exit_if_dirty, load_split
+from hybridrag.evaluation.cli import (
+    OutDirOption,
+    SplitOption,
+    exit_if_dirty,
+    load_split,
+    reports_dir,
+)
 from hybridrag.indexing import (
     DenseIndex,
     SparseIndex,
@@ -131,9 +137,7 @@ def evaluate(
     golden_path: Annotated[Path, typer.Option(help="The golden set.")] = Path(
         "evals/golden_set.yaml"
     ),
-    out_dir: Annotated[Path, typer.Option(help="Where the report is written.")] = Path(
-        "evals/reports"
-    ),
+    out_dir: OutDirOption = None,
     split: SplitOption = Split.HELD_OUT,
     depth: Annotated[int, typer.Option(help="How deep each arm retrieves.")] = DEFAULT_DEPTH,
     budget: Annotated[
@@ -176,6 +180,7 @@ def evaluate(
     exit_if_dirty()
 
     golden = load_split(golden_path, split)
+    out_dir = reports_dir(split, out_dir)
     typer.echo(f"{elapsed()} golden set: {len(golden.verified())} verified questions")
 
     typer.echo(f"{elapsed()} loading corpus {corpus}")
