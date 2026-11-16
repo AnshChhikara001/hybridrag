@@ -37,9 +37,9 @@ from hybridrag.evaluation import (
     DEFAULT_TOKEN_BUDGET,
     ArmResult,
     ChunkStats,
-    GoldenSet,
     GridResult,
     RerankerRun,
+    Split,
     answerable,
     build_pools,
     distractor_rate,
@@ -48,6 +48,13 @@ from hybridrag.evaluation import (
     render,
     render_reranker_report,
     run_arm,
+)
+from hybridrag.evaluation.cli import (
+    OutDirOption,
+    SplitOption,
+    exit_if_dirty,
+    load_split,
+    reports_dir,
 )
 from hybridrag.indexing import (
     DenseIndex,
@@ -130,9 +137,8 @@ def evaluate(
     golden_path: Annotated[Path, typer.Option(help="The golden set.")] = Path(
         "evals/golden_set.yaml"
     ),
-    out_dir: Annotated[Path, typer.Option(help="Where the report is written.")] = Path(
-        "evals/reports"
-    ),
+    out_dir: OutDirOption = None,
+    split: SplitOption = Split.HELD_OUT,
     depth: Annotated[int, typer.Option(help="How deep each arm retrieves.")] = DEFAULT_DEPTH,
     budget: Annotated[
         int, typer.Option(help="Context budget for Recall@budget, in tokens.")
@@ -171,8 +177,10 @@ def evaluate(
     if not corpus.is_dir():
         typer.echo(f"error: {corpus} is not a directory. Run scripts/fetch_corpus.sh first.")
         raise typer.Exit(code=1)
+    exit_if_dirty()
 
-    golden = GoldenSet.load(golden_path)
+    golden = load_split(golden_path, split)
+    out_dir = reports_dir(split, out_dir)
     typer.echo(f"{elapsed()} golden set: {len(golden.verified())} verified questions")
 
     typer.echo(f"{elapsed()} loading corpus {corpus}")
@@ -305,6 +313,7 @@ def evaluate(
     grid = GridResult(
         provenance=provenance(
             golden,
+            split=split,
             documents=len(documents),
             embedding_model=inner.model_name,
             confidence_threshold=settings.retrieval_confidence_threshold,

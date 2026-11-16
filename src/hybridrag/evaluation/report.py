@@ -15,11 +15,12 @@ from __future__ import annotations
 import subprocess
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from pathlib import Path
 from statistics import fmean
 
 from pydantic import BaseModel, Field, NonNegativeInt
 
-from hybridrag.evaluation.golden import GoldenSet, QuestionCategory
+from hybridrag.evaluation.golden import GoldenSet, QuestionCategory, Split
 from hybridrag.evaluation.harness import METRICS, ArmResult
 from hybridrag.evaluation.judge import LabelSheet, Verdict
 from hybridrag.evaluation.quality import QUALITY_METRICS, FailureKind, QualityArm
@@ -47,6 +48,7 @@ class Provenance(BaseModel):
     git_sha: str
     git_dirty: bool
     corpus_ref: str
+    split: Split
     documents: int = 0
     embedding_model: str
     chunk_tokens: int
@@ -108,26 +110,50 @@ class GridResult(BaseModel):
         return seen
 
 
-def git_provenance() -> tuple[str, bool]:
+def _git(args: Sequence[str], cwd: Path | None) -> str:
+    return subprocess.run(
+        ["git", *args], capture_output=True, text=True, check=True, cwd=cwd
+    ).stdout.strip()
+
+
+def git_provenance(cwd: Path | None = None) -> tuple[str, bool]:
     """The commit these numbers came from, and whether the tree was dirty when they did."""
     try:
-        sha = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout.strip()
-        status = subprocess.run(
-            ["git", "status", "--porcelain"], capture_output=True, text=True, check=True
-        ).stdout.strip()
+        sha = _git(["rev-parse", "--short", "HEAD"], cwd)
+        status = _git(["status", "--porcelain"], cwd)
     except (subprocess.CalledProcessError, FileNotFoundError):
         return "unknown", False
     return sha, bool(status)
 
 
+class DirtyTreeError(RuntimeError):
+    """The working tree has uncommitted changes, so a report could not name its code."""
+
+
+def require_clean_tree(cwd: Path | None = None) -> None:
+    """Stop before a report is written from code that no commit holds.
+
+    A report's provenance line names a commit. With uncommitted changes, that commit is
+    not the code that ran, and nobody can reproduce the numbers. Report scripts call this
+    first, before they spend any time or money.
+    """
+    try:
+        status = _git(["status", "--porcelain"], cwd)
+    except (subprocess.CalledProcessError, FileNotFoundError) as error:
+        raise DirtyTreeError(
+            f"cannot read git status ({error}), so the report could not name its commit."
+        ) from error
+    if status:
+        raise DirtyTreeError(
+            "the working tree has uncommitted changes. Commit or stash them, then run "
+            f"again:\n{status}"
+        )
+
+
 def provenance(
     golden: GoldenSet,
     *,
+    split: Split,
     documents: int,
     embedding_model: str,
     chunk_tokens: int,
@@ -149,6 +175,7 @@ def provenance(
         git_sha=sha,
         git_dirty=dirty,
         corpus_ref=golden.corpus_ref,
+        split=split,
         documents=documents,
         embedding_model=embedding_model,
         chunk_tokens=chunk_tokens,
@@ -200,7 +227,7 @@ def _best(grid: GridResult, metric: str = "recall@5") -> ArmResult:
 def render(grid: GridResult, golden: GoldenSet) -> str:
     prov = grid.provenance
     total = sum(prov.counts.values())
-    answerable = total - prov.counts.get("no_answer", 0)
+    answerable = sum(n for name, n in prov.counts.items() if QuestionCategory(name).answerable)
     dirty = " **(uncommitted changes)**" if prov.git_dirty else ""
     parts: list[str] = []
 
@@ -212,7 +239,7 @@ involved anywhere in this report, so it costs nothing to reproduce and cannot dr
 model release.
 
 **Provenance** · generated {prov.generated_at} · commit `{prov.git_sha}`{dirty} ·
-corpus `{prov.corpus_ref}` · embedder `{prov.embedding_model}` ·
+split `{prov.split.value}` · corpus `{prov.corpus_ref}` · embedder `{prov.embedding_model}` ·
 chunks {prov.chunk_tokens} tokens / {prov.chunk_overlap_tokens} overlap ·
 semantic percentile {prov.semantic_percentile} · RRF rank constant {prov.rank_constant} ·
 candidate depth {prov.candidates} · scored to depth {prov.depth} ·
@@ -479,7 +506,8 @@ what the generator reads -- scoring at 10 would credit the baseline for chunks t
 reranked pipeline never returns to a caller.
 
 **Provenance** · generated {prov.generated_at} · commit `{prov.git_sha}`{dirty} ·
-corpus `{prov.corpus_ref}` · bootstrap {prov.resamples:,} resamples, seed {prov.seed}"""
+split `{prov.split.value}` · corpus `{prov.corpus_ref}` ·
+bootstrap {prov.resamples:,} resamples, seed {prov.seed}"""
     ]
 
     parts.append(
@@ -595,7 +623,8 @@ and each candidate judge labelled the same sample; what follows is how far they 
 (D11).
 
 **Provenance** · commit `{sha}`{" **(uncommitted changes)**" if dirty else ""} ·
-answers from `{sheet.generation_model}` on arm `{sheet.arm}` · generated {sheet.generated_at} ·
+split `{sheet.split.value}` · answers from `{sheet.generation_model}` on arm `{sheet.arm}` ·
+generated {sheet.generated_at} ·
 {len(items)} labelled items · bootstrap {resamples:,} resamples, seed {seed}
 
 **Human label distribution** · {distribution}""",
@@ -712,6 +741,7 @@ def render_quality_report(
     judge_kappa_low: float,
     judge_kappa_high: float,
     judge_labels: int,
+    split: Split,
     resamples: int = DEFAULT_RESAMPLES,
     seed: int = DEFAULT_SEED,
 ) -> str:
@@ -721,9 +751,7 @@ def render_quality_report(
     sha, dirty = git_provenance()
     leader = max(arms, key=lambda arm: fmean(arm.series("correct")) if arm.records else 0.0)
     answerable_ids = {
-        question.question_id
-        for question in golden.verified()
-        if question.category is not QuestionCategory.NO_ANSWER
+        question.question_id for question in golden.verified() if question.category.answerable
     }
     parts: list[str] = [
         f"""# Answer evaluation — Tier 2
@@ -732,7 +760,7 @@ What the system answers, whether the answer is grounded in what it retrieved, an
 wrong answer went wrong.
 
 **Provenance** · commit `{sha}`{" **(uncommitted changes)**" if dirty else ""} ·
-generator `{arms[0].generation_model}` · judge `{arms[0].judge_model}` ·
+split `{split.value}` · generator `{arms[0].generation_model}` · judge `{arms[0].judge_model}` ·
 {len(arms[0].records)} questions · bootstrap {resamples:,} resamples, seed {seed}
 
 """
@@ -940,6 +968,7 @@ class VerificationRun(BaseModel):
     generated_at: str
     git_sha: str
     git_dirty: bool
+    split: Split
     arm: str
     strategy: str
     generation_model: str
@@ -987,7 +1016,7 @@ def render_verification_report(run: VerificationRun) -> str:
         "perfectly and still be attached to a passage that never makes the claim, which",
         "renders as a working source link under a fabricated statement.",
         "",
-        f"**Provenance** · commit `{run.git_sha}`{dirty} ·",
+        f"**Provenance** · commit `{run.git_sha}`{dirty} · split `{run.split.value}` ·",
         f"arm `{run.arm}` / `{run.strategy}` · generator `{run.generation_model}` ·",
         f"verifier `{run.verifier_model}` · {run.questions} questions, {run.answered} answered ·",
         f"bootstrap {run.resamples:,} resamples, seed {run.seed}",

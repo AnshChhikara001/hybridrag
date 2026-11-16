@@ -200,6 +200,7 @@ class TestVerificationReport:
             "generated_at": "2026-09-07T00:00:00+00:00",
             "git_sha": "abc1234",
             "git_dirty": False,
+            "split": "held_out",
             "arm": "hybrid",
             "strategy": "fixed",
             "generation_model": "stub-generator",
@@ -212,6 +213,9 @@ class TestVerificationReport:
         }
         base.update(overrides)
         return VerificationRun.model_validate(base)
+
+    def test_the_provenance_line_names_the_split(self) -> None:
+        assert "split `held_out`" in render_verification_report(self._run())
 
     def test_a_run_without_a_control_says_so(self) -> None:
         report = render_verification_report(self._run())

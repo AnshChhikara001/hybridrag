@@ -95,7 +95,7 @@ def classify(
     """
     if record_verdict is Verdict.CORRECT:
         return None
-    if category is QuestionCategory.NO_ANSWER:
+    if not category.answerable:
         # Answering something unanswerable is the expected failure here. The other branch
         # means the system declined and the judge still marked it wrong -- a disagreement
         # about the wording of the decline, and still a failure, so it is attributed rather
@@ -128,9 +128,7 @@ class QualityArm(BaseModel):
         return [record for record in self.records if record.category is category]
 
     def answerable(self) -> list[AnswerRecord]:
-        return [
-            record for record in self.records if record.category is not QuestionCategory.NO_ANSWER
-        ]
+        return [record for record in self.records if record.category.answerable]
 
     def series(self, metric: str, records: Sequence[AnswerRecord] | None = None) -> list[float]:
         """One score per question, in golden-set order, for the paired bootstrap."""
@@ -208,4 +206,4 @@ def _score(record: AnswerRecord, metric: str) -> float:
 
 def reference_for(question: GoldenQuestion) -> str:
     """The judge's standard: the human answer, empty where the corpus has none."""
-    return "" if question.category is QuestionCategory.NO_ANSWER else question.answer
+    return question.answer if question.category.answerable else ""

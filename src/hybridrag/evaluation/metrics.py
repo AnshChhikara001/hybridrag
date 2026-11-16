@@ -187,10 +187,10 @@ def evaluate_question(
     top_dense_score: float | None = None,
 ) -> QuestionMetrics:
     """Score one question's ranking. `ranked` is best-first; `pool` is the ideal set."""
-    if question.category is QuestionCategory.NO_ANSWER:
+    if not question.category.answerable:
         raise ValueError(
-            f"{question.question_id}: no_answer questions have no retrieval ground truth "
-            "(D29). Score them on refusal rate instead."
+            f"{question.question_id}: {question.category.value} questions have no retrieval "
+            "ground truth (D29). Score them on refusal rate instead."
         )
     if not located:
         raise ValueError(f"{question.question_id}: no located spans to score against")

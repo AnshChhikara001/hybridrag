@@ -30,11 +30,19 @@ from hybridrag.embedding_openai import OpenAIEmbedder
 from hybridrag.evaluation import (
     DEFAULT_DEPTH,
     DEFAULT_TOKEN_BUDGET,
-    GoldenSet,
+    Split,
     build_pools,
     locate_all,
     run_arm,
 )
+from hybridrag.evaluation.cli import (
+    OutDirOption,
+    SplitOption,
+    exit_if_dirty,
+    load_split,
+    reports_dir,
+)
+from hybridrag.evaluation.report import git_provenance
 from hybridrag.evaluation.stats import DEFAULT_RESAMPLES, DEFAULT_SEED, bootstrap_ci, paired_delta
 from hybridrag.indexing import (
     DenseIndex,
@@ -85,9 +93,8 @@ def sweep(
     golden_path: Annotated[Path, typer.Option(help="The golden set.")] = Path(
         "evals/golden_set.yaml"
     ),
-    out_dir: Annotated[Path, typer.Option(help="Where the report is written.")] = Path(
-        "evals/reports"
-    ),
+    split: SplitOption = Split.HELD_OUT,
+    out_dir: OutDirOption = None,
     depth: Annotated[int, typer.Option(help="How deep the retriever searches.")] = DEFAULT_DEPTH,
     budget: Annotated[int, typer.Option()] = DEFAULT_TOKEN_BUDGET,
     index_dir: Annotated[Path | None, typer.Option(help="Overrides the configured path.")] = None,
@@ -103,8 +110,11 @@ def sweep(
     if not corpus.is_dir():
         typer.echo(f"error: {corpus} is not a directory. Run scripts/fetch_corpus.sh first.")
         raise typer.Exit(code=1)
+    exit_if_dirty()
+    sha, _ = git_provenance()
 
-    golden = GoldenSet.load(golden_path)
+    golden = load_split(golden_path, split)
+    out_dir = reports_dir(split, out_dir)
     documents = _load_corpus(corpus)
     located = locate_all(golden, documents)
     typer.echo(f"{elapsed()} golden set: {len(golden.verified())} verified questions")
@@ -186,8 +196,8 @@ def sweep(
 project's unweighted 1:1 default. Only the ratio matters (D20): RRF's score is a sum of
 `weight / (rank_constant + rank)`, so scaling both weights together changes nothing.
 
-**Provenance** · corpus `{golden.corpus_ref}` · depth {depth} · bootstrap {DEFAULT_RESAMPLES:,}
-resamples, seed {DEFAULT_SEED}
+**Provenance** · commit `{sha}` · split `{split.value}` · corpus `{golden.corpus_ref}` ·
+depth {depth} · bootstrap {DEFAULT_RESAMPLES:,} resamples, seed {DEFAULT_SEED}
 
 {table}
 

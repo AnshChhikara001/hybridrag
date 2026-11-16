@@ -29,18 +29,38 @@ from pydantic import BaseModel, Field, model_validator
 
 from hybridrag.models import Chunk, Document
 
-_FORMAT_VERSION = 1
+_FORMAT_VERSION = 2
 
 _WHITESPACE = re.compile(r"\s+")
 
 
 class QuestionCategory(StrEnum):
-    """The four kinds the brief asks for, each scored by its own rule."""
+    """Each kind of question, scored by its own rule.
+
+    `no_answer` is in-domain but not answered by the docs. `off_topic` is outside the
+    domain (general Python, unrelated topics): the Refusal gate is built for it.
+    """
 
     LOOKUP = "lookup"
     MULTI_HOP = "multi_hop"
     AMBIGUOUS = "ambiguous"
     NO_ANSWER = "no_answer"
+    OFF_TOPIC = "off_topic"
+
+    @property
+    def answerable(self) -> bool:
+        """Whether the corpus answers it, so it has Spans and a retrieval score."""
+        return self not in (QuestionCategory.NO_ANSWER, QuestionCategory.OFF_TOPIC)
+
+
+class Split(StrEnum):
+    """Which part of the Golden set a question belongs to.
+
+    The Tuning set chooses settings. Only the Held-out set produces published numbers.
+    """
+
+    TUNING = "tuning"
+    HELD_OUT = "held_out"
 
 
 class SpanNotFoundError(ValueError):
@@ -73,8 +93,12 @@ class GoldenQuestion(BaseModel):
     question_id: str
     category: QuestionCategory
     question: str = Field(min_length=1)
+    split: Split
+    source_url: str | None = Field(
+        default=None, description="The real post the question came from. Required for held_out."
+    )
     answer: str = Field(
-        description="Reference answer, for Tier 2 correctness judging. Empty for no_answer."
+        description="Reference answer, for Tier 2 correctness judging. Empty when unanswerable."
     )
     spans: list[AnswerSpan] = Field(default_factory=list)
     verified: bool = Field(
@@ -93,11 +117,11 @@ class GoldenQuestion(BaseModel):
         producing a quietly meaningless number.
         """
         count = len(self.spans)
-        if self.category is QuestionCategory.NO_ANSWER:
+        if not self.category.answerable:
             if count:
                 raise ValueError(
-                    f"{self.question_id}: a no_answer question must have no spans, got {count}. "
-                    "If the corpus answers it, it belongs in another category."
+                    f"{self.question_id}: a {self.category.value} question must have no spans, "
+                    f"got {count}. If the corpus answers it, it belongs in another category."
                 )
             return self
         if not count:
@@ -115,6 +139,16 @@ class GoldenQuestion(BaseModel):
                     f"{self.question_id}: multi_hop must span two or more documents, got "
                     f"{sorted(documents)}. One document is a lookup with a long answer."
                 )
+        return self
+
+    @model_validator(mode="after")
+    def _held_out_has_a_source(self) -> GoldenQuestion:
+        """A Held-out question must link to the real post, as proof and as attribution."""
+        if self.split is Split.HELD_OUT and not self.source_url:
+            raise ValueError(
+                f"{self.question_id} needs a source_url: every held_out question links to "
+                "the real post it came from."
+            )
         return self
 
     def locate(self, documents: Mapping[str, Document]) -> list[LocatedSpan]:
@@ -144,6 +178,23 @@ class GoldenSet(BaseModel):
         """Only hand-checked questions, which are the only ones metrics may report."""
         return [q for q in self.questions if q.verified]
 
+    def for_split(self, split: Split) -> GoldenSet:
+        """The same set, holding only one Split's questions, in file order.
+
+        Every eval script calls this right after loading, so code further down sees one
+        Split and cannot mix tuning questions into a published number.
+        """
+        selected = GoldenSet(
+            corpus_ref=self.corpus_ref,
+            questions=[q for q in self.questions if q.split is split],
+        )
+        if not selected.verified():
+            raise ValueError(
+                f"no verified {split.value} questions in this Golden set. "
+                "Choose another split, or verify questions first."
+            )
+        return selected
+
     @classmethod
     def load(cls, path: Path) -> GoldenSet:
         payload: dict[str, Any] = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -151,7 +202,7 @@ class GoldenSet(BaseModel):
         if version != _FORMAT_VERSION:
             raise ValueError(
                 f"{path} was written by format version {version!r}, but this build reads "
-                f"version {_FORMAT_VERSION}."
+                f"version {_FORMAT_VERSION}. Version 2 adds a required `split` to every question."
             )
         return cls.model_validate(payload)
 
@@ -314,12 +365,12 @@ def is_hit(
     * multi_hop -- **every** span is covered: a question that genuinely needs two documents
                    is not half-answered by finding one of them.
     * ambiguous -- **any** acceptable span is covered, since several answers are correct.
-    * no_answer -- has no span to retrieve; scored on refusal instead, never on recall.
+    * no_answer, off_topic -- no span to retrieve; scored on refusal instead, never on recall.
     """
-    if question.category is QuestionCategory.NO_ANSWER:
+    if not question.category.answerable:
         raise ValueError(
-            f"{question.question_id}: no_answer questions have no retrieval ground truth. "
-            "Score them with the refusal rate instead."
+            f"{question.question_id}: {question.category.value} questions have no retrieval "
+            "ground truth. Score them with the refusal rate instead."
         )
     covered = (covered_ratio(span, chunks) >= min_ratio for span in located)
     if question.category is QuestionCategory.AMBIGUOUS:

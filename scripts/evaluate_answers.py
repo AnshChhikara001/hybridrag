@@ -27,10 +27,20 @@ from hybridrag.config import get_settings
 from hybridrag.embedding import Embedder, FastEmbedEmbedder
 from hybridrag.embedding_cache import CachedEmbedder
 from hybridrag.embedding_openai import OpenAIEmbedder
-from hybridrag.evaluation import GoldenSet, LabelSheet, QuestionCategory
+from hybridrag.evaluation import LabelSheet, Split
+from hybridrag.evaluation.cli import (
+    OutDirOption,
+    SplitOption,
+    exit_if_dirty,
+    load_split,
+    reports_dir,
+    require_results_split,
+)
 from hybridrag.evaluation.judge import Judge, JudgeError, LabelItem, Verdict
 from hybridrag.evaluation.quality import AnswerRecord, QualityArm, classify, reference_for
-from hybridrag.evaluation.report import render_quality_report
+from hybridrag.evaluation.report import (
+    render_quality_report,
+)
 from hybridrag.evaluation.stats import bootstrap_kappa
 from hybridrag.generation import Answerer, BudgetExceededError, CachedLanguageModel, OpenAIModel
 from hybridrag.generation.openai_model import price_of
@@ -121,7 +131,8 @@ def evaluate(
     ] = 0.15,
     golden_path: Annotated[Path, typer.Option()] = Path("evals/golden_set.yaml"),
     labels_path: Annotated[Path, typer.Option()] = Path("evals/judge_labels.yaml"),
-    out_dir: Annotated[Path, typer.Option()] = Path("evals/reports"),
+    out_dir: OutDirOption = None,
+    split: SplitOption = Split.HELD_OUT,
     dry_run: Annotated[bool, typer.Option(help="Price the run, spend nothing.")] = False,
     index_dir: Annotated[Path | None, typer.Option()] = None,
 ) -> None:
@@ -129,7 +140,9 @@ def evaluate(
     settings = get_settings()
     root = index_dir or settings.index_dir
     names = arm or ["hybrid", "dense"]
-    golden = GoldenSet.load(golden_path)
+    golden = load_split(golden_path, split)
+    out_dir = reports_dir(split, out_dir)
+    require_results_split(out_dir / "retrieval_results.json", split)
     questions = golden.verified()
 
     calls = len(questions) * len(names)
@@ -144,6 +157,7 @@ def evaluate(
     if dry_run:
         typer.echo("\n--dry-run: nothing generated, nothing spent.")
         return
+    exit_if_dirty()
     if estimate > budget:
         typer.echo(
             f"\nerror: the estimate (${estimate:.4f}) exceeds the cap (${budget:.4f}). "
@@ -234,7 +248,7 @@ def evaluate(
 
                 span_retrieved = (
                     None
-                    if question.category is QuestionCategory.NO_ANSWER or retrieved is None
+                    if not question.category.answerable or retrieved is None
                     else retrieved.get(question.question_id, False)
                 )
                 records.append(
@@ -299,6 +313,7 @@ def evaluate(
             judge_kappa_low=low,
             judge_kappa_high=high,
             judge_labels=labelled,
+            split=split,
         ),
         encoding="utf-8",
     )

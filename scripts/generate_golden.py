@@ -37,7 +37,7 @@ from hybridrag.config import get_settings
 from hybridrag.embedding import Embedder, FastEmbedEmbedder
 from hybridrag.embedding_cache import CachedEmbedder
 from hybridrag.embedding_openai import OpenAIEmbedder
-from hybridrag.evaluation import AnswerSpan, GoldenQuestion, GoldenSet, QuestionCategory
+from hybridrag.evaluation import AnswerSpan, GoldenQuestion, GoldenSet, QuestionCategory, Split
 from hybridrag.evaluation.golden import SpanNotFoundError
 from hybridrag.generation import CachedLanguageModel, GeminiModel, LanguageModel, OpenAIModel
 from hybridrag.indexing import DenseIndex
@@ -229,6 +229,7 @@ def _accept(
     try:
         question = GoldenQuestion(
             question_id=f"{category.value}-{index:03d}",
+            split=Split.TUNING,
             category=category,
             question=str(item.get("question", "")).strip(),
             answer=str(item.get("answer", "")).strip(),

@@ -74,8 +74,8 @@ Architecture decisions are made from a measured evaluation suite rather than ass
 | D51 | **A refusal returns what was found, what could not be established, and which pages to open** | "I don't know" is honest and nearly worthless — the reader learns only that this route failed. All three facts come free from the retrieval results with no extra model call, so the cheapest possible response, the one a user is most likely to receive on a bad day, is also actionable. The sentinel phrase still opens the rendered text, because the Tier-2 judge and every downstream string check key off that line: the structure is an addition, never a replacement. The two refusal paths say different things, since a gate refusal means nothing came close and a model refusal means several pages came close and none of them said it. |
 | D15 | **Chunkers own boundary placement only** | `Chunker.chunk()` turns spans into validated chunks once, in the base class, so the three strategies differ in boundary placement and nothing else -- the variable Phase 4 isolates. |
 | D52 | **Reranker built on fastembed's ONNX cross-encoder, not `sentence-transformers`** | D8 named the model (`ms-marco-MiniLM-L-6-v2`), not the runtime. fastembed -- already this project's embedding dependency -- ships `Xenova/ms-marco-MiniLM-L-6-v2`, an ONNX build of the identical weights `sentence-transformers` would load through PyTorch. Adding `sentence-transformers` would mean a second inference runtime and a `torch` install running to hundreds of MB to a few GB on the 8 GB dev machine (see Environment, below); fastembed serves the same weights in ~80 MB over onnxruntime, already installed. Same model, same $0, one fewer heavy dependency. |
-| D53 | **The reranker does not separate from plain hybrid on Tier 1, and does not ship as the default** | Measured, paired bootstrap, 5-wide horizon (top-20 in, top-5 out, matching what the reranker actually returns): Recall@5 moves **-0.069 [-0.172, +0.000]** on fixed, **+0.000 [-0.103, +0.103]** on structure, **-0.034 [-0.172, +0.103]** on semantic -- no interval separates from zero, and fixed's own point estimate is a net loss. The distractor rate (top-5 slots from `release-notes.md`, D28) does not consistently improve either: fixed **4.1% → 6.9%** (worse), structure **9.7% → 10.3%** (worse), semantic **10.3% → 8.3%** (better). Full report: `evals/reports/reranker.md`. Leading candidate explanation, not proven: RRF fusion already combines two complementary signals -- BM25's exact-match on this corpus's 797 code identifiers (D1) and dense semantic similarity -- and a general-purpose MS MARCO cross-encoder, trained on web-passage QA rather than API documentation, is a *third*, weaker opinion on exactly the queries where lexical match already wins. Reported as a negative result, the way D43 reported dedup's, rather than shipped anyway. |
-| D54 | **RRF weights are configurable and swept; the equal 1:1 default is kept** | The brief requires fusion to be "configurable so you can tune it" (D20 built the knob; this exercises it). Dense:sparse swept 0.25:1 to 4:1 on the winning arm (hybrid/fixed), $0, no language model. Recall@5 is flat at 0.897 from 0.5:1 through 4:1 and drops only when sparse dominates outright (0.25:1 → 0.828). nDCG@10 is highest at 0.5:1 (favouring sparse 2x) at 0.819 against 1:1's 0.794, but only Recall@5 was paired-bootstrapped here, and every non-baseline interval on it includes zero -- so the apparent nDCG edge is not established as more than noise, and the unweighted default stays. Full table: `evals/reports/rrf_weights.md`. |
+| D53 | **The reranker does not separate from plain hybrid on Tier 1, and does not ship as the default** | Measured, paired bootstrap, 5-wide horizon (top-20 in, top-5 out, matching what the reranker actually returns): Recall@5 moves **-0.069 [-0.172, +0.000]** on fixed, **+0.000 [-0.103, +0.103]** on structure, **-0.034 [-0.172, +0.103]** on semantic -- no interval separates from zero, and fixed's own point estimate is a net loss. The distractor rate (top-5 slots from `release-notes.md`, D28) does not consistently improve either: fixed **4.1% → 6.9%** (worse), structure **9.7% → 10.3%** (worse), semantic **10.3% → 8.3%** (better). Full report: `evals/reports/v0/reranker.md`. Leading candidate explanation, not proven: RRF fusion already combines two complementary signals -- BM25's exact-match on this corpus's 797 code identifiers (D1) and dense semantic similarity -- and a general-purpose MS MARCO cross-encoder, trained on web-passage QA rather than API documentation, is a *third*, weaker opinion on exactly the queries where lexical match already wins. Reported as a negative result, the way D43 reported dedup's, rather than shipped anyway. |
+| D54 | **RRF weights are configurable and swept; the equal 1:1 default is kept** | The brief requires fusion to be "configurable so you can tune it" (D20 built the knob; this exercises it). Dense:sparse swept 0.25:1 to 4:1 on the winning arm (hybrid/fixed), $0, no language model. Recall@5 is flat at 0.897 from 0.5:1 through 4:1 and drops only when sparse dominates outright (0.25:1 → 0.828). nDCG@10 is highest at 0.5:1 (favouring sparse 2x) at 0.819 against 1:1's 0.794, but only Recall@5 was paired-bootstrapped here, and every non-baseline interval on it includes zero -- so the apparent nDCG edge is not established as more than noise, and the unweighted default stays. Full table: `evals/reports/v0/rrf_weights.md`. |
 | D55 | **Supersedes D31's "$0 interactive-demo path": default generation switched from Gemini free tier to `gpt-5-mini-2025-08-07`**, via `HYBRIDRAG_GENERATION_PROVIDER`/`_MODEL` in `.env` (code default in `config.py` untouched, so D4/D31 still describe what a clean checkout does) | D31 assumed 20 req/day was ample for interactive use; the Phase 5.2 dashboard breaks that assumption by design (every question fires hybrid *and* dense-only concurrently, 2 generation calls each, to show the comparison the brief asks for on every question rather than behind a toggle). Measured directly: `GeminiModel`'s client-side pacer (`gemini.py:137`) hard-caps the *process* to 5 req/min regardless of concurrency, so two concurrent dashboard calls already serialise behind a 12s gate — and a single **unpaced, unthrottled** call still measured **28.5s** (free-tier backend load, not just quota). The same question pair on `gpt-5-mini`: **3.8s and 3.9s, running genuinely concurrently**, both answers correct and cited, at **$0.0012 + $0.0011 = ~$0.0023/question-pair** — the $0.50 generation allowance (already raised for this) covers ~200 such pairs. Gemini stays available and free (`HYBRIDRAG_GENERATION_PROVIDER=gemini`) for anyone running this without spending money; it is no longer what the dashboard uses by default. |
 
 ## Environment (measured)
@@ -158,7 +158,7 @@ query embeddings are cached: Tier 1 involves no language model at all.
       both provenance), the confidence breakdown, and cost/latency telemetry; 32 tests
 - [ ] Phase 5.3 — Docker + seed script (not built; see "Known risks" and Next step)
 - [x] Phase 6 — README, Mermaid architecture diagram, LICENSE, numbers-first case study
-      pulling every headline figure straight from `evals/reports/`
+      pulling every headline figure straight from `evals/reports/v0/`
 
 ## Known risks
 
@@ -231,7 +231,7 @@ Against the same work locally at ~28 minutes, that is **~96x faster**.
 
 ## Tier-1 retrieval results (2026-09-06, 29 answerable questions)
 
-Full report: `evals/reports/retrieval.md`; raw records: `evals/reports/retrieval_results.json`.
+Full report: `evals/reports/v0/retrieval.md`; raw records: `evals/reports/v0/retrieval_results.json`.
 The grid is nine arms — three chunking strategies x three retrievers — scored on span
 coverage, every number carrying a 95% percentile bootstrap interval, every comparison a
 *paired* bootstrap over the same resampled questions.
@@ -297,7 +297,7 @@ for the keyless path.
 
 ## Judge validation (2026-09-06, 20 hand-adjudicated items)
 
-Full report: `evals/reports/judge_agreement.md`. Answers came from `gpt-5-nano` on the
+Full report: `evals/reports/v0/judge_agreement.md`. Answers came from `gpt-5-nano` on the
 Tier-1 winning arm (`hybrid/fixed`); the sample was stratified toward failures on purpose,
 so its correctness rate says nothing about the system.
 
@@ -345,7 +345,7 @@ the $0.16-0.22 estimated before the judge existed.
 
 ## Tier-2 answer quality (re-run 2026-09-07, 35 questions x 2 arms)
 
-Full report: `evals/reports/answers.md`. Generator `gpt-5-nano`, judge `gpt-5-mini`
+Full report: `evals/reports/v0/answers.md`. Generator `gpt-5-nano`, judge `gpt-5-mini`
 (kappa 0.730 against human labels). Cost **$0.0477** originally, **$0.0117** to re-run.
 
 | arm | correct | correct or partial | grounded | cited honestly | cost/answer |
@@ -445,7 +445,7 @@ are now built and measured.
 
 ### Citation verification — does `[3]` support the claim attached to it?
 
-Full report: `evals/reports/citation_verification.md`. Verifier `gpt-5-mini`, 29 answerable
+Full report: `evals/reports/v0/citation_verification.md`. Verifier `gpt-5-mini`, 29 answerable
 questions, 56 cited claims out of 108 total.
 
 | measure | value |
@@ -502,7 +502,7 @@ exist. If that decision changes, Phase 5.3 is picked back up as its own phase.
 
 ### Phase 6 — README and case study (2026-09-08)
 
-`README.md` pulls every headline figure directly from `evals/reports/` — Tier 1 retrieval
+`README.md` pulls every headline figure directly from `evals/reports/v0/` — Tier 1 retrieval
 (hybrid vs. dense vs. sparse), Tier 2 answer quality, the citation-verification negative
 control, and the reranker's negative result (D53) reported beside the wins rather than
 omitted: measured numbers first, negative results reported honestly. A Mermaid architecture diagram renders natively on GitHub.
@@ -540,8 +540,8 @@ $0 on Gemini -- D55 has the measured before/after.
 Built the reranker (D8, D52), judged it on Tier 1 only per the settled brief (never Tier 2,
 which sits at its ceiling, D39), and it did not earn a place as the default: see D53 for the
 measured paired-bootstrap comparison and the distractor-rate table, and
-`evals/reports/reranker.md` for the full report. RRF weights are now configurable and swept
-(D54): `evals/reports/rrf_weights.md`. Both add $0 to spend -- no language model, no
+`evals/reports/v0/reranker.md` for the full report. RRF weights are now configurable and swept
+(D54): `evals/reports/v0/rrf_weights.md`. Both add $0 to spend -- no language model, no
 external index rebuild, ~168s and ~4s wall-clock respectively.
 
 The reranker's code stays in the tree (`hybridrag.retrieval.rerank`, opt-in via

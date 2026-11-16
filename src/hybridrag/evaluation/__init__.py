@@ -9,6 +9,7 @@ from hybridrag.evaluation.golden import (
     LocatedSpan,
     QuestionCategory,
     SpanNotFoundError,
+    Split,
     covered_ratio,
     is_hit,
 )
@@ -87,6 +88,7 @@ __all__ = [
     "RefusalProbe",
     "RerankerRun",
     "SpanNotFoundError",
+    "Split",
     "Verdict",
     "answerable",
     "bootstrap_ci",

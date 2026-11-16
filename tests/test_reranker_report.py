@@ -8,7 +8,7 @@ best tested against scores chosen to force a specific outcome.
 
 from __future__ import annotations
 
-from hybridrag.evaluation.golden import QuestionCategory
+from hybridrag.evaluation.golden import QuestionCategory, Split
 from hybridrag.evaluation.harness import ArmResult
 from hybridrag.evaluation.metrics import QuestionMetrics
 from hybridrag.evaluation.report import Provenance, RerankerRun, render_reranker_report
@@ -48,6 +48,7 @@ def provenance(*, resamples: int = 500) -> Provenance:
         git_sha="abc1234",
         git_dirty=False,
         corpus_ref="test",
+        split=Split.TUNING,
         embedding_model="stub",
         chunk_tokens=512,
         chunk_overlap_tokens=64,
@@ -140,3 +141,13 @@ class TestReport:
         markdown = render_reranker_report(run)
 
         assert "nan%" in markdown
+
+
+def test_the_provenance_line_names_the_split() -> None:
+    run = RerankerRun(
+        provenance=provenance(),
+        baselines=[arm("hybrid", ChunkingStrategy.FIXED, BASELINE_QUESTIONS, ["guide.md"])],
+        reranked=[arm("reranked", ChunkingStrategy.FIXED, RERANKED_QUESTIONS, ["guide.md"])],
+    )
+
+    assert "split `tuning`" in render_reranker_report(run)
