@@ -1,0 +1,11 @@
+#!/bin/sh
+# Pre-commit gate: the fast, offline half of CI (lint, format, types; about 4 s).
+# Tests stay in CI and in the done check, because they download the embedding model.
+# Enable once per clone: git config core.hooksPath .githooks
+# Skip once, for a work-in-progress commit only: git commit --no-verify
+set -e
+unset VIRTUAL_ENV  # an outer venv must not replace this repo's .venv
+echo "pre-commit: ruff check, ruff format --check, mypy"
+uv run --locked ruff check .
+uv run --locked ruff format --check .
+uv run --locked mypy
